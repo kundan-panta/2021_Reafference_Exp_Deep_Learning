@@ -1,6 +1,6 @@
 # %%
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 # %%
 # all files to extract the data from (collected at multiple locations)
@@ -14,9 +14,6 @@ for i in range(N_files):
 
 # choose trajectory name for which to process data
 trajectory_name = '30deg'
-
-# I might have to use a for loop (for ease) at each location, since the length of data at each location might differ by a small number
-
 
 # %%
 # for each file, I need 6 components of rms ft
@@ -78,8 +75,27 @@ for k in range(N_files):
     rms_norm_all[k, :] = np.mean(rms_norm_cycle, axis=0)
 
 # %%
-import matplotlib.pyplot as plt
-
-for i in range(6):
+for i in range(3):  # forces
     plt.figure()
-    plt.plot()
+    plt.xlabel('Distances from wall (cm)')
+    plt.ylabel('Force ' + str(i+1) + ' (N)')
+    plt.plot(file_names_float, rms_all[:, i])
+
+for i in range(3):  # torques
+    plt.figure()
+    plt.xlabel('Distances from wall (cm)')
+    plt.ylabel('Torque ' + str(i+1) + ' (N-mm)')
+    plt.plot(file_names_float, rms_all[:, i+3])
+
+# norm
+plt.figure()
+plt.xlabel('Distances from wall (cm)')
+plt.ylabel('Force (Combined) (N)')
+plt.plot(file_names_float, rms_norm_all[:, 0])
+
+plt.figure()
+plt.xlabel('Distances from wall (cm)')
+plt.ylabel('Torque (Combined) (N-mm)')
+plt.plot(file_names_float, rms_norm_all[:, 1])
+
+# %%
