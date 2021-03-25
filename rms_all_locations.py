@@ -14,8 +14,8 @@ trajectory_name = '30deg'
 
 # %%
 # for each file, I need 6 components of rms ft
-rms = np.zeros((N_files, 6))
-rms_norm = np.zeros((N_files, 2))
+rms_all = np.zeros((N_files, 6))
+rms_norm_all = np.zeros((N_files, 2))
 
 # %%
 for k in range(N_files):
@@ -68,23 +68,22 @@ for k in range(N_files):
     # 3d matrix, 1st dim is a param set, 2nd dim is stroke cycle, 3rd dim are the 6 FT
     # need to have same number of cycles for each param set
     # at the same time, also do the same for the magnitude of FT instead of the 3 directions separately
-    rms_all = np.zeros((N_param, N_cycles, 6))
-    rms_norm_all = np.zeros((N_param, N_cycles, 2))
+    rms = np.zeros((N_cycles, 6))
+    rms_norm = np.zeros((N_cycles, 2))
 
     # calculate RMS values for each FT, for each stroke cycle, for each param set
-    for i in range(N_param):
-        for j in range(N_cycles):
-            # get ft_meas_cycle
-            ft_meas_cycle = ft_meas[:, (cpg_param_change_idx[i] + j*N_per_cycle[i]):(cpg_param_change_idx[i] + (j+1)*N_per_cycle[i])]
-            # take norm of F and T separately
-            f_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[0:3, :], axis=0)
-            T_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[3:6, :], axis=0)
+    for j in range(N_cycles):
+        # get ft_meas_cycle
+        ft_meas_cycle = ft_meas[:, (j*N_per_cycle):((j+1)*N_per_cycle)]
+        # take norm of F and T separately
+        f_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[0:3, :], axis=0)
+        T_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[3:6, :], axis=0)
 
-            # rms
-            rms_all[i, j, :] = np.sqrt(1/N_per_cycle[i] * np.sum(ft_meas_cycle**2, axis=1))
-            rms_norm_all[i, j, 0] = np.sqrt(1/N_per_cycle[i] * np.sum(f_meas_norm_cycle**2))
-            rms_norm_all[i, j, 1] = np.sqrt(1/N_per_cycle[i] * np.sum(T_meas_norm_cycle**2))
+        # rms
+        rms[j, :] = np.sqrt(1/N_per_cycle * np.sum(ft_meas_cycle**2, axis=1))
+        rms_norm[j, 0] = np.sqrt(1/N_per_cycle * np.sum(f_meas_norm_cycle**2))
+        rms_norm[j, 1] = np.sqrt(1/N_per_cycle * np.sum(T_meas_norm_cycle**2))
 
     # average the FT RMS for across all stroke cycles
-    rms_avg = np.mean(rms_all, axis=1)
-    rms_norm_avg = np.mean(rms_norm_all, axis=1)
+    rms_all[k, :] = np.mean(rms, axis=0)
+    rms_norm_all[k, :] = np.mean(rms_norm, axis=0)
