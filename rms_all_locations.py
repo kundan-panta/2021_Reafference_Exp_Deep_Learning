@@ -45,24 +45,17 @@ for k in range(N_files):
 
     # find points where a new stroke cycle is started
     t_s = round(t[1] - t[0], 3)  # sample time
-    f_param = cpg_param[-1, cpg_param_change_idx]  # store frequencies of each param set
+    f_param = cpg_param[-1, 0]  # store frequencies of each param set
     t_cycle_param = np.around(1 / f_param, decimals=3)  # stroke cycle time
 
     # calculate number of cycles
-    t_param = np.zeros(N_param)  # period of time over which data has been collected for each param set
-    for i in range(N_param):
-        if i < N_param-1:
-            t_param[i] = t[cpg_param_change_idx[i+1] - 1] - t[cpg_param_change_idx[i]]
-        else:
-            t_param[i] = t[-1] - t[cpg_param_change_idx[i]]
+    t_param = t[-1]  # period of time over which data has been collected for each param set
     t_param += t_s  # including first point
     t_param = np.around(t_param, decimals=3)
 
     N_cycles = (t_param / t_cycle_param).astype(int)  # total time of data collection / time for 1 stroke cycle
-    if np.any(N_cycles != N_cycles[0]):
-        print('Different number of cycles for different parameter sets.')
-        raise
-    N_cycles = N_cycles[0]
+    print('Number of stroke cycles:')
+    print(N_cycles)
 
     # calculate number of data points per cycle
     N_per_cycle = (t_cycle_param / t_s).astype(int)
