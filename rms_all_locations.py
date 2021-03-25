@@ -17,10 +17,8 @@ trajectory_name = '30deg'
 rms = np.zeros((N_files, 6))
 rms_norm = np.zeros((N_files, 2))
 
+# %%
 for k in range(N_files):
-    # %%
-    # file_locations
-
     # get data
     t = np.around(np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
     ft_meas = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
@@ -31,18 +29,18 @@ for k in range(N_files):
     N = len(cpg_param[1])  # number of data points
 
     ####################### WILL BE OBSOLETE ########################
-    # find points where new cpg parameters are used
-    cpg_param_change = cpg_param[:, 0:(N-1)] - cpg_param[:, 1:N]
-    cpg_param_change_idx = np.nonzero(cpg_param_change)[1] + 1
-    # [1] means take the 2nd input of the nonzero() fcn, which gives where nonzero input by column
-    # +1 needed so idx is for start of new param set, rather than end of old param set
+    # # find points where new cpg parameters are used
+    # cpg_param_change = cpg_param[:, 0:(N-1)] - cpg_param[:, 1:N]
+    # cpg_param_change_idx = np.nonzero(cpg_param_change)[1] + 1
+    # # [1] means take the 2nd input of the nonzero() fcn, which gives where nonzero input by column
+    # # +1 needed so idx is for start of new param set, rather than end of old param set
 
-    # test = cpg_param[:, cpg_param_change_idx[1] - 1]  # checking if the cpg params really change at the index
+    # # test = cpg_param[:, cpg_param_change_idx[1] - 1]  # checking if the cpg params really change at the index
 
-    cpg_param_change_idx = np.insert(cpg_param_change_idx, 0, 0)  # including the first one
-    cpg_param_change_idx = cpg_param_change_idx.astype(int)
+    # cpg_param_change_idx = np.insert(cpg_param_change_idx, 0, 0)  # including the first one
+    # cpg_param_change_idx = cpg_param_change_idx.astype(int)
 
-    N_param = len(cpg_param_change_idx)  # number of param sets
+    # N_param = len(cpg_param_change_idx)  # number of param sets
     #################################################################
 
     # find points where a new stroke cycle is started
