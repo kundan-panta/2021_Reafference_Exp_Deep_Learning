@@ -1,6 +1,7 @@
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
+from numpy.core.fromnumeric import size
 
 # %%
 # all files to extract the data from (collected at multiple locations)
@@ -74,7 +75,7 @@ for k in range(N_files):
     rms_all[k, :] = np.mean(rms_cycle, axis=0)
     rms_norm_all[k, :] = np.mean(rms_norm_cycle, axis=0)
 
-# %%
+# %% separate plots
 for i in range(3):  # forces
     plt.figure()
     plt.xlabel('Distances from wall (cm)')
@@ -94,6 +95,34 @@ plt.ylabel('Force (Combined) (N)')
 plt.plot(file_names_float, rms_norm_all[:, 0])
 
 plt.figure()
+plt.xlabel('Distances from wall (cm)')
+plt.ylabel('Torque (Combined) (N-mm)')
+plt.plot(file_names_float, rms_norm_all[:, 1])
+
+# %% subplots
+plt.figure()
+
+for i in range(3):  # forces
+    plt.subplot(2, 3, i+1)
+    plt.xlabel('Distances from wall (cm)')
+    plt.ylabel('Force ' + str(i+1) + ' (N)')
+    plt.plot(file_names_float, rms_all[:, i])
+
+for i in range(3):  # torques
+    plt.subplot(2, 3, 3+(i+1))
+    plt.xlabel('Distances from wall (cm)')
+    plt.ylabel('Torque ' + str(i+1) + ' (N-mm)')
+    plt.plot(file_names_float, rms_all[:, i+3])
+
+# norm
+plt.figure()
+
+plt.subplot(1, 2, 1)
+plt.xlabel('Distances from wall (cm)')
+plt.ylabel('Force (Combined) (N)')
+plt.plot(file_names_float, rms_norm_all[:, 0])
+
+plt.subplot(1, 2, 2)
 plt.xlabel('Distances from wall (cm)')
 plt.ylabel('Torque (Combined) (N-mm)')
 plt.plot(file_names_float, rms_norm_all[:, 1])
