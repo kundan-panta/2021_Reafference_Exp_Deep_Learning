@@ -48,13 +48,14 @@ for k in range(N_files):
     # calculate number of data points per cycle
     N_per_cycle = (t_cycle_param / t_s).astype(int)
 
+    print('Number of data points in a cycle:')
+    print(N_per_cycle)
+
     # print number of unused data points
     print('Number of unused data points:')
     print((t_param / t_s).astype(int) - N_per_cycle * N_cycles)  # total # of data points - # of data points used
 
-    # 3d matrix, 1st dim is a param set, 2nd dim is stroke cycle, 3rd dim are the 6 FT
-    # need to have same number of cycles for each param set
-    # at the same time, also do the same for the magnitude of FT instead of the 3 directions separately
+    # collect rms data for each cycle -- may not be necessary
     rms_cycle = np.zeros((N_cycles, 6))
     rms_norm_cycle = np.zeros((N_cycles, 2))
 
@@ -76,31 +77,31 @@ for k in range(N_files):
     rms_norm_all[k, :] = np.mean(rms_norm_cycle, axis=0)
 
 # %% separate plots
-for i in range(3):  # forces
-    plt.figure()
-    plt.xlabel('Distances from wall (cm)')
-    plt.ylabel('Force ' + str(i+1) + ' (N)')
-    plt.plot(file_names_float, rms_all[:, i])
+# for i in range(3):  # forces
+#     plt.figure()
+#     plt.xlabel('Distances from wall (cm)')
+#     plt.ylabel('Force ' + str(i+1) + ' (N)')
+#     plt.plot(file_names_float, rms_all[:, i])
 
-for i in range(3):  # torques
-    plt.figure()
-    plt.xlabel('Distances from wall (cm)')
-    plt.ylabel('Torque ' + str(i+1) + ' (N-mm)')
-    plt.plot(file_names_float, rms_all[:, i+3])
+# for i in range(3):  # torques
+#     plt.figure()
+#     plt.xlabel('Distances from wall (cm)')
+#     plt.ylabel('Torque ' + str(i+1) + ' (N-mm)')
+#     plt.plot(file_names_float, rms_all[:, i+3])
 
-# norm
-plt.figure()
-plt.xlabel('Distances from wall (cm)')
-plt.ylabel('Force (Combined) (N)')
-plt.plot(file_names_float, rms_norm_all[:, 0])
+# # norm
+# plt.figure()
+# plt.xlabel('Distances from wall (cm)')
+# plt.ylabel('Force (Combined) (N)')
+# plt.plot(file_names_float, rms_norm_all[:, 0])
 
-plt.figure()
-plt.xlabel('Distances from wall (cm)')
-plt.ylabel('Torque (Combined) (N-mm)')
-plt.plot(file_names_float, rms_norm_all[:, 1])
+# plt.figure()
+# plt.xlabel('Distances from wall (cm)')
+# plt.ylabel('Torque (Combined) (N-mm)')
+# plt.plot(file_names_float, rms_norm_all[:, 1])
 
 # %% subplots
-plt.figure()
+plt.figure(figsize=(18, 9))
 
 for i in range(3):  # forces
     plt.subplot(2, 3, i+1)
@@ -114,8 +115,10 @@ for i in range(3):  # torques
     plt.ylabel('Torque ' + str(i+1) + ' (N-mm)')
     plt.plot(file_names_float, rms_all[:, i+3])
 
+plt.show()
+
 # norm
-plt.figure()
+plt.figure(figsize=(18, 6))
 
 plt.subplot(1, 2, 1)
 plt.xlabel('Distances from wall (cm)')
@@ -126,5 +129,7 @@ plt.subplot(1, 2, 2)
 plt.xlabel('Distances from wall (cm)')
 plt.ylabel('Torque (Combined) (N-mm)')
 plt.plot(file_names_float, rms_norm_all[:, 1])
+
+plt.show()
 
 # %%
