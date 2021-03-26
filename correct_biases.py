@@ -21,22 +21,16 @@ def correct_biases(ft_meas, ft_bias, ang_bias, gravity_bias):
 
     # rotate to offset sensor coordinates by ang_bias
     # note that this rotation matrix is actually the transpose of the normal one
-    rotz_angle = [[np.cos(ang_bias), np.sin(ang_bias), 0], [-np.sin(ang_bias), np.cos(ang_bias), 0], [0, 0, 1]]
-    ft_meas = np.dot([[rotz_angle, np.zeros((3, 3))], [np.zeros((3, 3)), rotz_angle]], ft_meas)
+    rotz_angle = np.array([[np.cos(ang_bias), np.sin(ang_bias), 0], [-np.sin(ang_bias), np.cos(ang_bias), 0], [0, 0, 1]])
+    ft_meas = np.dot(np.r_[np.c_[rotz_angle, np.zeros((3, 3))], np.c_[np.zeros((3, 3)), rotz_angle]], ft_meas)
 
     ft_meas -= gravity_bias  # remove static forces in angle corrected frame
 
     # convert to normal coordinates
-    roty = [[np.cos(-np.pi/2), 0, np.sin(-np.pi/2)],
-            [0, 1, 0],
-            [-np.sin(-np.pi/2), 0, np.cos(-np.pi/2)]]
+    R = np.array([[0, 1, 0],
+                  [0, 0, 1],
+                  [1, 0, 0]], dtype=float)
 
-    rotx = [[1, 0, 0],
-            [0, np.cos(-np.pi/2), -np.sin(-np.pi/2)],
-            [0, np.sin(-np.pi/2), np.cos(-np.pi/2)]]
-
-    R = np.dot(roty, rotx)
-
-    ft_meas = np.dot([[R, np.zeros((3, 3))], [np.zeros((3, 3)), R]], ft_meas)
+    ft_meas = np.dot(np.r_[np.c_[R, np.zeros((3, 3))], np.c_[np.zeros((3, 3)), R]], ft_meas)
 
     return ft_meas
