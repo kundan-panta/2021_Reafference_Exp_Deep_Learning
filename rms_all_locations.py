@@ -1,6 +1,7 @@
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
+from correct_biases import correct_biases
 
 # %%
 # all files to extract the data from (collected at multiple locations)
@@ -36,7 +37,7 @@ for k in range(N_files):
         gravity_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'gravity_bias.csv', delimiter=',', unpack=True)
 
         # remove the three biases and rotate the frame to align with normally used frame
-        ft_meas = correct_biases(ft_meas, ft_bias, ang_bias, gravity_bias)
+        ft_meas = correct_biases(ft_meas, ft_bias[:, 0], ang_bias[0], gravity_bias[:, 0])
 
     N = len(cpg_param[1])  # number of data points
 
