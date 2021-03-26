@@ -15,18 +15,28 @@ for i in range(N_files):
 # choose trajectory name for which to process data
 trajectory_name = '30deg'
 
+# parameter to choose if biases should be corrected
+biases = True
+
 # %%
 # for each file, I need 6 components of rms ft
 rms_all = np.zeros((N_files, 6))
 rms_norm_all = np.zeros((N_files, 2))
 
-# %%
 for k in range(N_files):
     # get data
     t = np.around(np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
     ft_meas = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
     ang_meas = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
     cpg_param = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
+
+    if biases:
+        ft_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_bias.csv', delimiter=',', unpack=True)
+        ang_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ang_bias.csv', delimiter=',', unpack=True)
+        gravity_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'gravity_bias.csv', delimiter=',', unpack=True)
+
+        # remove the three biases and rotate the frame to align with normally used frame
+        ft_meas = correct_biases(ft_meas, ft_bias, ang_bias, gravity_bias)
 
     N = len(cpg_param[1])  # number of data points
 
@@ -75,7 +85,7 @@ for k in range(N_files):
     rms_all[k, :] = np.mean(rms_cycle, axis=0)
     rms_norm_all[k, :] = np.mean(rms_norm_cycle, axis=0)
 
-# %% separate plots
+# %% separate plots for all ft
 # for i in range(3):  # forces
 #     plt.figure()
 #     plt.xlabel('Distances from wall (cm)')
