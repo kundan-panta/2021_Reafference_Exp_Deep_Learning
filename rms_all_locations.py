@@ -1,7 +1,6 @@
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
-from numpy.core.fromnumeric import size
 
 # %%
 # all files to extract the data from (collected at multiple locations)
@@ -33,27 +32,27 @@ for k in range(N_files):
 
     # find points where a new stroke cycle is started
     t_s = round(t[1] - t[0], 3)  # sample time
-    f_param = cpg_param[-1, 0]  # store frequencies of each param set
-    t_cycle_param = np.around(1 / f_param, decimals=3)  # stroke cycle time
+    freq = cpg_param[-1, 0]  # store frequencies of each param set
+    t_cycle = np.around(1 / freq, decimals=3)  # stroke cycle time
 
     # calculate number of cycles
-    t_param = t[-1]  # period of time over which data has been collected for each param set
-    t_param += t_s  # including first point
-    t_param = np.around(t_param, decimals=3)
+    t_total = t[-1]  # period of time over which data has been collected for each param set
+    t_total += t_s  # including first point
+    t_total = np.around(t_total, decimals=3)
 
-    N_cycles = (t_param / t_cycle_param).astype(int)  # total time of data collection / time for 1 stroke cycle
+    N_cycles = (t_total / t_cycle).astype(int)  # total time of data collection / time for 1 stroke cycle
     print('Number of stroke cycles:')
     print(N_cycles)
 
     # calculate number of data points per cycle
-    N_per_cycle = (t_cycle_param / t_s).astype(int)
+    N_per_cycle = (t_cycle / t_s).astype(int)
 
     print('Number of data points in a cycle:')
     print(N_per_cycle)
 
     # print number of unused data points
     print('Number of unused data points:')
-    print((t_param / t_s).astype(int) - N_per_cycle * N_cycles)  # total # of data points - # of data points used
+    print((t_total / t_s).astype(int) - N_per_cycle * N_cycles)  # total # of data points - # of data points used
 
     # collect rms data for each cycle -- may not be necessary
     rms_cycle = np.zeros((N_cycles, 6))
