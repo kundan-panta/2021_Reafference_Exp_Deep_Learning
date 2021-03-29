@@ -27,8 +27,8 @@ def correct_biases(ft_meas, ft_bias, ang_bias, gravity_bias):
     ft_meas -= gravity_bias  # remove static forces in angle corrected frame
 
     # convert to normal coordinates
-    R = np.array([[0, 1, 0],
-                  [0, 0, 1],
+    R = np.array([[0, -1, 0],
+                  [0, 0, -1],
                   [1, 0, 0]], dtype=float)
 
     ft_meas = np.dot(np.r_[np.c_[R, np.zeros((3, 3))], np.c_[np.zeros((3, 3)), R]], ft_meas)
