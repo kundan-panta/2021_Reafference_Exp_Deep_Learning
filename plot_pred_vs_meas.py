@@ -68,3 +68,5 @@ for k in range(N_files):
         plt.plot(t[0:1000], ft_meas[i+3, 0:1000])
 
     plt.show()
+
+# %%
