@@ -27,6 +27,7 @@ rms_norm_all = np.zeros((N_files, 2))
 for k in range(N_files):
     # get data
     t = np.around(np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
+    ft_pred = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
     ft_meas = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
     ang_meas = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
     cpg_param = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
@@ -70,7 +71,11 @@ for k in range(N_files):
     rms_norm_cycle = np.zeros((N_cycles, 2))
 
     ####### normalize?? #########
-    # ft_meas /= np.max(abs(ft_meas), axis=1, keepdims=True)  # divide by max value in each row
+    ft_pred /= np.max(abs(ft_pred), axis=1, keepdims=True)  # divide by max value in each row
+    ft_meas /= np.max(abs(ft_meas), axis=1, keepdims=True)  # divide by max value in each row
+
+    ####### take difference?? #########
+    ft_meas -= ft_pred
 
     # calculate RMS values for each FT, for each stroke cycle, for each param set
     for j in range(N_cycles):
@@ -78,8 +83,8 @@ for k in range(N_files):
         ft_meas_cycle = ft_meas[:, (j*N_per_cycle):((j+1)*N_per_cycle)]
 
         # take norm of F and T separately
-        f_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[0:3, :], axis=0)
-        # f_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[[0, 2], :], axis=0)  # only x and z forces
+        # f_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[0:3, :], axis=0)
+        f_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[[0, 2], :], axis=0)  # only x and z forces
         T_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[3:6, :], axis=0)
 
         # rms
