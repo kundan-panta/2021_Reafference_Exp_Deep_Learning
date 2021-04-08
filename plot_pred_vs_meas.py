@@ -1,7 +1,7 @@
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
-from correct_biases import correct_biases
+# from correct_biases import correct_biases
 
 # %%
 # all files to extract the data from (collected at multiple locations)
@@ -9,15 +9,15 @@ file_names = ['30']
 N_files = len(file_names)
 
 # also convert the list into an array of floats
-file_names_float = np.zeros(N_files)
-for i in range(N_files):
-    file_names_float[i] = float(file_names[i])
+# file_names_float = np.zeros(N_files)
+# for i in range(N_files):
+#     file_names_float[i] = float(file_names[i])
 
 # choose trajectory name for which to process data
 trajectory_name = '30deg'
 
 # parameter to choose if biases should be corrected
-biases = True
+# biases = True
 
 # %%
 for k in range(N_files):
@@ -28,13 +28,13 @@ for k in range(N_files):
     ang_meas = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
     cpg_param = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
 
-    if biases:
-        ft_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_bias.csv', delimiter=',', unpack=True)
-        ang_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ang_bias.csv', delimiter=',', unpack=True)
-        gravity_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'gravity_bias.csv', delimiter=',', unpack=True)
+    # if biases:
+    #     ft_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_bias.csv', delimiter=',', unpack=True)
+    #     ang_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ang_bias.csv', delimiter=',', unpack=True)
+    #     gravity_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'gravity_bias.csv', delimiter=',', unpack=True)
 
-        # remove the three biases and rotate the frame to align with normally used frame
-        ft_meas = correct_biases(ft_meas, ft_bias[:, 0], ang_bias[0], gravity_bias[:, 0])
+    #     # remove the three biases and rotate the frame to align with normally used frame
+    #     ft_meas = correct_biases(ft_meas, ft_bias[:, 0], ang_bias[0], gravity_bias[:, 0])
 
     # plot pred vs meas
     plt.figure(figsize=(18, 6))
@@ -59,7 +59,7 @@ for k in range(N_files):
         plt.subplot(2, 3, i+1)
         plt.xlabel('Time (s)')
         plt.ylabel('Torque ' + str(i+1) + ' (QS) (N-mm)')
-        plt.plot(t[0:1000], ft_pred[i+3, 0:1000]*1000)  # convert to N-mm from N-m
+        plt.plot(t[0:1000], ft_pred[i+3, 0:1000])
 
     for i in range(3):  # T_meas
         plt.subplot(2, 3, 3+(i+1))
