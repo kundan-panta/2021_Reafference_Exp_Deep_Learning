@@ -5,13 +5,14 @@ import matplotlib.pyplot as plt
 
 # %%
 # all files to extract the data from (collected at multiple locations)
-file_names = ['12', '14', '16', '18', '20', '22', '24', '26', '28', '30']
+file_names = ['0', '3', '6', '12', '18', '22']
 N_files = len(file_names)
 
 # also convert the list into an array of floats
 file_names_float = np.zeros(N_files)
 for i in range(N_files):
     file_names_float[i] = float(file_names[i])
+file_names_float += 3  # offset between ruler reading and distance from wing tip to wall
 
 # choose trajectory name for which to process data
 trajectory_name = '30deg'
@@ -71,8 +72,8 @@ for k in range(N_files):
     rms_norm_cycle = np.zeros((N_cycles, 2))
 
     ####### normalize?? #########
-    ft_pred /= np.max(abs(ft_pred), axis=1, keepdims=True)  # divide by max value in each row
-    ft_meas /= np.max(abs(ft_meas), axis=1, keepdims=True)  # divide by max value in each row
+    # ft_pred /= np.max(abs(ft_pred), axis=1, keepdims=True)  # divide by max value in each row
+    # ft_meas /= np.max(abs(ft_meas), axis=1, keepdims=True)  # divide by max value in each row
 
     ####### take difference?? #########
     # ft_meas -= ft_pred
@@ -95,6 +96,42 @@ for k in range(N_files):
     # average the FT RMS for across all stroke cycles
     rms_all[k, :] = np.mean(rms_cycle, axis=0)
     rms_norm_all[k, :] = np.mean(rms_norm_cycle, axis=0)
+
+# %% subplots
+plt.rcParams.update({"savefig.facecolor": (1.0, 1.0, 1.0, 1)})  # disable transparent background
+
+plt.figure(figsize=(18, 9))
+
+for i in range(3):  # forces
+    plt.subplot(2, 3, i+1)
+    plt.xlabel('Distances of wing tip from wall (cm)')
+    plt.ylabel('Force ' + str(i+1) + ' (N)')
+    plt.plot(file_names_float, rms_all[:, i])
+
+for i in range(3):  # torques
+    plt.subplot(2, 3, 3+(i+1))
+    plt.xlabel('Distances of wing tip from wall (cm)')
+    plt.ylabel('Torque ' + str(i+1) + ' (N-mm)')
+    plt.plot(file_names_float, rms_all[:, i+3])
+
+plt.savefig('plots/2021.04.07/' + trajectory_name + '/rms.png')  # change this
+plt.show()
+
+# norm
+plt.figure(figsize=(18, 6))
+
+plt.subplot(1, 2, 1)
+plt.xlabel('Distances of wing tip from wall (cm)')
+plt.ylabel('Force (Combined) (N)')
+plt.plot(file_names_float, rms_norm_all[:, 0])
+
+plt.subplot(1, 2, 2)
+plt.xlabel('Distances of wing tip from wall (cm)')
+plt.ylabel('Torque (Combined) (N-mm)')
+plt.plot(file_names_float, rms_norm_all[:, 1])
+
+plt.savefig('plots/2021.04.07/' + trajectory_name + '/rms_magnitude.png')  # change this
+plt.show()
 
 # %% separate plots for all ft
 # for i in range(3):  # forces
@@ -119,37 +156,5 @@ for k in range(N_files):
 # plt.xlabel('Distances from wall (cm)')
 # plt.ylabel('Torque (Combined) (N-mm)')
 # plt.plot(file_names_float, rms_norm_all[:, 1])
-
-# %% subplots
-plt.figure(figsize=(18, 9))
-
-for i in range(3):  # forces
-    plt.subplot(2, 3, i+1)
-    plt.xlabel('Distances from wall (cm)')
-    plt.ylabel('Force ' + str(i+1) + ' (N)')
-    plt.plot(file_names_float, rms_all[:, i])
-
-for i in range(3):  # torques
-    plt.subplot(2, 3, 3+(i+1))
-    plt.xlabel('Distances from wall (cm)')
-    plt.ylabel('Torque ' + str(i+1) + ' (N-mm)')
-    plt.plot(file_names_float, rms_all[:, i+3])
-
-plt.show()
-
-# norm
-plt.figure(figsize=(18, 6))
-
-plt.subplot(1, 2, 1)
-plt.xlabel('Distances from wall (cm)')
-plt.ylabel('Force (Combined) (N)')
-plt.plot(file_names_float, rms_norm_all[:, 0])
-
-plt.subplot(1, 2, 2)
-plt.xlabel('Distances from wall (cm)')
-plt.ylabel('Torque (Combined) (N-mm)')
-plt.plot(file_names_float, rms_norm_all[:, 1])
-
-plt.show()
 
 # %%

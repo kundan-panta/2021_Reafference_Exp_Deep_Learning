@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 # %%
 # all files to extract the data from (collected at multiple locations)
-file_names = ['30']
+file_names = ['0', '3', '6', '12', '18', '22']
 N_files = len(file_names)
 
 # also convert the list into an array of floats
@@ -37,6 +37,8 @@ for k in range(N_files):
     #     ft_meas = correct_biases(ft_meas, ft_bias[:, 0], ang_bias[0], gravity_bias[:, 0])
 
     # plot pred vs meas
+    plt.rcParams.update({"savefig.facecolor": (1.0, 1.0, 1.0, 1)})  # disable transparent background
+
     plt.figure(figsize=(18, 6))
 
     for i in range(3):  # f_pred
@@ -51,7 +53,8 @@ for k in range(N_files):
         plt.ylabel('Force ' + str(i+1) + ' (Measured) (N)')
         plt.plot(t[0:1000], ft_meas[i, 0:1000])
 
-    plt.show()
+    plt.savefig('plots/2021.04.07/' + trajectory_name + '/pred_vs_meas_F_' + file_names[k] + '.png')  # change this
+    # plt.show()
 
     plt.figure(figsize=(18, 6))
 
@@ -67,6 +70,7 @@ for k in range(N_files):
         plt.ylabel('Torque ' + str(i+1) + ' (Measured) (N-mm)')
         plt.plot(t[0:1000], ft_meas[i+3, 0:1000])
 
-    plt.show()
+    plt.savefig('plots/2021.04.07/' + trajectory_name + '/pred_vs_meas_T_' + file_names[k] + '.png')  # change this
+    # plt.show()
 
 # %%

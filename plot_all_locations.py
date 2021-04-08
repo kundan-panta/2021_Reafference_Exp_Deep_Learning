@@ -55,7 +55,8 @@ for k in range(N_files):
     plt.plot(t[0:1000], ft_meas[2, 0:1000])  # change this (2)
     plt.plot(t[0:1000], ang_meas[0, 0:1000]*0.4, ':')  # change this (3): superpose with stroke angle
 
-# plt.show()
+plt.rcParams.update({"savefig.facecolor": (1.0, 1.0, 1.0, 1)})  # disable transparent background
 plt.savefig('plots/2021.04.07/30deg/all_meas_Fz_uncalibrated_30deg.png')  # and change this (4)
+# plt.show()
 
 # %%
