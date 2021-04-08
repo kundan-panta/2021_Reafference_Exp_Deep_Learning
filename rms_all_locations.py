@@ -75,6 +75,10 @@ for k in range(N_files):
     # ft_pred /= np.max(abs(ft_pred), axis=1, keepdims=True)  # divide by max value in each row
     # ft_meas /= np.max(abs(ft_meas), axis=1, keepdims=True)  # divide by max value in each row
 
+    ####### normalize?? (hankun method) #########
+    # ft_pred = (ft_pred - np.min(abs(ft_pred), axis=1, keepdims=True)) / (np.max(abs(ft_pred), axis=1, keepdims=True) - np.min(abs(ft_pred), axis=1, keepdims=True))
+    # ft_meas = (ft_meas - np.min(abs(ft_meas), axis=1, keepdims=True)) / (np.max(abs(ft_meas), axis=1, keepdims=True) - np.min(abs(ft_meas), axis=1, keepdims=True))
+
     ####### take difference?? #########
     # ft_meas -= ft_pred
 
