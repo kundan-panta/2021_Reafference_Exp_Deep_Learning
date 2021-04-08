@@ -1,7 +1,7 @@
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
-from correct_biases import correct_biases
+# from correct_biases import correct_biases
 
 # %%
 # all files to extract the data from (collected at multiple locations)
@@ -17,7 +17,7 @@ for i in range(N_files):
 trajectory_name = '30deg'
 
 # parameter to choose if biases should be corrected
-biases = True
+# biases = True
 
 # %%
 # for each file, I need 6 components of rms ft
@@ -32,13 +32,13 @@ for k in range(N_files):
     ang_meas = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
     cpg_param = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
 
-    if biases:
-        ft_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_bias.csv', delimiter=',', unpack=True)
-        ang_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ang_bias.csv', delimiter=',', unpack=True)
-        gravity_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'gravity_bias.csv', delimiter=',', unpack=True)
+    # if biases:
+    #     ft_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_bias.csv', delimiter=',', unpack=True)
+    #     ang_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ang_bias.csv', delimiter=',', unpack=True)
+    #     gravity_bias = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'gravity_bias.csv', delimiter=',', unpack=True)
 
-        # remove the three biases and rotate the frame to align with normally used frame
-        ft_meas = correct_biases(ft_meas, ft_bias[:, 0], ang_bias[0], gravity_bias[:, 0])
+    #     # remove the three biases and rotate the frame to align with normally used frame
+    #     ft_meas = correct_biases(ft_meas, ft_bias[:, 0], ang_bias[0], gravity_bias[:, 0])
 
     N = len(cpg_param[1])  # number of data points
 
@@ -75,7 +75,7 @@ for k in range(N_files):
     ft_meas /= np.max(abs(ft_meas), axis=1, keepdims=True)  # divide by max value in each row
 
     ####### take difference?? #########
-    ft_meas -= ft_pred
+    # ft_meas -= ft_pred
 
     # calculate RMS values for each FT, for each stroke cycle, for each param set
     for j in range(N_cycles):
@@ -83,8 +83,8 @@ for k in range(N_files):
         ft_meas_cycle = ft_meas[:, (j*N_per_cycle):((j+1)*N_per_cycle)]
 
         # take norm of F and T separately
-        # f_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[0:3, :], axis=0)
-        f_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[[0, 2], :], axis=0)  # only x and z forces
+        f_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[0:3, :], axis=0)
+        # f_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[[0, 2], :], axis=0)  # only x and z forces
         T_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[3:6, :], axis=0)
 
         # rms
