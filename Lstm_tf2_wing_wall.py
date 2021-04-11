@@ -8,7 +8,7 @@ from tensorflow import keras
 
 # %%
 # all files to extract the data from (collected at multiple locations)
-file_names = ['0', '12']
+file_names = ['3', '18']
 N_files = len(file_names)
 
 # also convert the list into an array of floats
@@ -42,7 +42,7 @@ N_per_cycle = round(t_cycle / t_s)
 print('Number of data points in a cycle:')
 print(N_per_cycle)
 
-N_cycles = 20
+# N_cycles = 50
 N_cycles = floor(N / N_per_cycle)  # floor(total data points / data points in a cycle)
 print('Number of stroke cycles:')
 print(N_cycles)
@@ -60,24 +60,33 @@ print('Number of testing stroke cycles:')
 print(N_cycles_test)
 
 # %%
-data = np.zeros((N_files * N_cycles * N_per_cycle, 6))  # all data
-x = np.zeros((N_files * N_cycles_train, 6, N_per_cycle))
+N_inputs = 7
+
+data = np.zeros((N_files * N_cycles * N_per_cycle, N_inputs))  # all data
+x = np.zeros((N_files * N_cycles_train, N_inputs, N_per_cycle))
 y = np.zeros((N_files * N_cycles_train))
-x_val = np.zeros((N_files * N_cycles_test, 6, N_per_cycle))
+x_val = np.zeros((N_files * N_cycles_test, N_inputs, N_per_cycle))
 y_val = np.zeros((N_files * N_cycles_test))
+
+############### alternative nominal FT - futhest from wall ###############
+ft_pred = np.loadtxt('22/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
 
 for k in range(N_files):
     # get data
     t = np.around(np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
-    ft_pred = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
+    # ft_pred = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
     ft_meas = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
     ang_meas = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
     cpg_param = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
 
-    data[(k * N_cycles * N_per_cycle):((k+1) * N_cycles * N_per_cycle), :] = ft_meas[:, 0:(N_cycles * N_per_cycle)].T
+    ############### take difference?? ###############
+    ft_meas -= ft_pred
 
-data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0)) # normalize
-ft_meas_norm = data.reshape(N_files * N_cycles, N_per_cycle, 6)
+    data[(k * N_cycles * N_per_cycle):((k+1) * N_cycles * N_per_cycle), 0:6] = ft_meas[:, 0:(N_cycles * N_per_cycle)].T
+    data[(k * N_cycles * N_per_cycle):((k+1) * N_cycles * N_per_cycle), 6] = ang_meas[0, 0:(N_cycles * N_per_cycle)].T
+
+data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
+ft_meas_norm = data.reshape(N_files * N_cycles, N_per_cycle, N_inputs)
 ft_meas_norm = ft_meas_norm.transpose(0, 2, 1)  # cycle -> FT components -> all data points of that cycle
 
 # split data into training and testing sets
@@ -90,7 +99,7 @@ for k in range(N_files):
 # %%
 model = keras.models.Sequential(
     [
-        keras.layers.RNN(keras.layers.LSTMCell(128), return_sequences=True, input_shape=(6, 260)),
+        keras.layers.RNN(keras.layers.LSTMCell(128), return_sequences=True, input_shape=(N_inputs, N_per_cycle)),
         keras.layers.RNN(keras.layers.LSTMCell(128)),
         keras.layers.Dense(2),
     ]
@@ -103,9 +112,10 @@ model.compile(
     metrics=["accuracy"],
 )
 
+# model.summary()
 
 history = model.fit(
-    x, y, validation_data=(x_val, y_val), epochs=100
+    x, y, validation_data=(x_val, y_val), epochs=500, verbose=0
 )
 
 plt.plot(history.history['accuracy'])
@@ -115,7 +125,7 @@ plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
 
-plt.savefig('plots/2021.04.07/' + trajectory_name + '/lstm' + str(file_names) + '.png')  # change this
+# plt.savefig('plots/2021.04.07/' + trajectory_name + '/lstm' + str(file_names) + '.png')  # change this
 plt.show()
 
 # %%
