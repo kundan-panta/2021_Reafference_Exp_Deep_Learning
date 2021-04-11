@@ -53,7 +53,7 @@ for k in range(N_files):
         plt.ylabel('Force ' + str(i+1) + ' (Measured) (N)')
         plt.plot(t[0:1000], ft_meas[i, 0:1000])
 
-    plt.savefig('plots/2021.04.07/' + trajectory_name + '/pred_vs_meas_F_' + file_names[k] + '.png')  # change this
+    plt.savefig('plots/2021.04.11/' + trajectory_name + '/pred_vs_meas_F_' + file_names[k] + '.png')  # change this
     # plt.show()
 
     plt.figure(figsize=(18, 6))
@@ -70,7 +70,7 @@ for k in range(N_files):
         plt.ylabel('Torque ' + str(i+1) + ' (Measured) (N-mm)')
         plt.plot(t[0:1000], ft_meas[i+3, 0:1000])
 
-    plt.savefig('plots/2021.04.07/' + trajectory_name + '/pred_vs_meas_T_' + file_names[k] + '.png')  # change this
+    plt.savefig('plots/2021.04.11/' + trajectory_name + '/pred_vs_meas_T_' + file_names[k] + '.png')  # change this
     # plt.show()
 
 # %%

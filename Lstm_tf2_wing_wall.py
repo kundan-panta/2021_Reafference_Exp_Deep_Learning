@@ -125,7 +125,7 @@ plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
 
-# plt.savefig('plots/2021.04.07/' + trajectory_name + '/lstm' + str(file_names) + '.png')  # change this
+plt.savefig('plots/2021.04.11/' + trajectory_name + '/lstm_filtered' + str(file_names) + '.png')  # change this
 plt.show()
 
 # %%

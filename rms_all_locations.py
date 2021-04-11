@@ -1,11 +1,12 @@
 # %%
+from math import floor
 import numpy as np
 import matplotlib.pyplot as plt
 # from correct_biases import correct_biases
 
 # %%
 # all files to extract the data from (collected at multiple locations)
-file_names = ['0', '3', '6', '12', '18', '22']
+file_names = ['0', '3', '6', '12', '18']
 N_files = len(file_names)
 
 # also convert the list into an array of floats
@@ -25,10 +26,13 @@ trajectory_name = '30deg'
 rms_all = np.zeros((N_files, 6))
 rms_norm_all = np.zeros((N_files, 2))
 
+############### alternative nominal FT - futhest from wall ###############
+ft_pred = np.loadtxt('22/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
+
 for k in range(N_files):
     # get data
     t = np.around(np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
-    ft_pred = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
+    # ft_pred = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
     ft_meas = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
     ang_meas = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
     cpg_param = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
@@ -41,31 +45,32 @@ for k in range(N_files):
     #     # remove the three biases and rotate the frame to align with normally used frame
     #     ft_meas = correct_biases(ft_meas, ft_bias[:, 0], ang_bias[0], gravity_bias[:, 0])
 
-    N = len(cpg_param[1])  # number of data points
+    N = len(t)  # number of data points
 
     # find points where a new stroke cycle is started
     t_s = round(t[1] - t[0], 3)  # sample time
     freq = cpg_param[-1, 0]  # store frequencies of each param set
-    t_cycle = np.around(1 / freq, decimals=3)  # stroke cycle time
+    t_cycle = 1 / freq  # stroke cycle time
 
     # calculate number of cycles
     t_total = t[-1]  # period of time over which data has been collected for each param set
     t_total += t_s  # including first point
     t_total = np.around(t_total, decimals=3)
 
-    N_cycles = (t_total / t_cycle).astype(int)  # total time of data collection / time for 1 stroke cycle
-    print('Number of stroke cycles:')
-    print(N_cycles)
-
     # calculate number of data points per cycle
-    N_per_cycle = (t_cycle / t_s).astype(int)
+    N_per_cycle = round(t_cycle / t_s)
 
     print('Number of data points in a cycle:')
     print(N_per_cycle)
 
+    # N_cycles = 50
+    N_cycles = floor(N / N_per_cycle)  # floor(total data points / data points in a cycle)
+    print('Number of stroke cycles:')
+    print(N_cycles)
+
     # print number of unused data points
     print('Number of unused data points:')
-    print((t_total / t_s).astype(int) - N_per_cycle * N_cycles)  # total # of data points - # of data points used
+    print(N - N_per_cycle * N_cycles)  # total # of data points - # of data points used
 
     # collect rms data for each cycle -- may not be necessary
     rms_cycle = np.zeros((N_cycles, 6))
@@ -80,7 +85,7 @@ for k in range(N_files):
     # ft_meas = (ft_meas - np.min(abs(ft_meas), axis=1, keepdims=True)) / (np.max(abs(ft_meas), axis=1, keepdims=True) - np.min(abs(ft_meas), axis=1, keepdims=True))
 
     ####### take difference?? #########
-    # ft_meas -= ft_pred
+    ft_meas -= ft_pred
 
     # calculate RMS values for each FT, for each stroke cycle, for each param set
     for j in range(N_cycles):
@@ -118,8 +123,8 @@ for i in range(3):  # torques
     plt.ylabel('Torque ' + str(i+1) + ' (N-mm)')
     plt.plot(file_names_float, rms_all[:, i+3])
 
-plt.savefig('plots/2021.04.07/' + trajectory_name + '/rms.png')  # change this
-plt.show()
+plt.savefig('plots/2021.04.11/' + trajectory_name + '/rms_difference.png')  # change this
+# plt.show()
 
 # norm
 plt.figure(figsize=(18, 6))
@@ -134,8 +139,8 @@ plt.xlabel('Distances of wing tip from wall (cm)')
 plt.ylabel('Torque (Combined) (N-mm)')
 plt.plot(file_names_float, rms_norm_all[:, 1])
 
-plt.savefig('plots/2021.04.07/' + trajectory_name + '/rms_magnitude.png')  # change this
-plt.show()
+plt.savefig('plots/2021.04.11/' + trajectory_name + '/rms_magnitude_difference.png')  # change this
+# plt.show()
 
 # %% separate plots for all ft
 # for i in range(3):  # forces
