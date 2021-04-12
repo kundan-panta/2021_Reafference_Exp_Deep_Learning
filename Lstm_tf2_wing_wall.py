@@ -8,7 +8,7 @@ from tensorflow import keras
 
 # %%
 # all files to extract the data from (collected at multiple locations)
-file_names = ['3', '18']
+file_names = ['12', '18']
 N_files = len(file_names)
 
 # also convert the list into an array of floats
@@ -114,6 +114,11 @@ model.compile(
 
 # model.summary()
 
+# print("Learning rate:", model.optimizer.learning_rate.numpy())
+lr = 0.0019
+keras.backend.set_value(model.optimizer.learning_rate, lr)
+# print("Learning rate:", model.optimizer.learning_rate.numpy())
+
 history = model.fit(
     x, y, validation_data=(x_val, y_val), epochs=500, verbose=0
 )
@@ -125,7 +130,7 @@ plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
 
-plt.savefig('plots/2021.04.11/' + trajectory_name + '/lstm_filtered' + str(file_names) + '.png')  # change this
+plt.savefig('plots/2021.04.11/' + trajectory_name + '/lstm_filtered' + str(file_names) + '_' + str(lr) + '.png')  # change this
 plt.show()
 
 # %%
