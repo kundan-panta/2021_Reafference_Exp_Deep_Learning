@@ -12,6 +12,7 @@ N_files = len(file_names)
 file_names_float = np.zeros(N_files)
 for i in range(N_files):
     file_names_float[i] = float(file_names[i])
+file_names_float += 3  # offset between ruler reading and distance from wing tip to wall
 
 # choose trajectory name for which to process data
 trajectory_name = '30deg'

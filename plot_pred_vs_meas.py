@@ -12,6 +12,7 @@ N_files = len(file_names)
 # file_names_float = np.zeros(N_files)
 # for i in range(N_files):
 #     file_names_float[i] = float(file_names[i])
+# file_names_float += 3  # offset between ruler reading and distance from wing tip to wall
 
 # choose trajectory name for which to process data
 trajectory_name = '30deg'
@@ -44,13 +45,13 @@ for k in range(N_files):
     for i in range(3):  # f_pred
         plt.subplot(2, 3, i+1)
         plt.xlabel('Time (s)')
-        plt.ylabel('Force ' + str(i+1) + ' (QS) (N)')
+        plt.ylabel('Force ' + chr(ord('X') + i) + ' (QS) (N)')
         plt.plot(t[0:1000], ft_pred[i, 0:1000])
 
     for i in range(3):  # f_meas
         plt.subplot(2, 3, 3+(i+1))
         plt.xlabel('Time (s)')
-        plt.ylabel('Force ' + str(i+1) + ' (Measured) (N)')
+        plt.ylabel('Force ' + chr(ord('X') + i) + ' (Measured) (N)')
         plt.plot(t[0:1000], ft_meas[i, 0:1000])
 
     plt.savefig('plots/2021.04.11/' + trajectory_name + '/pred_vs_meas_F_' + file_names[k] + '.png')  # change this
@@ -61,13 +62,13 @@ for k in range(N_files):
     for i in range(3):  # T_pred
         plt.subplot(2, 3, i+1)
         plt.xlabel('Time (s)')
-        plt.ylabel('Torque ' + str(i+1) + ' (QS) (N-mm)')
+        plt.ylabel('Torque ' + chr(ord('X') + i) + ' (QS) (N-mm)')
         plt.plot(t[0:1000], ft_pred[i+3, 0:1000])
 
     for i in range(3):  # T_meas
         plt.subplot(2, 3, 3+(i+1))
         plt.xlabel('Time (s)')
-        plt.ylabel('Torque ' + str(i+1) + ' (Measured) (N-mm)')
+        plt.ylabel('Torque ' + chr(ord('X') + i) + ' (Measured) (N-mm)')
         plt.plot(t[0:1000], ft_meas[i+3, 0:1000])
 
     plt.savefig('plots/2021.04.11/' + trajectory_name + '/pred_vs_meas_T_' + file_names[k] + '.png')  # change this

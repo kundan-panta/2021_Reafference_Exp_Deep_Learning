@@ -8,13 +8,14 @@ from tensorflow import keras
 
 # %%
 # all files to extract the data from (collected at multiple locations)
-file_names = ['12', '18']
+file_names = ['6', '12']
 N_files = len(file_names)
 
 # also convert the list into an array of floats
 file_names_float = np.zeros(N_files)
 for i in range(N_files):
     file_names_float[i] = float(file_names[i])
+file_names_float += 3  # offset between ruler reading and distance from wing tip to wall
 
 # choose trajectory name for which to process data
 trajectory_name = '30deg'
@@ -82,8 +83,8 @@ for k in range(N_files):
     ############### take difference?? ###############
     ft_meas -= ft_pred
 
-    data[(k * N_cycles * N_per_cycle):((k+1) * N_cycles * N_per_cycle), 0:6] = ft_meas[:, 0:(N_cycles * N_per_cycle)].T
-    data[(k * N_cycles * N_per_cycle):((k+1) * N_cycles * N_per_cycle), 6] = ang_meas[0, 0:(N_cycles * N_per_cycle)].T
+    data[(k * N_cycles * N_per_cycle):((k+1) * N_cycles * N_per_cycle), 0:6] = ft_meas[:, 0:(N_cycles * N_per_cycle)].T  # meassured FT
+    data[(k * N_cycles * N_per_cycle):((k+1) * N_cycles * N_per_cycle), 6] = ang_meas[0, 0:(N_cycles * N_per_cycle)].T  # stroke angle
 
 data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
 ft_meas_norm = data.reshape(N_files * N_cycles, N_per_cycle, N_inputs)
@@ -115,12 +116,12 @@ model.compile(
 # model.summary()
 
 # print("Learning rate:", model.optimizer.learning_rate.numpy())
-lr = 0.0019
+lr = 0.002
 keras.backend.set_value(model.optimizer.learning_rate, lr)
 # print("Learning rate:", model.optimizer.learning_rate.numpy())
 
 history = model.fit(
-    x, y, validation_data=(x_val, y_val), epochs=500, verbose=0
+    x, y, validation_data=(x_val, y_val), epochs=1000, verbose=0
 )
 
 plt.plot(history.history['accuracy'])
@@ -130,7 +131,7 @@ plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
 
-plt.savefig('plots/2021.04.11/' + trajectory_name + '/lstm_filtered' + str(file_names) + '_' + str(lr) + '.png')  # change this
+plt.savefig('plots/2021.04.11/' + trajectory_name + '/lstm_filtered_' + str(file_names) + '_' + str(lr) + '.png')  # change this
 plt.show()
 
 # %%

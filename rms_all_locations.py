@@ -25,6 +25,8 @@ trajectory_name = '30deg'
 # for each file, I need 6 components of rms ft
 rms_all = np.zeros((N_files, 6))
 rms_norm_all = np.zeros((N_files, 2))
+rms_all_std = np.zeros_like(rms_all)
+rms_norm_all_std = np.zeros_like(rms_norm_all)
 
 ############### alternative nominal FT - futhest from wall ###############
 ft_pred = np.loadtxt('22/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
@@ -106,6 +108,10 @@ for k in range(N_files):
     rms_all[k, :] = np.mean(rms_cycle, axis=0)
     rms_norm_all[k, :] = np.mean(rms_norm_cycle, axis=0)
 
+    # std dev
+    rms_all_std[k, :] = np.std(rms_cycle, axis=0)
+    rms_norm_all_std[k, :] = np.std(rms_norm_cycle, axis=0)
+
 # %% subplots
 plt.rcParams.update({"savefig.facecolor": (1.0, 1.0, 1.0, 1)})  # disable transparent background
 
@@ -114,14 +120,17 @@ plt.figure(figsize=(18, 9))
 for i in range(3):  # forces
     plt.subplot(2, 3, i+1)
     plt.xlabel('Distances of wing tip from wall (cm)')
-    plt.ylabel('Force ' + str(i+1) + ' (N)')
+    plt.ylabel('Force ' + chr(ord('X') + i) + ' (N)')
     plt.plot(file_names_float, rms_all[:, i])
+    plt.errorbar(file_names_float, rms_all[:, i], yerr=2*rms_all_std[:, i], ecolor='red', capsize=5, fmt='none')
+
 
 for i in range(3):  # torques
     plt.subplot(2, 3, 3+(i+1))
     plt.xlabel('Distances of wing tip from wall (cm)')
-    plt.ylabel('Torque ' + str(i+1) + ' (N-mm)')
+    plt.ylabel('Torque ' + chr(ord('X') + i) + ' (N-mm)')
     plt.plot(file_names_float, rms_all[:, i+3])
+    plt.errorbar(file_names_float, rms_all[:, i+3], yerr=2*rms_all_std[:, i+3], ecolor='red', capsize=5, fmt='none')
 
 plt.savefig('plots/2021.04.11/' + trajectory_name + '/rms_difference.png')  # change this
 # plt.show()
@@ -133,11 +142,13 @@ plt.subplot(1, 2, 1)
 plt.xlabel('Distances of wing tip from wall (cm)')
 plt.ylabel('Force (Combined) (N)')
 plt.plot(file_names_float, rms_norm_all[:, 0])
+plt.errorbar(file_names_float, rms_norm_all[:, 0], yerr=2*rms_norm_all_std[:, 0], ecolor='red', capsize=5, fmt='none')
 
 plt.subplot(1, 2, 2)
 plt.xlabel('Distances of wing tip from wall (cm)')
 plt.ylabel('Torque (Combined) (N-mm)')
 plt.plot(file_names_float, rms_norm_all[:, 1])
+plt.errorbar(file_names_float, rms_norm_all[:, 1], yerr=2*rms_norm_all_std[:, 1], ecolor='red', capsize=5, fmt='none')
 
 plt.savefig('plots/2021.04.11/' + trajectory_name + '/rms_magnitude_difference.png')  # change this
 # plt.show()
