@@ -3,14 +3,13 @@
 from math import floor
 import numpy as np
 import matplotlib.pyplot as plt
-# from correct_biases import correct_biases
 from tensorflow import keras
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.math import confusion_matrix
 
 # %%
 # all files to extract the data from (collected at multiple locations)
-file_names = ['0', '6', '12', '18']
+file_names = ['0', '6', '18']
 N_files = len(file_names)
 
 # also convert the list into an array of floats
@@ -49,13 +48,13 @@ print('Stroke cycles:', N_cycles)
 print('Unused data points:', N - N_per_cycle * N_cycles)  # print number of unused data points
 
 # group cycles together
-N_cycles_example = 4  # use this number of stroke cycles as 1 example
-N_cycles_overlap = 1  # number of overlapping cycles between consecutive examples
-N_examples = (N_cycles - N_cycles_example) // N_cycles_overlap + 1  # int division
+N_cycles_example = 1  # use this number of stroke cycles as 1 example
+N_cycles_step = 1  # number of cycles to step between consecutive examples
+N_examples = (N_cycles - N_cycles_example) // N_cycles_step + 1  # int division
 print('Total examples:', N_examples)
 
 # number of training and testing stroke cycles
-N_examples_train = round(0.8 * N_examples)
+N_examples_train = round(0.75 * N_examples)
 N_examples_test = N_examples - N_examples_train
 print('Training examples:', N_examples_train)
 print('Testing examples:', N_examples_test)
@@ -86,21 +85,23 @@ for k in range(N_files):
 
     for i in range(N_examples):
         data[((k*N_examples + i) * N_cycles_example * N_per_cycle):((k*N_examples + i + 1) * N_cycles_example * N_per_cycle), 0:6] = \
-            ft_meas[:, (i*N_cycles_overlap * N_per_cycle):((i*N_cycles_overlap + N_cycles_example) * N_per_cycle)].T  # measured FT
+            ft_meas[:, (i*N_cycles_step * N_per_cycle):((i*N_cycles_step + N_cycles_example) * N_per_cycle)].T  # measured FT
         data[((k*N_examples + i) * N_cycles_example * N_per_cycle):((k*N_examples + i + 1) * N_cycles_example * N_per_cycle), 6] = \
-            ang_meas[0, (i*N_cycles_overlap * N_per_cycle):((i*N_cycles_overlap + N_cycles_example) * N_per_cycle)].T  # stroke angle
+            ang_meas[0, (i*N_cycles_step * N_per_cycle):((i*N_cycles_step + N_cycles_example) * N_per_cycle)].T  # stroke angle
 
 # %%
 data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
 
-ft_meas_norm = data.reshape(N_files * N_examples, N_cycles_example * N_per_cycle, N_inputs)
-ft_meas_norm = ft_meas_norm.transpose(0, 2, 1)  # example -> FT components -> all data points of that example
+data = data.reshape(N_files * N_examples, N_cycles_example * N_per_cycle, N_inputs)
+data = data.transpose(0, 2, 1)  # example -> FT components -> all data points of that example
+
+# np.random.shuffle(data)  # randomize order of data to be split into train and test sets
 
 # split data into training and testing sets
 for k in range(N_files):
-    x[k*N_examples_train:(k+1)*N_examples_train, :, :] = ft_meas_norm[k*N_examples:(k+1)*N_examples - N_examples_test, :, :]
+    x[k*N_examples_train:(k+1)*N_examples_train, :, :] = data[k*N_examples:(k+1)*N_examples - N_examples_test, :, :]
     y[k*N_examples_train:(k+1)*N_examples_train] = k  # class = file
-    x_val[k*N_examples_test:(k+1)*N_examples_test, :, :] = ft_meas_norm[k*N_examples + N_examples_train:(k+1)*N_examples, :, :]
+    x_val[k*N_examples_test:(k+1)*N_examples_test, :, :] = data[k*N_examples + N_examples_train:(k+1)*N_examples, :, :]
     y_val[k*N_examples_test:(k+1)*N_examples_test] = k  # class = file
 
 # %%
@@ -139,9 +140,7 @@ history = model.fit(
     validation_data=(x_val, y_val),
     epochs=1000,
     verbose=0,
-    callbacks=[early_stopping_monitor],
-    shuffle=False,
-    use_multiprocessing=False
+    callbacks=[early_stopping_monitor]
 )
 
 plt.plot(history.history['accuracy'])
