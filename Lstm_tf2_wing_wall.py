@@ -9,7 +9,7 @@ from tensorflow.math import confusion_matrix
 
 # %%
 # all files to extract the data from (collected at multiple locations)
-file_names = ['0', '6', '18']
+file_names = ['0', '6', '12', '18']
 N_files = len(file_names)
 
 # also convert the list into an array of floats
@@ -48,7 +48,7 @@ print('Stroke cycles:', N_cycles)
 print('Unused data points:', N - N_per_cycle * N_cycles)  # print number of unused data points
 
 # group cycles together
-N_cycles_example = 1  # use this number of stroke cycles as 1 example
+N_cycles_example = 10  # use this number of stroke cycles as 1 example
 N_cycles_step = 1  # number of cycles to step between consecutive examples
 N_examples = (N_cycles - N_cycles_example) // N_cycles_step + 1  # int division
 print('Total examples:', N_examples)
@@ -121,7 +121,7 @@ model.compile(
 
 # model.summary()
 
-lr = 0.001
+lr = 0.0002
 keras.backend.set_value(model.optimizer.learning_rate, lr)
 # print("Learning rate:", model.optimizer.learning_rate.numpy())
 
@@ -150,7 +150,7 @@ plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
 
-# plt.savefig('plots/2021.04.11/' + trajectory_name + '/lstm_filtered_' + str(file_names) + '_' + str(lr) + '.png')  # change this
+plt.savefig('plots/2021.04.16/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_' + str(lr) + '.png')  # change this
 plt.show()
 
 # %%
