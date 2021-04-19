@@ -19,15 +19,15 @@ N_inputs = 7  # ft_meas + other inputs
 
 empirical_prediction = True
 empirical_prediction_name = '22'
-subract_prediction = True
+subract_prediction = False
 
 shuffle_examples = False
 
-lr = 0.1  # learning rate
+lr = 0.05  # learning rate
 epochs_number = 1000  # number of epochs
 
 save_results = True
-folder_name = 'plots/2021.04.16'
+save_folder = 'plots/2021.04.16'
 
 # %%
 # all files to extract the data from (collected at multiple locations)
@@ -167,9 +167,9 @@ cm_train = confusion_matrix(y, np.argmax(model.predict(x), axis=-1))
 cm_test = confusion_matrix(y_val, np.argmax(model.predict(x_val), axis=-1))
 
 if save_results:
-    plt.savefig(folder_name + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_' + str(lr) + '.png')
-    np.savetxt(folder_name + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_' + str(lr) + '_train.txt', cm_train, fmt='%d')
-    np.savetxt(folder_name + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_' + str(lr) + '_test.txt', cm_test, fmt='%d')
+    plt.savefig(save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_' + str(lr) + '.png')
+    np.savetxt(save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_' + str(lr) + '_train.txt', cm_train, fmt='%d')
+    np.savetxt(save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_' + str(lr) + '_test.txt', cm_test, fmt='%d')
 
 print(cm_train)
 print(cm_test)
