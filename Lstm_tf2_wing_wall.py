@@ -23,7 +23,7 @@ subract_prediction = True
 
 shuffle_examples = False
 
-lr = 0.004  # learning rate
+lr = 0.1  # learning rate
 epochs_number = 1000  # number of epochs
 
 save_results = True
@@ -44,40 +44,38 @@ file_names_float += file_names_offset  # offset between ruler reading and distan
 t = np.around(np.loadtxt(file_names[0] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
 cpg_param = np.loadtxt(file_names[0] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
 
-N = len(t)  # number of data points
+N_total = len(t)  # number of data points
 
 # find points where a new stroke cycle is started
 t_s = round(t[1] - t[0], 3)  # sample time
-freq = cpg_param[-1, 0]  # store frequencies of each param set
+freq = cpg_param[-1, 0]  # store frequency of param set
 t_cycle = 1 / freq  # stroke cycle time
 
-# calculate number of cycles
 t_total = t[-1]  # period of time over which data has been collected for each param set
 t_total += t_s  # including first point
 t_total = np.around(t_total, decimals=3)
 
-# calculate number of data points per cycle
-N_per_cycle = round(t_cycle / t_s)
-print('Data points in a cycle:', N_per_cycle)
+N_per_cycle = round(t_cycle / t_s)  # calculate number of data points per cycle, round instead of floor
 
 # N_cycles = 50
-N_cycles = N // N_per_cycle  # floor(total data points / data points in a cycle)
-print('Stroke cycles:', N_cycles)
-print('Unused data points:', N - N_per_cycle * N_cycles)  # print number of unused data points
+N_cycles = N_total // N_per_cycle  # floor(total data points / data points in a cycle)
 
 N_examples = (N_cycles - N_cycles_example) // N_cycles_step + 1  # int division
-print('Total examples:', N_examples)
 
 # number of training and testing stroke cycles
-N_examples_train = round(0.75 * N_examples)
+N_examples_train = round(0.8 * N_examples)
 N_examples_test = N_examples - N_examples_train
+
+print('Data points in a cycle:', N_per_cycle)
+print('Unused data points:', N_total - N_per_cycle * N_cycles)  # print number of unused data points
+print('Stroke cycles:', N_cycles)
+print('Total examples:', N_examples)
 print('Training examples:', N_examples_train)
 print('Testing examples:', N_examples_test)
-
 print('Inputs:', N_inputs)
 
 # %%
-data = np.zeros((N_files * N_examples * N_cycles_example * N_per_cycle, N_inputs))  # all data, with groups of stroke cycles
+data = np.zeros((N_files * N_examples * N_cycles_example * N_per_cycle, N_inputs))  # all data
 x = np.zeros((N_files * N_examples_train, N_inputs, N_cycles_example * N_per_cycle))
 y = np.zeros((N_files * N_examples_train))
 x_val = np.zeros((N_files * N_examples_test, N_inputs, N_cycles_example * N_per_cycle))
@@ -106,7 +104,6 @@ for k in range(N_files):
 
 # %%
 data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
-
 data = data.reshape(N_files * N_examples, N_cycles_example * N_per_cycle, N_inputs)
 data = data.transpose(0, 2, 1)  # example -> FT components -> all data points of that example
 
@@ -124,6 +121,7 @@ for k in range(N_files):
 model = keras.models.Sequential(
     [
         keras.layers.RNN(keras.layers.LSTMCell(128), return_sequences=True, input_shape=(N_inputs, N_cycles_example * N_per_cycle)),
+        keras.layers.RNN(keras.layers.LSTMCell(128), return_sequences=True),
         keras.layers.RNN(keras.layers.LSTMCell(128)),
         keras.layers.Dense(N_files, activation='softmax')
     ]
