@@ -39,7 +39,6 @@ for i in range(N_files):
     file_names_float[i] = float(file_names[i])
 file_names_float += file_names_offset  # offset between ruler reading and distance from wing tip to wall
 
-# %%
 # get stroke cycle period information from one of the files
 t = np.around(np.loadtxt(file_names[0] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
 cpg_param = np.loadtxt(file_names[0] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
