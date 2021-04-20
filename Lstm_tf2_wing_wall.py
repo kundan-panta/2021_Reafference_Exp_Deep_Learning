@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # %%
-from operator import sub
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow import keras
@@ -8,13 +7,12 @@ from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.math import confusion_matrix
 
 # %% design parameters
-file_names = ['0', '3']
+file_names = ['6', '18']
 file_names_offset = 3  # difference in between actual distance and file names
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
 N_cycles_example = 1  # use this number of stroke cycles as 1 example
 N_cycles_step = 1  # number of cycles to step between consecutive examples
-
 N_inputs = 7  # ft_meas + other inputs
 
 empirical_prediction = True
@@ -23,10 +21,12 @@ subract_prediction = False
 
 shuffle_examples = False
 
-lr = 0.05  # learning rate
+lr = 0.02  # learning rate
 epochs_number = 1000  # number of epochs
+epochs_patience = 1000  # number of epochs of no improvement after which training is stopped
 
-save_results = True
+save_plot = True
+save_cm = False
 save_folder = 'plots/2021.04.16'
 
 # %%
@@ -120,7 +120,7 @@ for k in range(N_files):
 model = keras.models.Sequential(
     [
         keras.layers.RNN(keras.layers.LSTMCell(128), return_sequences=True, input_shape=(N_inputs, N_cycles_example * N_per_cycle)),
-        keras.layers.RNN(keras.layers.LSTMCell(128), return_sequences=True),
+        # keras.layers.RNN(keras.layers.LSTMCell(128), return_sequences=True),
         keras.layers.RNN(keras.layers.LSTMCell(128)),
         keras.layers.Dense(N_files, activation='softmax')
     ]
@@ -140,7 +140,7 @@ keras.backend.set_value(model.optimizer.learning_rate, lr)
 early_stopping_monitor = EarlyStopping(
     monitor='val_accuracy',
     min_delta=0,
-    patience=100,
+    patience=epochs_patience,
     verbose=0,
     mode='auto',
     baseline=None,
@@ -166,8 +166,9 @@ plt.legend(['train', 'test'], loc='upper left')
 cm_train = confusion_matrix(y, np.argmax(model.predict(x), axis=-1))
 cm_test = confusion_matrix(y_val, np.argmax(model.predict(x_val), axis=-1))
 
-if save_results:
+if save_plot:
     plt.savefig(save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_' + str(lr) + '.png')
+if save_cm:
     np.savetxt(save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_' + str(lr) + '_train.txt', cm_train, fmt='%d')
     np.savetxt(save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_' + str(lr) + '_test.txt', cm_test, fmt='%d')
 
