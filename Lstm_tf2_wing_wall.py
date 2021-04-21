@@ -20,12 +20,11 @@ empirical_prediction_name = '22'
 subract_prediction = False
 
 shuffle_examples = False
-shuffle_before_epoch = True
 
 cells_number = 128  # number of lstm cells of each lstm layer
 lr = 2  # learning rate
-epochs_number = 500  # number of epochs
-epochs_patience = 500  # number of epochs of no improvement after which training is stopped
+epochs_number = 1000  # number of epochs
+epochs_patience = 1000  # number of epochs of no improvement after which training is stopped
 
 save_plot = False
 save_cm = False  # save confusion matrix
@@ -156,7 +155,7 @@ history = model.fit(
     epochs=epochs_number,
     verbose=0,
     callbacks=[early_stopping_monitor],
-    shuffle=shuffle_before_epoch,
+    shuffle=True,
     workers=1,
     use_multiprocessing=False
 )
