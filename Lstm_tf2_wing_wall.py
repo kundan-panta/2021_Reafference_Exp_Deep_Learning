@@ -4,15 +4,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow import keras
 from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.python.keras.callbacks import ModelCheckpoint
 from tensorflow.math import confusion_matrix
 
 # %% design parameters
 root_folder = ''  # include trailing slash
-file_names = ['0', '6', '12', '18']
+file_names = ['0', '18']
 file_names_offset = 3  # difference in between actual distance and file names
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
-N_cycles_example = 3  # use this number of stroke cycles as 1 example
+N_cycles_example = 1  # use this number of stroke cycles as 1 example
 N_cycles_step = 1  # number of cycles to step between consecutive examples
 N_inputs = 7  # ft_meas + other inputs
 
@@ -24,12 +25,13 @@ shuffle_examples = False
 
 cells_number = 128  # number of lstm cells of each lstm layer
 lr = 0.02  # learning rate
-epochs_number = 1000  # number of epochs
-epochs_patience = 1000  # number of epochs of no improvement after which training is stopped
+epochs_number = 200  # number of epochs
+epochs_patience = 200  # number of epochs of no improvement after which training is stopped
 
 save_plot = True
 save_cm = True  # save confusion matrix
 save_folder = 'plots/2021.04.20_multi-class/'  # include trailing slash
+save_filename = root_folder + save_folder + 'lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf'
 
 # %%
 # all files to extract the data from (collected at multiple locations)
@@ -140,14 +142,22 @@ model.compile(
 keras.backend.set_value(model.optimizer.learning_rate, lr)
 # print("Learning rate:", model.optimizer.learning_rate.numpy())
 
-early_stopping_monitor = EarlyStopping(
+# early_stopping_monitor = EarlyStopping(
+#     monitor='val_accuracy',
+#     mode='auto',
+#     min_delta=0,
+#     patience=epochs_patience,
+#     baseline=None,
+#     restore_best_weights=True,
+#     verbose=0
+# )
+
+model_checkpoint_monitor = ModelCheckpoint(
+    save_filename + '.h5',
     monitor='val_accuracy',
-    min_delta=0,
-    patience=epochs_patience,
-    verbose=0,
     mode='auto',
-    baseline=None,
-    restore_best_weights=True
+    save_best_only=True,
+    verbose=0
 )
 
 history = model.fit(
@@ -155,11 +165,13 @@ history = model.fit(
     validation_data=(x_val, y_val),
     epochs=epochs_number,
     verbose=0,
-    callbacks=[early_stopping_monitor],
+    callbacks=[model_checkpoint_monitor],
     shuffle=True,
     workers=1,
     use_multiprocessing=False
 )
+
+model = keras.models.load_model(save_filename + '.h5')
 
 # %%
 plt.plot(history.history['accuracy'])
@@ -173,10 +185,10 @@ cm_train = confusion_matrix(y, np.argmax(model.predict(x), axis=-1))
 cm_test = confusion_matrix(y_val, np.argmax(model.predict(x_val), axis=-1))
 
 if save_plot:
-    plt.savefig(root_folder + save_folder + 'lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf.png')
+    plt.savefig(save_filename + '.png')
 if save_cm:
-    np.savetxt(root_folder + save_folder + 'lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf_train.txt', cm_train, fmt='%d')
-    np.savetxt(root_folder + save_folder + 'lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf_test.txt', cm_test, fmt='%d')
+    np.savetxt(save_filename + '_train.txt', cm_train, fmt='%d')
+    np.savetxt(save_filename + '_test.txt', cm_test, fmt='%d')
 
 print(cm_train)
 print(cm_test)
