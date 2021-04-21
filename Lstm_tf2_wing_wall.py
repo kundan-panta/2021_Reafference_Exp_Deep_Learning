@@ -29,7 +29,7 @@ epochs_patience = 1000  # number of epochs of no improvement after which trainin
 
 save_plot = False
 save_cm = False  # save confusion matrix
-save_folder = 'plots/2021.04.20_multi-class'
+save_folder = 'plots/2021.04.20_multi-class/'  # include trailing slash
 
 # %%
 # all files to extract the data from (collected at multiple locations)
@@ -173,10 +173,10 @@ cm_train = confusion_matrix(y, np.argmax(model.predict(x), axis=-1))
 cm_test = confusion_matrix(y_val, np.argmax(model.predict(x_val), axis=-1))
 
 if save_plot:
-    plt.savefig(root_folder + save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf.png')
+    plt.savefig(root_folder + save_folder + 'lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf.png')
 if save_cm:
-    np.savetxt(root_folder + save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf_train.txt', cm_train, fmt='%d')
-    np.savetxt(root_folder + save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf_test.txt', cm_test, fmt='%d')
+    np.savetxt(root_folder + save_folder + 'lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf_train.txt', cm_train, fmt='%d')
+    np.savetxt(root_folder + save_folder + 'lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf_test.txt', cm_test, fmt='%d')
 
 print(cm_train)
 print(cm_test)
