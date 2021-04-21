@@ -7,7 +7,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.math import confusion_matrix
 
 # %% design parameters
-file_names = ['0', '6', '12', '18']
+file_names = ['0', '18']
 file_names_offset = 3  # difference in between actual distance and file names
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
@@ -20,14 +20,15 @@ empirical_prediction_name = '22'
 subract_prediction = False
 
 shuffle_examples = False
+shuffle_before_epoch = True
 
-cells_number = 64  # number of lstm cells of each lstm layer
-lr = 0.02  # learning rate
-epochs_number = 1000  # number of epochs
-epochs_patience = 1000  # number of epochs of no improvement after which training is stopped
+cells_number = 128  # number of lstm cells of each lstm layer
+lr = 2  # learning rate
+epochs_number = 500  # number of epochs
+epochs_patience = 500  # number of epochs of no improvement after which training is stopped
 
-save_plot = True
-save_cm = True
+save_plot = False
+save_cm = False  # save confusion matrix
 save_folder = 'plots/2021.04.20_multi-class'
 
 # %%
@@ -154,7 +155,10 @@ history = model.fit(
     validation_data=(x_val, y_val),
     epochs=epochs_number,
     verbose=0,
-    callbacks=[early_stopping_monitor]
+    callbacks=[early_stopping_monitor],
+    shuffle=shuffle_before_epoch,
+    workers=1,
+    use_multiprocessing=False
 )
 
 # %%
@@ -169,10 +173,10 @@ cm_train = confusion_matrix(y, np.argmax(model.predict(x), axis=-1))
 cm_test = confusion_matrix(y_val, np.argmax(model.predict(x_val), axis=-1))
 
 if save_plot:
-    plt.savefig(save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '.png')
+    plt.savefig(save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf.png')
 if save_cm:
-    np.savetxt(save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_train.txt', cm_train, fmt='%d')
-    np.savetxt(save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_test.txt', cm_test, fmt='%d')
+    np.savetxt(save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf_train.txt', cm_train, fmt='%d')
+    np.savetxt(save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf_test.txt', cm_test, fmt='%d')
 
 print(cm_train)
 print(cm_test)
