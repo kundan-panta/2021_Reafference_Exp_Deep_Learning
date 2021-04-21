@@ -7,12 +7,12 @@ from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.math import confusion_matrix
 
 # %% design parameters
-file_names = ['0', '18']
+root_folder = ''  # include trailing slash
+file_names = ['0', '6', '12', '18']
 file_names_offset = 3  # difference in between actual distance and file names
 trajectory_name = '30deg'  # choose trajectory name for which to process data
-root_folder = ''  # include trailing slash
 
-N_cycles_example = 1  # use this number of stroke cycles as 1 example
+N_cycles_example = 3  # use this number of stroke cycles as 1 example
 N_cycles_step = 1  # number of cycles to step between consecutive examples
 N_inputs = 7  # ft_meas + other inputs
 
@@ -27,8 +27,8 @@ lr = 0.02  # learning rate
 epochs_number = 1000  # number of epochs
 epochs_patience = 1000  # number of epochs of no improvement after which training is stopped
 
-save_plot = False
-save_cm = False  # save confusion matrix
+save_plot = True
+save_cm = True  # save confusion matrix
 save_folder = 'plots/2021.04.20_multi-class/'  # include trailing slash
 
 # %%
@@ -83,7 +83,7 @@ x_val = np.zeros((N_files * N_examples_test, N_inputs, N_cycles_example * N_per_
 y_val = np.zeros((N_files * N_examples_test))
 
 if empirical_prediction:  # furthest distance from wall as forward model
-    ft_pred = np.loadtxt(empirical_prediction_name + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
+    ft_pred = np.loadtxt(root_folder + empirical_prediction_name + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
 
 for k in range(N_files):
     # get data
