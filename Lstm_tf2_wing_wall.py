@@ -10,19 +10,20 @@ from tensorflow.math import confusion_matrix
 file_names = ['0', '18']
 file_names_offset = 3  # difference in between actual distance and file names
 trajectory_name = '30deg'  # choose trajectory name for which to process data
+root_folder = ''  # include trailing slash
 
 N_cycles_example = 1  # use this number of stroke cycles as 1 example
 N_cycles_step = 1  # number of cycles to step between consecutive examples
 N_inputs = 7  # ft_meas + other inputs
 
-empirical_prediction = True
+empirical_prediction = True  # whether to use collected data as the "perfect prediction"
 empirical_prediction_name = '22'
-subract_prediction = False
+subract_prediction = False  # meas - pred?
 
 shuffle_examples = False
 
 cells_number = 128  # number of lstm cells of each lstm layer
-lr = 2  # learning rate
+lr = 0.02  # learning rate
 epochs_number = 1000  # number of epochs
 epochs_patience = 1000  # number of epochs of no improvement after which training is stopped
 
@@ -41,8 +42,8 @@ for i in range(N_files):
 file_names_float += file_names_offset  # offset between ruler reading and distance from wing tip to wall
 
 # get stroke cycle period information from one of the files
-t = np.around(np.loadtxt(file_names[0] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
-cpg_param = np.loadtxt(file_names[0] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
+t = np.around(np.loadtxt(root_folder + file_names[0] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
+cpg_param = np.loadtxt(root_folder + file_names[0] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
 
 N_total = len(t)  # number of data points
 
@@ -86,12 +87,12 @@ if empirical_prediction:  # furthest distance from wall as forward model
 
 for k in range(N_files):
     # get data
-    t = np.around(np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
+    t = np.around(np.loadtxt(root_folder + file_names[k] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
     if not(empirical_prediction):  # use QS model if empirical prediction is not used
-        ft_pred = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
-    ft_meas = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
-    ang_meas = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
-    cpg_param = np.loadtxt(file_names[k] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
+        ft_pred = np.loadtxt(root_folder + file_names[k] + '/' + trajectory_name + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
+    ft_meas = np.loadtxt(root_folder + file_names[k] + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
+    ang_meas = np.loadtxt(root_folder + file_names[k] + '/' + trajectory_name + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
+    cpg_param = np.loadtxt(root_folder + file_names[k] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
 
     if subract_prediction:  # subtract pred from meas?
         ft_meas -= ft_pred
@@ -172,10 +173,10 @@ cm_train = confusion_matrix(y, np.argmax(model.predict(x), axis=-1))
 cm_test = confusion_matrix(y_val, np.argmax(model.predict(x_val), axis=-1))
 
 if save_plot:
-    plt.savefig(save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf.png')
+    plt.savefig(root_folder + save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf.png')
 if save_cm:
-    np.savetxt(save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf_train.txt', cm_train, fmt='%d')
-    np.savetxt(save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf_test.txt', cm_test, fmt='%d')
+    np.savetxt(root_folder + save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf_train.txt', cm_train, fmt='%d')
+    np.savetxt(root_folder + save_folder + '/lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf_test.txt', cm_test, fmt='%d')
 
 print(cm_train)
 print(cm_test)
