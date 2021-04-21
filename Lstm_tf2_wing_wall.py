@@ -171,7 +171,7 @@ history = model.fit(
     use_multiprocessing=False
 )
 
-model = keras.models.load_model(save_filename + '.h5')
+model = keras.models.load_model(save_filename + '.h5')  # load best weights
 
 # %%
 plt.plot(history.history['accuracy'])
