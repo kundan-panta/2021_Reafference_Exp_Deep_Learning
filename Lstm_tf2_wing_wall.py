@@ -179,7 +179,7 @@ plt.plot(history.history['val_accuracy'])
 plt.title('model accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper left')
+plt.legend(['train', 'test'], loc='best')
 
 cm_train = confusion_matrix(y, np.argmax(model.predict(x), axis=-1))
 cm_test = confusion_matrix(y_val, np.argmax(model.predict(x_val), axis=-1))
