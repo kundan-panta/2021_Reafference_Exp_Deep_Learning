@@ -24,13 +24,13 @@ subract_prediction = False  # meas - pred?
 shuffle_examples = False
 
 cells_number = 128  # number of lstm cells of each lstm layer
-lr = 0.02  # learning rate
+lr = 0.005  # learning rate
 epochs_number = 400  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
 save_plot = True
 save_cm = True  # save confusion matrix
-save_folder = 'plots/2021.04.20_multi-class/'  # include trailing slash
+save_folder = 'plots/2021.04.22_multi-class/'  # include trailing slash
 save_filename = root_folder + save_folder + 'lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf'
 
 # %%
@@ -139,7 +139,7 @@ model.compile(
 
 # model.summary()
 
-# keras.backend.set_value(model.optimizer.learning_rate, lr)
+keras.backend.set_value(model.optimizer.learning_rate, lr)
 print("Learning rate:", model.optimizer.learning_rate.numpy())
 
 # early_stopping_monitor = EarlyStopping(
