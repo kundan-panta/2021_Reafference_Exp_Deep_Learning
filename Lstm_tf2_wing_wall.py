@@ -24,7 +24,7 @@ subract_prediction = False  # meas - pred?
 shuffle_examples = False
 
 cells_number = 128  # number of lstm cells of each lstm layer
-lr = 0.005  # learning rate
+lr = 0.0005  # learning rate
 epochs_number = 400  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
