@@ -3,7 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow import keras
-from tensorflow.keras.callbacks import EarlyStopping
+# from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 from tensorflow.math import confusion_matrix
 
@@ -13,7 +13,7 @@ file_names = ['0', '6', '12', '18']
 file_names_offset = 3  # difference in between actual distance and file names
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
-N_cycles_example = 9  # use this number of stroke cycles as 1 example
+N_cycles_example = 1  # use this number of stroke cycles as 1 example
 N_cycles_step = 1  # number of cycles to step between consecutive examples
 N_inputs = 7  # ft_meas + other inputs
 
@@ -25,8 +25,8 @@ shuffle_examples = False
 
 cells_number = 128  # number of lstm cells of each lstm layer
 lr = 0.02  # learning rate
-epochs_number = 600  # number of epochs
-epochs_patience = 600  # number of epochs of no improvement after which training is stopped
+epochs_number = 400  # number of epochs
+# epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
 save_plot = True
 save_cm = True  # save confusion matrix
@@ -133,14 +133,14 @@ model = keras.models.Sequential(
 
 model.compile(
     loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-    optimizer="sgd",
+    optimizer="adam",
     metrics=["accuracy"],
 )
 
 # model.summary()
 
-keras.backend.set_value(model.optimizer.learning_rate, lr)
-# print("Learning rate:", model.optimizer.learning_rate.numpy())
+# keras.backend.set_value(model.optimizer.learning_rate, lr)
+print("Learning rate:", model.optimizer.learning_rate.numpy())
 
 # early_stopping_monitor = EarlyStopping(
 #     monitor='val_accuracy',
