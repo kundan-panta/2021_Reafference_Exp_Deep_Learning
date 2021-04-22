@@ -58,7 +58,7 @@ for k in range(N_files):
 
     # a subplot for each location
     plt.subplot(2, 3, k+1)
-    plt.xlabel('Time (s) (' + str(file_names_float[k] + 3) + ' cm)')
+    plt.xlabel('Time (s) (' + str(file_names_float[k]) + ' cm)')
     plt.ylabel('Torque Z (Measured) (N)')  # change this (1)
     plt.plot(t[0:1000], ft_meas[5, 0:1000])  # change this (2)
     plt.plot(t[0:1000], ang_meas[0, 0:1000]*1, ':')  # change this (3): superpose with stroke angle
