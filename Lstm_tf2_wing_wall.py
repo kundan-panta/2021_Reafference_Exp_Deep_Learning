@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,21 +16,22 @@ N_cycles_example = 1  # use this number of stroke cycles as 1 example
 N_cycles_step = 1  # number of cycles to step between consecutive examples
 N_inputs = 7  # ft_meas + other inputs
 
-empirical_prediction = True  # whether to use collected data as the "perfect prediction"
-empirical_prediction_name = '22'
-subract_prediction = False  # meas - pred?
+# empirical_prediction = True  # whether to use collected data as the "perfect prediction"
+# empirical_prediction_name = '22'
+# subract_prediction = False  # meas - pred?
 
 shuffle_examples = True
 
 cells_number = 128  # number of lstm cells of each lstm layer
-lr = 0.0005  # learning rate
+lr = 0.0001  # learning rate
 epochs_number = 400  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
-save_plot = True
-save_cm = True  # save confusion matrix
-save_folder = 'plots/2021.04.22_multi-class/'  # include trailing slash
-save_filename = root_folder + save_folder + 'lstm_' + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf'
+save_plot = False
+save_cm = False  # save confusion matrix
+save_model = False  # save model file
+save_folder = 'plots/2021.04.29_fractions/'  # include trailing slash
+save_filename = root_folder + save_folder + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf'
 
 # %%
 # all files to extract the data from (collected at multiple locations)
@@ -80,25 +80,20 @@ print('Inputs:', N_inputs)
 # %%
 data = np.zeros((N_files * N_examples * N_cycles_example * N_per_cycle, N_inputs))  # all input data
 labels = np.zeros((N_files * N_examples), dtype=int)  # all labels
-# x = np.zeros((N_files * N_examples_train, N_inputs, N_cycles_example * N_per_cycle))
-# y = np.zeros((N_files * N_examples_train), dtype=int)
-# x_val = np.zeros((N_files * N_examples_test, N_inputs, N_cycles_example * N_per_cycle))
-# y_val = np.zeros((N_files * N_examples_test), dtype=int)
 
-if empirical_prediction:  # furthest distance from wall as forward model
-    ft_pred = np.loadtxt(root_folder + empirical_prediction_name + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
+# if empirical_prediction:  # furthest distance from wall as forward model
+#     ft_pred = np.loadtxt(root_folder + empirical_prediction_name + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
 
 for k in range(N_files):
     # get data
     t = np.around(np.loadtxt(root_folder + file_names[k] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
-    if not(empirical_prediction):  # use QS model if empirical prediction is not used
-        ft_pred = np.loadtxt(root_folder + file_names[k] + '/' + trajectory_name + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
+    # if not(empirical_prediction):  # use QS model if empirical prediction is not used
+    #     ft_pred = np.loadtxt(root_folder + file_names[k] + '/' + trajectory_name + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
     ft_meas = np.loadtxt(root_folder + file_names[k] + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
     ang_meas = np.loadtxt(root_folder + file_names[k] + '/' + trajectory_name + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
-    cpg_param = np.loadtxt(root_folder + file_names[k] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
 
-    if subract_prediction:  # subtract pred from meas?
-        ft_meas -= ft_pred
+    # if subract_prediction:  # subtract pred from meas?
+    #     ft_meas -= ft_pred
 
     for i in range(N_examples):
         data[((k*N_examples + i) * N_cycles_example * N_per_cycle):((k*N_examples + i + 1) * N_cycles_example * N_per_cycle), 0:6] = \
@@ -163,18 +158,23 @@ model_checkpoint_monitor = ModelCheckpoint(
     verbose=0
 )
 
+callbacks_list = []
+if save_model:
+    callbacks_list.append(model_checkpoint_monitor)
+
 history = model.fit(
     x, y,
     validation_data=(x_val, y_val),
     epochs=epochs_number,
     verbose=0,
-    callbacks=[model_checkpoint_monitor],
+    callbacks=callbacks_list,
     shuffle=True,
     workers=1,
     use_multiprocessing=False
 )
 
-model = keras.models.load_model(save_filename + '.h5')  # load best weights
+if save_model:
+    model = keras.models.load_model(save_filename + '.h5')  # load best weights
 
 # %%
 plt.plot(history.history['accuracy'])
