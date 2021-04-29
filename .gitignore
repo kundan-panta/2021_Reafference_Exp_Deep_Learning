@@ -6,3 +6,4 @@ __pycache__/correct_biases.cpython-38.pyc
 *.txt
 Lstm_tf2_wing_wall_working.py
 *.h5
+*.pb

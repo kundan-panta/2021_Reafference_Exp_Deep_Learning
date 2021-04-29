@@ -27,9 +27,9 @@ lr = 0.0001  # learning rate
 epochs_number = 400  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
-save_plot = False
-save_cm = False  # save confusion matrix
-save_model = False  # save model file
+save_plot = True
+save_cm = True  # save confusion matrix
+save_model = True  # save model file
 save_folder = 'plots/2021.04.29_fractions/'  # include trailing slash
 save_filename = root_folder + save_folder + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf'
 
@@ -151,7 +151,7 @@ print("Learning rate:", model.optimizer.learning_rate.numpy())
 # )
 
 model_checkpoint_monitor = ModelCheckpoint(
-    save_filename + '.h5',
+    save_filename,
     monitor='val_accuracy',
     mode='auto',
     save_best_only=True,
@@ -174,7 +174,7 @@ history = model.fit(
 )
 
 if save_model:
-    model = keras.models.load_model(save_filename + '.h5')  # load best weights
+    model = keras.models.load_model(save_filename)  # load best weights
 
 # %%
 plt.plot(history.history['accuracy'])
