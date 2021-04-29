@@ -21,7 +21,7 @@ empirical_prediction = True  # whether to use collected data as the "perfect pre
 empirical_prediction_name = '22'
 subract_prediction = False  # meas - pred?
 
-shuffle_examples = False
+shuffle_examples = True
 
 cells_number = 128  # number of lstm cells of each lstm layer
 lr = 0.0005  # learning rate
@@ -78,11 +78,12 @@ print('Testing examples:', N_examples_test)
 print('Inputs:', N_inputs)
 
 # %%
-data = np.zeros((N_files * N_examples * N_cycles_example * N_per_cycle, N_inputs))  # all data
-x = np.zeros((N_files * N_examples_train, N_inputs, N_cycles_example * N_per_cycle))
-y = np.zeros((N_files * N_examples_train))
-x_val = np.zeros((N_files * N_examples_test, N_inputs, N_cycles_example * N_per_cycle))
-y_val = np.zeros((N_files * N_examples_test))
+data = np.zeros((N_files * N_examples * N_cycles_example * N_per_cycle, N_inputs))  # all input data
+labels = np.zeros((N_files * N_examples), dtype=int)  # all labels
+# x = np.zeros((N_files * N_examples_train, N_inputs, N_cycles_example * N_per_cycle))
+# y = np.zeros((N_files * N_examples_train), dtype=int)
+# x_val = np.zeros((N_files * N_examples_test, N_inputs, N_cycles_example * N_per_cycle))
+# y_val = np.zeros((N_files * N_examples_test), dtype=int)
 
 if empirical_prediction:  # furthest distance from wall as forward model
     ft_pred = np.loadtxt(root_folder + empirical_prediction_name + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
@@ -104,21 +105,23 @@ for k in range(N_files):
             ft_meas[:, (i*N_cycles_step * N_per_cycle):((i*N_cycles_step + N_cycles_example) * N_per_cycle)].T  # measured FT
         data[((k*N_examples + i) * N_cycles_example * N_per_cycle):((k*N_examples + i + 1) * N_cycles_example * N_per_cycle), -1] = \
             ang_meas[0, (i*N_cycles_step * N_per_cycle):((i*N_cycles_step + N_cycles_example) * N_per_cycle)].T  # stroke angle
+        labels[k*N_examples + i] = k
 
 # %%
 data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
 data = data.reshape(N_files * N_examples, N_cycles_example * N_per_cycle, N_inputs)
 data = data.transpose(0, 2, 1)  # example -> FT components -> all data points of that example
 
-if shuffle_examples:
-    np.random.shuffle(data)  # randomize order of data to be split into train and test sets
+if shuffle_examples:  # randomize order of data to be split into train and test sets
+    permutation = list(np.random.permutation(N_files * N_examples))
+    data = data[permutation]
+    labels = labels[permutation]
 
 # split data into training and testing sets
-for k in range(N_files):
-    x[k*N_examples_train:(k+1)*N_examples_train, :, :] = data[k*N_examples:(k+1)*N_examples - N_examples_test, :, :]
-    y[k*N_examples_train:(k+1)*N_examples_train] = k  # class = file
-    x_val[k*N_examples_test:(k+1)*N_examples_test, :, :] = data[k*N_examples + N_examples_train:(k+1)*N_examples, :, :]
-    y_val[k*N_examples_test:(k+1)*N_examples_test] = k  # class = file
+x = data[:N_files*N_examples_train]
+y = labels[:N_files*N_examples_train]
+x_val = data[N_files*N_examples_train:]
+y_val = labels[N_files*N_examples_train:]
 
 # %%
 model = keras.models.Sequential(
