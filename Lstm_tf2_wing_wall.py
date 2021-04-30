@@ -1,4 +1,5 @@
 # %%
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow import keras
@@ -24,14 +25,14 @@ shuffle_examples = True
 
 cells_number = 128  # number of lstm cells of each lstm layer
 lr = 0.0001  # learning rate
-epochs_number = 400  # number of epochs
+epochs_number = 500  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
 save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
 save_folder = 'plots/2021.04.29_fractions/'  # include trailing slash
-save_filename = root_folder + save_folder + ' '.join(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf'
+save_filename = root_folder + save_folder + ','.join(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf'
 
 # %%
 # all files to extract the data from (collected at multiple locations)
