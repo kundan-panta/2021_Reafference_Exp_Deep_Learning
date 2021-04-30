@@ -8,3 +8,4 @@ Lstm_tf2_wing_wall_working.py
 *.h5
 *.pb
 plots
+Lstm_tf2_wing_wall_prediction.py
