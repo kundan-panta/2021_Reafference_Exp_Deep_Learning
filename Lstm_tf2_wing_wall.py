@@ -12,8 +12,8 @@ file_names = ['0', '6', '12', '18']
 file_names_offset = 3  # difference in between actual distance and file names
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
-N_cycles_example = 1  # use this number of stroke cycles as 1 example
-N_cycles_step = 1  # number of cycles to step between consecutive examples
+N_cycles_example = 0.5  # use this number of stroke cycles as 1 example
+N_cycles_step = N_cycles_example  # number of cycles to step between consecutive examples
 N_inputs = 7  # ft_meas + other inputs
 
 # empirical_prediction = True  # whether to use collected data as the "perfect prediction"
@@ -38,10 +38,10 @@ save_filename = root_folder + save_folder + str(file_names) + '_(' + str(N_cycle
 N_files = len(file_names)
 
 # also convert the list into an array of floats
-file_names_float = np.zeros(N_files)
-for i in range(N_files):
-    file_names_float[i] = float(file_names[i])
-file_names_float += file_names_offset  # offset between ruler reading and distance from wing tip to wall
+# file_names_float = np.zeros(N_files)
+# for i in range(N_files):
+#     file_names_float[i] = float(file_names[i])
+# file_names_float += file_names_offset  # offset between ruler reading and distance from wing tip to wall
 
 # get stroke cycle period information from one of the files
 t = np.around(np.loadtxt(root_folder + file_names[0] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
@@ -49,36 +49,28 @@ cpg_param = np.loadtxt(root_folder + file_names[0] + '/' + trajectory_name + '/'
 
 N_total = len(t)  # number of data points
 
-# find points where a new stroke cycle is started
 t_s = round(t[1] - t[0], 3)  # sample time
 freq = cpg_param[-1, 0]  # store frequency of param set
 t_cycle = 1 / freq  # stroke cycle time
 
-t_total = t[-1]  # period of time over which data has been collected for each param set
-t_total += t_s  # including first point
-t_total = np.around(t_total, decimals=3)
-
-N_per_cycle = round(t_cycle / t_s)  # calculate number of data points per cycle, round instead of floor
-
-# N_cycles = 50
-N_cycles = N_total // N_per_cycle  # floor(total data points / data points in a cycle)
-
-N_examples = (N_cycles - N_cycles_example) // N_cycles_step + 1  # int division
+N_per_example = round(N_cycles_example * t_cycle / t_s)  # number of data points per cycle, round instead of floor
+N_per_step = round(N_cycles_step * t_cycle / t_s)
+N_examples = (N_total - N_per_example) // N_per_step + 1  # floor division
+assert N_total >= (N_examples * N_per_example)
 
 # number of training and testing stroke cycles
 N_examples_train = round(0.8 * N_examples)
 N_examples_test = N_examples - N_examples_train
 
-print('Data points in a cycle:', N_per_cycle)
-print('Unused data points:', N_total - N_per_cycle * N_cycles)  # print number of unused data points
-print('Stroke cycles:', N_cycles)
+print('Data points in an example:', N_per_example)
+print('Unused data points:', N_total - N_examples * N_per_example)  # print number of unused data points
 print('Total examples:', N_examples)
 print('Training examples:', N_examples_train)
 print('Testing examples:', N_examples_test)
 print('Inputs:', N_inputs)
 
 # %%
-data = np.zeros((N_files * N_examples * N_cycles_example * N_per_cycle, N_inputs))  # all input data
+data = np.zeros((N_files * N_examples * N_per_example, N_inputs))  # all input data
 labels = np.zeros((N_files * N_examples), dtype=int)  # all labels
 
 # if empirical_prediction:  # furthest distance from wall as forward model
@@ -96,15 +88,15 @@ for k in range(N_files):
     #     ft_meas -= ft_pred
 
     for i in range(N_examples):
-        data[((k*N_examples + i) * N_cycles_example * N_per_cycle):((k*N_examples + i + 1) * N_cycles_example * N_per_cycle), 0:6] = \
+        data[((k*N_examples + i) * N_per_example):((k*N_examples + i + 1) * N_per_example), 0:6] = \
             ft_meas[:, (i*N_cycles_step * N_per_cycle):((i*N_cycles_step + N_cycles_example) * N_per_cycle)].T  # measured FT
-        data[((k*N_examples + i) * N_cycles_example * N_per_cycle):((k*N_examples + i + 1) * N_cycles_example * N_per_cycle), -1] = \
+        data[((k*N_examples + i) * N_per_example):((k*N_examples + i + 1) * N_per_example), -1] = \
             ang_meas[0, (i*N_cycles_step * N_per_cycle):((i*N_cycles_step + N_cycles_example) * N_per_cycle)].T  # stroke angle
         labels[k*N_examples + i] = k
 
 # %%
 data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
-data = data.reshape(N_files * N_examples, N_cycles_example * N_per_cycle, N_inputs)
+data = data.reshape(N_files * N_examples, N_per_example, N_inputs)
 data = data.transpose(0, 2, 1)  # example -> FT components -> all data points of that example
 
 if shuffle_examples:  # randomize order of data to be split into train and test sets
@@ -121,7 +113,7 @@ y_val = labels[N_files*N_examples_train:]
 # %%
 model = keras.models.Sequential(
     [
-        keras.layers.RNN(keras.layers.LSTMCell(cells_number), return_sequences=True, input_shape=(N_inputs, N_cycles_example * N_per_cycle)),
+        keras.layers.RNN(keras.layers.LSTMCell(cells_number), return_sequences=True, input_shape=(N_inputs, N_per_example)),
         # keras.layers.RNN(keras.layers.LSTMCell(cells_number), return_sequences=True),
         keras.layers.RNN(keras.layers.LSTMCell(cells_number)),
         # keras.layers.Dense(cells_number),
