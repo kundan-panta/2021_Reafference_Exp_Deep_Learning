@@ -12,7 +12,7 @@ file_names = ['0', '6', '12', '18']
 file_names_offset = 3  # difference in between actual distance and file names
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
-N_cycles_example = 1  # use this number of stroke cycles as 1 example
+N_cycles_example = 0.5  # use this number of stroke cycles as 1 example
 N_cycles_step = N_cycles_example  # number of cycles to step between consecutive examples
 N_inputs = 7  # ft_meas + other inputs
 
@@ -31,7 +31,7 @@ save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
 save_folder = 'plots/2021.04.29_fractions/'  # include trailing slash
-save_filename = root_folder + save_folder + str(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf'
+save_filename = root_folder + save_folder + ' '.join(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf'
 
 # %%
 # all files to extract the data from (collected at multiple locations)
