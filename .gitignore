@@ -7,3 +7,4 @@ __pycache__/correct_biases.cpython-38.pyc
 Lstm_tf2_wing_wall_working.py
 *.h5
 *.pb
+plots
