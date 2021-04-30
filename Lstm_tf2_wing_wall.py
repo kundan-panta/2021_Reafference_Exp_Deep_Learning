@@ -13,7 +13,7 @@ file_names = ['0', '6', '12', '18']
 file_names_offset = 3  # difference in between actual distance and file names
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
-N_cycles_example = 0.5  # use this number of stroke cycles as 1 example
+N_cycles_example = 1  # use this number of stroke cycles as 1 example
 N_cycles_step = N_cycles_example  # number of cycles to step between consecutive examples
 N_inputs = 7  # ft_meas + other inputs
 
@@ -182,10 +182,12 @@ cm_train = confusion_matrix(y, np.argmax(model.predict(x), axis=-1))
 cm_test = confusion_matrix(y_val, np.argmax(model.predict(x_val), axis=-1))
 
 if save_plot:
+    Path(save_filename).mkdir(parents=True, exist_ok=True)  # make folder if not already made by ModelCheckpoint
     plt.savefig(save_filename + '.png')
 if save_cm:
-    np.savetxt(save_filename + '_train.txt', cm_train, fmt='%d')
-    np.savetxt(save_filename + '_test.txt', cm_test, fmt='%d')
+    Path(save_filename).mkdir(parents=True, exist_ok=True)  # make folder if not already made by ModelCheckpoint
+    np.savetxt(save_filename + '/cm_train.txt', cm_train, fmt='%d')
+    np.savetxt(save_filename + '/cm_test.txt', cm_test, fmt='%d')
 
 print(cm_train)
 print(cm_test)
