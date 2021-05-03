@@ -21,6 +21,7 @@ N_inputs = 7  # ft_meas + other inputs
 # empirical_prediction_name = '22'
 # subract_prediction = False  # meas - pred?
 
+train_test_split = 0.8
 shuffle_examples = True
 
 cells_number = 128  # number of lstm cells of each lstm layer
@@ -60,14 +61,14 @@ N_examples = (N_total - N_per_example) // N_per_step + 1  # floor division
 assert N_total >= (N_examples * N_per_example)  # must not exceed total number of data points
 
 # number of training and testing stroke cycles
-N_examples_train = round(0.8 * N_examples)
+N_examples_train = round(train_test_split * N_examples)
 N_examples_test = N_examples - N_examples_train
 
 print('Data points in an example:', N_per_example)
 print('Unused data points:', N_total - N_examples * N_per_example)  # print number of unused data points
-print('Total examples:', N_examples)
-print('Training examples:', N_examples_train)
-print('Testing examples:', N_examples_test)
+print('Total examples per file:', N_examples)
+print('Training examples per file:', N_examples_train)
+print('Testing examples per file:', N_examples_test)
 print('Inputs:', N_inputs)
 
 # %%
@@ -94,7 +95,8 @@ for k in range(N_files):
         data[((k*N_examples + i) * N_per_example):((k*N_examples + i + 1) * N_per_example), -1] = \
             ang_meas[0, (i*N_per_step):(i*N_per_step + N_per_example)].T  # stroke angle
         labels[k*N_examples + i] = k
-        # sanity checks for data: looked at 1st row of 1st file, last row of 1st file, first row of 2nd file, last row of last file, to make sure all the data I needed was at the right place
+        # sanity checks for data: looked at 1st row of 1st file, last row of 1st file, first row of 2nd file,
+        # last row of last file, to make sure all the data I needed was at the right place
 
 # %%
 data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
