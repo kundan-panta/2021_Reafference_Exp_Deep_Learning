@@ -98,6 +98,12 @@ for k in range(N_files):
 
 # %%
 data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
+
+# save the min and max values used for normalization of the data
+Path(save_filename).mkdir(parents=True, exist_ok=True)  # make folder
+np.savetxt(save_filename + '/data_min.txt', np.min(data, axis=0))
+np.savetxt(save_filename + '/data_max.txt', np.max(data, axis=0))
+
 data = data.reshape(N_files * N_examples, N_per_example, N_inputs)
 data = data.transpose(0, 2, 1)  # example -> FT components -> all data points of that example
 
@@ -182,10 +188,8 @@ cm_train = confusion_matrix(y, np.argmax(model.predict(x), axis=-1))
 cm_test = confusion_matrix(y_val, np.argmax(model.predict(x_val), axis=-1))
 
 if save_plot:
-    Path(save_filename).mkdir(parents=True, exist_ok=True)  # make folder if not already made by ModelCheckpoint
     plt.savefig(save_filename + '.png')
 if save_cm:
-    Path(save_filename).mkdir(parents=True, exist_ok=True)  # make folder if not already made by ModelCheckpoint
     np.savetxt(save_filename + '/cm_train.txt', cm_train, fmt='%d')
     np.savetxt(save_filename + '/cm_test.txt', cm_test, fmt='%d')
 
