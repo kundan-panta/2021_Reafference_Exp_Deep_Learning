@@ -9,6 +9,7 @@ from tensorflow.math import confusion_matrix
 
 # %% design parameters
 root_folder = ''  # include trailing slash
+data_folder = 'data/2021.05.03/unfiltered/'  # include trailing slash
 file_names = ['0', '6', '12', '18']
 file_names_offset = 3  # difference in between actual distance and file names
 trajectory_name = '30deg'  # choose trajectory name for which to process data
@@ -32,8 +33,8 @@ epochs_number = 500  # number of epochs
 save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
-save_folder = 'plots/2021.04.29_fractions/'  # include trailing slash
-save_filename = root_folder + save_folder + ','.join(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf'
+save_folder = 'plots/2021.05.03_filter/'  # include trailing slash
+save_filename = root_folder + save_folder + ','.join(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_f'
 
 # %%
 # all files to extract the data from (collected at multiple locations)
@@ -46,8 +47,8 @@ N_files = len(file_names)
 # file_names_float += file_names_offset  # offset between ruler reading and distance from wing tip to wall
 
 # get stroke cycle period information from one of the files
-t = np.around(np.loadtxt(root_folder + file_names[0] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
-cpg_param = np.loadtxt(root_folder + file_names[0] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
+t = np.around(np.loadtxt(root_folder + data_folder + file_names[0] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
+cpg_param = np.loadtxt(root_folder + data_folder + file_names[0] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
 
 N_total = len(t)  # number of data points
 
@@ -76,15 +77,15 @@ data = np.zeros((N_files * N_examples * N_per_example, N_inputs))  # all input d
 labels = np.zeros((N_files * N_examples), dtype=int)  # all labels
 
 # if empirical_prediction:  # furthest distance from wall as forward model
-#     ft_pred = np.loadtxt(root_folder + empirical_prediction_name + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
+#     ft_pred = np.loadtxt(root_folder + data_folder + empirical_prediction_name + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
 
 for k in range(N_files):
     # get data
-    t = np.around(np.loadtxt(root_folder + file_names[k] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
+    t = np.around(np.loadtxt(root_folder + data_folder + file_names[k] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
     # if not(empirical_prediction):  # use QS model if empirical prediction is not used
-    #     ft_pred = np.loadtxt(root_folder + file_names[k] + '/' + trajectory_name + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
-    ft_meas = np.loadtxt(root_folder + file_names[k] + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
-    ang_meas = np.loadtxt(root_folder + file_names[k] + '/' + trajectory_name + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
+    #     ft_pred = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + trajectory_name + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
+    ft_meas = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
+    ang_meas = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + trajectory_name + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
 
     # if subract_prediction:  # subtract pred from meas?
     #     ft_meas -= ft_pred
@@ -99,13 +100,12 @@ for k in range(N_files):
         # last row of last file, to make sure all the data I needed was at the right place
 
 # %%
-data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
-
 # save the min and max values used for normalization of the data
 Path(save_filename).mkdir(parents=True, exist_ok=True)  # make folder
 np.savetxt(save_filename + '/data_min.txt', np.min(data, axis=0))
 np.savetxt(save_filename + '/data_max.txt', np.max(data, axis=0))
 
+data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
 data = data.reshape(N_files * N_examples, N_per_example, N_inputs)
 data = data.transpose(0, 2, 1)  # example -> FT components -> all data points of that example
 
