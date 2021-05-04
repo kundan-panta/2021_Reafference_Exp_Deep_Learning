@@ -10,8 +10,8 @@ from tensorflow.math import confusion_matrix
 # %% design parameters
 root_folder = ''  # include trailing slash
 data_folder = 'data/2021.05.03/unfiltered/'  # include trailing slash
-file_names = ['0', '6', '12', '18']
-file_names_offset = 3  # difference in between actual distance and file names
+file_names = ['0', '6', '12', '18', '24']
+file_names_offset = 2  # difference in between actual distance and file names
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
 N_cycles_example = 1  # use this number of stroke cycles as 1 example
@@ -33,8 +33,8 @@ epochs_number = 500  # number of epochs
 save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
-save_folder = 'plots/2021.05.03_filter/'  # include trailing slash
-save_filename = root_folder + save_folder + ','.join(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_f'
+save_folder = 'plots/2021.05.03_check/'  # include trailing slash
+save_filename = root_folder + save_folder + ','.join(file_names) + '_(' + str(N_cycles_example) + ',' + str(N_cycles_step) + ')_3layer' + str(cells_number) + '_' + str(lr) + '_uf'
 
 # %%
 # all files to extract the data from (collected at multiple locations)
