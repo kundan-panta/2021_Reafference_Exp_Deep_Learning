@@ -9,8 +9,10 @@ from tensorflow.math import confusion_matrix
 
 # %% design parameters
 root_folder = ''  # include trailing slash
-data_folder = 'data/2021.05.03/filtered_a10_s22_o20/'  # include trailing slash
-file_names = ['0', '6', '12', '18', '24']
+data_folder = 'data/2021.05.05/filtered_a1_s5_o60_all/'  # include trailing slash
+# file_names = ['0', '6', '12', '18', '24']
+# file_names = ['3', '9', '15', '21']
+file_names = ['0', '3', '6', '9', '12', '15', '18', '21', '24']
 file_names_offset = 2  # difference in between actual distance and file names
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
@@ -36,7 +38,7 @@ save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
 save_folder = 'plots/2021.05.03_filter/'  # include trailing slash
-save_filename = root_folder + save_folder + ','.join(file_names) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_' + str(lr) + '_f10,22,20'
+save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_' + str(lr) + '_f1,5,60'
 
 # %%
 # all files to extract the data from (collected at multiple locations)
