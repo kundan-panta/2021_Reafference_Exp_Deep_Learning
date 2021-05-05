@@ -16,7 +16,9 @@ trajectory_name = '30deg'  # choose trajectory name for which to process data
 
 N_cycles_example = 1  # use this number of stroke cycles as 1 example
 N_cycles_step = N_cycles_example  # number of cycles to step between consecutive examples
-N_inputs = 7  # ft_meas + other inputs
+
+inputs_ft = [0, 1, 2, 3, 4, 5]
+inputs_ang = [0]
 
 # empirical_prediction = True  # whether to use collected data as the "perfect prediction"
 # empirical_prediction_name = '22'
@@ -64,6 +66,10 @@ assert N_total >= (N_examples * N_per_example)  # must not exceed total number o
 # number of training and testing stroke cycles
 N_examples_train = round(train_test_split * N_examples)
 N_examples_test = N_examples - N_examples_train
+
+N_inputs_ft = len(inputs_ft)
+N_inputs_ang = len(inputs_ang)
+N_inputs = N_inputs_ft + N_inputs_ang  # ft_meas + other inputs
 
 print('Data points in an example:', N_per_example)
 print('Unused data points:', N_total - N_examples * N_per_example)  # print number of unused data points
