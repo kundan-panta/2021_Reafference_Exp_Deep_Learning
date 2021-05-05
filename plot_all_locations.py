@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 # %% design parameters
 root_folder = ''  # include trailing slash
-data_folder = 'data/2021.05.03/filtered_a1_s5_o60/'  # include trailing slash
+data_folder = 'data/2021.05.03/filtered_a10_s22_o20/'  # include trailing slash
 file_names = ['0', '6', '12', '18', '24']
 file_names_offset = 2  # difference in between actual distance and file names
 trajectory_name = '30deg'  # choose trajectory name for which to process data
@@ -106,7 +106,7 @@ for k in range(N_files):
 Path(save_folder).mkdir(parents=True, exist_ok=True)  # make folder
 for i in range(1, 7):
     plt.figure(i)
-    plt.savefig(save_folder + 'all_' + str(i) + '_f1,5,60.png')  # and change this (4)
+    plt.savefig(save_folder + 'all_f10,22,20_' + str(i) + '.png')  # and change this (4)
 
 # plt.show()
 
