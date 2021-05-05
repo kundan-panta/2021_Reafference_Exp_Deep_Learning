@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 # %% design parameters
 root_folder = ''  # include trailing slash
-data_folder = 'data/2021.05.03/unfiltered/'  # include trailing slash
+data_folder = 'data/2021.05.03/filtered_a1_s5_o60/'  # include trailing slash
 file_names = ['0', '6', '12', '18', '24']
 file_names_offset = 2  # difference in between actual distance and file names
 trajectory_name = '30deg'  # choose trajectory name for which to process data
@@ -18,7 +18,7 @@ subract_prediction = False  # meas - pred?
 save_folder = root_folder + 'plots/2021.05.03_dataplots/'  # include trailing slash
 
 idx_start = 0
-idx_end = 1000
+idx_end = 2000
 
 # %%
 # all files to extract the data from (collected at multiple locations)
@@ -106,7 +106,7 @@ for k in range(N_files):
 Path(save_folder).mkdir(parents=True, exist_ok=True)  # make folder
 for i in range(1, 7):
     plt.figure(i)
-    plt.savefig(save_folder + 'all_' + str(i) + '.png')  # and change this (4)
+    plt.savefig(save_folder + 'all_' + str(i) + '_f1,5,60.png')  # and change this (4)
 
 # plt.show()
 
