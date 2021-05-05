@@ -38,7 +38,7 @@ save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
 save_folder = 'plots/2021.05.03_filter/'  # include trailing slash
-save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_' + str(lr) + '_f1,5,60'
+save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_' + str(lr) + '_f1,5,60'
 
 # %%
 # all files to extract the data from (collected at multiple locations)
