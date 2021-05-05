@@ -97,10 +97,10 @@ for k in range(N_files):
     #     ft_meas -= ft_pred
 
     for i in range(N_examples):
-        data[((k*N_examples + i) * N_per_example):((k*N_examples + i + 1) * N_per_example), 0:N_inputs_ft] = \
+        data[((k*N_examples + i) * N_per_example):((k*N_examples + i + 1) * N_per_example), :N_inputs_ft] = \
             ft_meas[inputs_ft, (i*N_per_step):(i*N_per_step + N_per_example)].T  # measured FT
         if N_inputs_ang > 0:
-            data[((k*N_examples + i) * N_per_example):((k*N_examples + i + 1) * N_per_example), N_inputs_ft:N_inputs] = \
+            data[((k*N_examples + i) * N_per_example):((k*N_examples + i + 1) * N_per_example), N_inputs_ft:] = \
                 ang_meas[inputs_ang, (i*N_per_step):(i*N_per_step + N_per_example)].T  # stroke angle
         labels[k*N_examples + i] = k
         # sanity checks for data: looked at 1st row of 1st file, last row of 1st file, first row of 2nd file,
