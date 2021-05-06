@@ -10,16 +10,16 @@ from tensorflow.math import confusion_matrix
 # %% design parameters
 root_folder = ''  # include trailing slash
 data_folder = 'data/2021.05.05/filtered_a1_s5_o60_all/'  # include trailing slash
-# file_names = ['0', '6', '12', '18', '24']
+file_names = ['0', '6', '12', '18', '24']
 # file_names = ['3', '9', '15', '21']
-file_names = ['0', '3', '6', '9', '12', '15', '18', '21', '24']
+# file_names = ['0', '3', '6', '9', '12', '15', '18', '21', '24']
 file_names_offset = 2  # difference in between actual distance and file names
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
-N_cycles_example = 1  # use this number of stroke cycles as 1 example
-N_cycles_step = N_cycles_example  # number of cycles to step between consecutive examples
+N_cycles_example = 2  # use this number of stroke cycles as 1 example
+N_cycles_step = 1  # number of cycles to step between consecutive examples
 
-inputs_ft = [0, 1, 2, 3, 4, 5]
+inputs_ft = [0, 4, 5]
 inputs_ang = [0]
 
 # empirical_prediction = True  # whether to use collected data as the "perfect prediction"
@@ -31,13 +31,13 @@ shuffle_examples = True
 
 cells_number = 128  # number of lstm cells of each lstm layer
 lr = 0.0001  # learning rate
-epochs_number = 500  # number of epochs
+epochs_number = 1000  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
 save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
-save_folder = 'plots/2021.05.03_filter/'  # include trailing slash
+save_folder = 'plots/2021.05.06_cycles/'  # include trailing slash
 save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_' + str(lr) + '_f1,5,60'
 
 # %%
@@ -63,7 +63,7 @@ t_cycle = 1 / freq  # stroke cycle time
 N_per_example = round(N_cycles_example * t_cycle / t_s)  # number of data points per cycle, round instead of floor
 N_per_step = round(N_cycles_step * t_cycle / t_s)
 N_examples = (N_total - N_per_example) // N_per_step + 1  # floor division
-assert N_total >= (N_examples * N_per_example)  # must not exceed total number of data points
+assert N_total >= (N_examples - 1) * N_per_step + N_per_example  # last data point used must not exceed total number of data points
 
 # number of training and testing stroke cycles
 N_examples_train = round(train_test_split * N_examples)
@@ -73,8 +73,9 @@ N_inputs_ft = len(inputs_ft)
 N_inputs_ang = len(inputs_ang)
 N_inputs = N_inputs_ft + N_inputs_ang  # ft_meas + other inputs
 
+print('Frequency:', freq)
 print('Data points in an example:', N_per_example)
-print('Unused data points:', N_total - N_examples * N_per_example)  # print number of unused data points
+print('Unused data points:', N_total - ((N_examples - 1) * N_per_step + N_per_example))  # print number of unused data points
 print('Total examples per file:', N_examples)
 print('Training examples per file:', N_examples_train)
 print('Testing examples per file:', N_examples_test)
