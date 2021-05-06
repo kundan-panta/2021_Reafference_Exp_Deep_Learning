@@ -11,8 +11,8 @@ from tensorflow.math import confusion_matrix
 root_folder = ''  # include trailing slash
 data_folder = 'data/2021.05.05/filtered_a1_s5_o60_all/'  # include trailing slash
 # file_names_offset = 2  # difference in between actual distance and file names
-file_names = ['0', '6', '12', '18', '24']
-file_labels = [0, 1, 2, 3, 4]
+file_names = ['6', '18']
+file_labels = [0, 1]
 # file_distances = np.array([0, 6, 12, 18, 24], dtype=float) + file_names_offset
 # file_names = ['3', '9', '15', '21']
 # file_labels = [0, 1, 2, 3]
@@ -22,7 +22,7 @@ file_labels = [0, 1, 2, 3, 4]
 # file_distances = np.array([0, 3, 6, 9, 12, 15, 18, 21, 24], dtype=float) + file_names_offset
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
-N_cycles_example = 2  # use this number of stroke cycles as 1 example
+N_cycles_example = 3  # use this number of stroke cycles as 1 example
 N_cycles_step = 1  # number of cycles to step between consecutive examples
 
 inputs_ft = [0, 4, 5]
@@ -51,12 +51,6 @@ save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.joi
 N_files = len(file_names)
 assert len(file_labels) == N_files
 # assert len(file_distances) == N_files
-
-# also convert the list into an array of floats
-# file_names_float = np.zeros(N_files)
-# for i in range(N_files):
-#     file_names_float[i] = float(file_names[i])
-# file_names_float += file_names_offset  # offset between ruler reading and distance from wing tip to wall
 
 # get stroke cycle period information from one of the files
 t = np.around(np.loadtxt(root_folder + data_folder + file_names[0] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
