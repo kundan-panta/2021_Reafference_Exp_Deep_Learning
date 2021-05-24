@@ -11,7 +11,7 @@ from tensorflow.math import confusion_matrix
 root_folder = ''  # include trailing slash
 data_folder = 'data/2021.05.05/filtered_a1_s5_o60_all/'  # include trailing slash
 # file_names_offset = 2  # difference in between actual distance and file names
-file_names = ['6', '18']
+file_names = ['3', '6']
 file_labels = [0, 1]
 # file_distances = np.array([0, 6, 12, 18, 24], dtype=float) + file_names_offset
 # file_names = ['3', '9', '15', '21']
@@ -24,8 +24,11 @@ trajectory_name = '30deg'  # choose trajectory name for which to process data
 
 N_cycles_example = 3  # use this number of stroke cycles as 1 example
 N_cycles_step = 1  # number of cycles to step between consecutive examples
+# total number of examples to use per file
+# set 0 to automatically calculate number of examples from the first file
+N_examples = 20
 
-inputs_ft = [0, 4, 5]
+inputs_ft = [0, 1, 2, 3, 4, 5]
 inputs_ang = [0]
 
 # empirical_prediction = True  # whether to use collected data as the "perfect prediction"
@@ -64,7 +67,8 @@ t_cycle = 1 / freq  # stroke cycle time
 
 N_per_example = round(N_cycles_example * t_cycle / t_s)  # number of data points per cycle, round instead of floor
 N_per_step = round(N_cycles_step * t_cycle / t_s)
-N_examples = (N_total - N_per_example) // N_per_step + 1  # floor division
+if N_examples != 0:  # if number of examples per file is not explicitly specified
+    N_examples = (N_total - N_per_example) // N_per_step + 1  # floor division
 assert N_total >= (N_examples - 1) * N_per_step + N_per_example  # last data point used must not exceed total number of data points
 
 # number of training and testing stroke cycles
