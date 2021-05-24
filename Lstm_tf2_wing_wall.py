@@ -10,16 +10,12 @@ from tensorflow.math import confusion_matrix
 # %% design parameters
 root_folder = ''  # include trailing slash
 data_folder = 'data/2021.05.05/filtered_a1_s5_o60_all/'  # include trailing slash
-# file_names_offset = 2  # difference in between actual distance and file names
 file_names = ['3', '6']
 file_labels = [0, 1]
-# file_distances = np.array([0, 6, 12, 18, 24], dtype=float) + file_names_offset
 # file_names = ['3', '9', '15', '21']
 # file_labels = [0, 1, 2, 3]
-# file_distances = np.array([3, 9, 15, 21], dtype=float) + file_names_offset
 # file_names = ['0', '3', '6', '9', '12', '15', '18', '21', '24']
 # file_labels = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-# file_distances = np.array([0, 3, 6, 9, 12, 15, 18, 21, 24], dtype=float) + file_names_offset
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
 N_cycles_example = 3  # use this number of stroke cycles as 1 example
@@ -57,10 +53,14 @@ save_folder = 'plots/2021.05.06_cycles/'  # include trailing slash
 save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_3l' + str(cells_number) + '_' + str(lr) + '_f1,5,60'
 
 # %%
-# all files to extract the data from (collected at multiple locations)
-N_files = len(file_names)
-assert len(file_labels) == N_files
-# assert len(file_distances) == N_files
+# all files to extract the data from
+N_files_train = len(file_names)  # if separate test files are supplied
+if separate_test_files:  # add test files to the list
+    file_names.extend(file_names_test)
+    file_labels.extend(file_labels_test)
+N_files_total = len(file_names)
+
+assert len(file_labels) == N_files_total  # makes sure labels are there for all files
 
 # get stroke cycle period information from one of the files
 t = np.around(np.loadtxt(root_folder + data_folder + file_names[0] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
@@ -89,6 +89,8 @@ N_inputs_ft = len(inputs_ft)
 N_inputs_ang = len(inputs_ang)
 N_inputs = N_inputs_ft + N_inputs_ang  # ft_meas + other inputs
 
+N_classes = len(np.unique(file_labels))
+
 print('Frequency:', freq)
 print('Data points in an example:', N_per_example)
 print('Unused data points:', N_total - ((N_examples - 1) * N_per_step + N_per_example))  # print number of unused data points
@@ -96,15 +98,16 @@ print('Total examples per file:', N_examples)
 print('Training examples per file:', N_examples_train)
 print('Testing examples per file:', N_examples_test)
 print('Inputs:', N_inputs)
+print('Clases:', N_classes)
 
 # %%
-data = np.zeros((N_files * N_examples * N_per_example, N_inputs))  # all input data
-labels = np.zeros((N_files * N_examples), dtype=int)  # all labels
+data = np.zeros((N_files_total * N_examples * N_per_example, N_inputs))  # all input data
+labels = np.zeros((N_files_total * N_examples), dtype=int)  # all labels
 
 # if empirical_prediction:  # furthest distance from wall as forward model
 #     ft_pred = np.loadtxt(root_folder + data_folder + empirical_prediction_name + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
 
-for k in range(N_files):
+for k in range(N_files_total):
     # get data
     t = np.around(np.loadtxt(root_folder + data_folder + file_names[k] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
     # if not(empirical_prediction):  # use QS model if empirical prediction is not used
@@ -132,19 +135,19 @@ np.savetxt(save_filename + '/data_min.txt', np.min(data, axis=0))
 np.savetxt(save_filename + '/data_max.txt', np.max(data, axis=0))
 
 data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
-data = data.reshape(N_files * N_examples, N_per_example, N_inputs)
+data = data.reshape(N_files_total * N_examples, N_per_example, N_inputs)
 data = data.transpose(0, 2, 1)  # example -> FT components -> all data points of that example
 
 if shuffle_examples:  # randomize order of data to be split into train and test sets
-    permutation = list(np.random.permutation(N_files * N_examples))
+    permutation = list(np.random.permutation(N_files_total * N_examples))
     data = data[permutation]
     labels = labels[permutation]
 
 # split data into training and testing sets
-x = data[:N_files*N_examples_train]
-y = labels[:N_files*N_examples_train]
-x_val = data[N_files*N_examples_train:]
-y_val = labels[N_files*N_examples_train:]
+x = data[:N_files_train*N_examples_train]
+y = labels[:N_files_train*N_examples_train]
+x_val = data[N_files_train*N_examples_train:]
+y_val = labels[N_files_train*N_examples_train:]
 
 # %%
 model = keras.models.Sequential(
@@ -153,7 +156,7 @@ model = keras.models.Sequential(
         # keras.layers.RNN(keras.layers.LSTMCell(cells_number), return_sequences=True),
         keras.layers.RNN(keras.layers.LSTMCell(cells_number)),
         # keras.layers.Dense(cells_number),
-        keras.layers.Dense(N_files, activation='softmax')
+        keras.layers.Dense(N_classes, activation='softmax')
     ]
 )
 
