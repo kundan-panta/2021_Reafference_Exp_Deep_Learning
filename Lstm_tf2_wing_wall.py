@@ -24,9 +24,9 @@ trajectory_name = '30deg'  # choose trajectory name for which to process data
 
 N_cycles_example = 3  # use this number of stroke cycles as 1 example
 N_cycles_step = 1  # number of cycles to step between consecutive examples
-# total number of examples to use per file
+# total number of cycles to use per file
 # set 0 to automatically calculate number of examples from the first file
-N_examples = 20
+N_cycles_to_use = 20
 
 inputs_ft = [0, 1, 2, 3, 4, 5]
 inputs_ang = [0]
@@ -35,8 +35,15 @@ inputs_ang = [0]
 # empirical_prediction_name = '22'
 # subract_prediction = False  # meas - pred?
 
-train_test_split = 0.8
-shuffle_examples = True
+separate_test_files = False  # if using a separate set of files for testing
+if separate_test_files:
+    file_names_test = []
+    file_labels_test = []
+    train_test_split = 1
+    shuffle_examples = False
+else:
+    train_test_split = 0.8
+    shuffle_examples = True
 
 cells_number = 128  # number of lstm cells of each lstm layer
 lr = 0.0001  # learning rate
@@ -59,16 +66,19 @@ assert len(file_labels) == N_files
 t = np.around(np.loadtxt(root_folder + data_folder + file_names[0] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
 cpg_param = np.loadtxt(root_folder + data_folder + file_names[0] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
 
-N_total = len(t)  # number of data points
-
 t_s = round(t[1] - t[0], 3)  # sample time
 freq = cpg_param[-1, 0]  # store frequency of param set
 t_cycle = 1 / freq  # stroke cycle time
 
-N_per_example = round(N_cycles_example * t_cycle / t_s)  # number of data points per cycle, round instead of floor
+if N_cycles_to_use == 0:  # if number of cycles per file is not explicitly specified
+    N_total = len(t)  # number of data points
+else:
+    N_per_cycle = round(t_cycle / t_s)  # number of data points per cycle, round instead of floor
+    N_total = N_cycles_to_use * N_per_cycle + 100  # limit amount of data to use
+
+N_per_example = round(N_cycles_example * t_cycle / t_s)  # number of data points per example, round instead of floor
 N_per_step = round(N_cycles_step * t_cycle / t_s)
-if N_examples != 0:  # if number of examples per file is not explicitly specified
-    N_examples = (N_total - N_per_example) // N_per_step + 1  # floor division
+N_examples = (N_total - N_per_example) // N_per_step + 1  # floor division
 assert N_total >= (N_examples - 1) * N_per_step + N_per_example  # last data point used must not exceed total number of data points
 
 # number of training and testing stroke cycles
