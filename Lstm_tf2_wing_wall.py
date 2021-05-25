@@ -9,16 +9,16 @@ from tensorflow.math import confusion_matrix
 
 # %% design parameters
 root_folder = ''  # include trailing slash
-data_folder = 'data/2021.05.05/filtered_a1_s5_o60_all/'  # include trailing slash
-file_names = ['3', '6']
-file_labels = [0, 1]
+data_folder = 'data/2021.05.25/filtered_a5_s10_o60/'  # include trailing slash
+file_names = ['0-1', '6-1', '0-3', '6-3', '0-4', '6-4', '0-5', '6-5', '0-6', '6-6', '0-7', '6-7']
+file_labels = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
 # file_names = ['3', '9', '15', '21']
 # file_labels = [0, 1, 2, 3]
 # file_names = ['0', '3', '6', '9', '12', '15', '18', '21', '24']
 # file_labels = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
-N_cycles_example = 3  # use this number of stroke cycles as 1 example
+N_cycles_example = 1  # use this number of stroke cycles as 1 example
 N_cycles_step = 1  # number of cycles to step between consecutive examples
 # total number of cycles to use per file
 # set 0 to automatically calculate number of examples from the first file
@@ -31,10 +31,10 @@ inputs_ang = [0]
 # empirical_prediction_name = '22'
 # subract_prediction = False  # meas - pred?
 
-separate_test_files = False  # if using a separate set of files for testing
+separate_test_files = True  # if using a separate set of files for testing
 if separate_test_files:
-    file_names_test = []
-    file_labels_test = []
+    file_names_test = ['6-2']
+    file_labels_test = [1]
     train_test_split = 1
     shuffle_examples = False
 else:
@@ -49,8 +49,8 @@ epochs_number = 1000  # number of epochs
 save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
-save_folder = 'plots/2021.05.06_cycles/'  # include trailing slash
-save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_3l' + str(cells_number) + '_' + str(lr) + '_f1,5,60'
+save_folder = 'plots/2021.05.25/'  # include trailing slash
+save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_3l' + str(cells_number) + '_' + str(lr) + '_f5,10,60'
 
 # %%
 # all files to extract the data from
@@ -161,7 +161,7 @@ model = keras.models.Sequential(
 )
 
 model.compile(
-    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=False),
     optimizer="adam",
     metrics=["accuracy"],
 )
