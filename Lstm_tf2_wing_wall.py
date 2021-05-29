@@ -10,15 +10,11 @@ from tensorflow.math import confusion_matrix
 # %% design parameters
 root_folder = ''  # include trailing slash
 data_folder = 'data/2021.05.25/filtered_a5_s10_o60/'  # include trailing slash
-file_names = ['0-1', '6-1', '0-3', '6-3', '0-4', '6-4', '0-5', '6-5', '0-6', '6-6', '0-7', '6-7']
-file_labels = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
-# file_names = ['3', '9', '15', '21']
-# file_labels = [0, 1, 2, 3]
-# file_names = ['0', '3', '6', '9', '12', '15', '18', '21', '24']
-# file_labels = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+file_names = ['0-1', '12-1', '0-3', '12-3', '0-4', '12-4', '0-5', '12-5', '0-6', '12-6', '0-7', '12-7', '0-8', '12-8', '0-10', '12-10', '0-11', '12-11']
+file_labels = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
-N_cycles_example = 1  # use this number of stroke cycles as 1 example
+N_cycles_example = 3  # use this number of stroke cycles as 1 example
 N_cycles_step = 1  # number of cycles to step between consecutive examples
 # total number of cycles to use per file
 # set 0 to automatically calculate number of examples from the first file
@@ -33,24 +29,24 @@ inputs_ang = [0]
 
 separate_test_files = True  # if using a separate set of files for testing
 if separate_test_files:
-    file_names_test = ['6-2']
-    file_labels_test = [1]
+    file_names_test = ['0-9', '12-9']
+    file_labels_test = [0, 1]
     train_test_split = 1
     shuffle_examples = False
 else:
     train_test_split = 0.8
     shuffle_examples = True
 
-cells_number = 128  # number of lstm cells of each lstm layer
-lr = 0.0001  # learning rate
+cells_number = 64  # number of lstm cells of each lstm layer
+lr = 0.0005  # learning rate
 epochs_number = 1000  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
 save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
-save_folder = 'plots/2021.05.25/'  # include trailing slash
-save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_3l' + str(cells_number) + '_' + str(lr) + '_f5,10,60'
+save_folder = 'plots/2021.05.29_cycles/'  # include trailing slash
+save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_3l' + str(cells_number) + '_' + str(lr) + '_f5,10,60'
 
 # %%
 # all files to extract the data from

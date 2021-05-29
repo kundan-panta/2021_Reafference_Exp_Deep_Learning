@@ -6,18 +6,20 @@ import matplotlib.pyplot as plt
 
 # %% design parameters
 root_folder = ''  # include trailing slash
-data_folder = 'data/2021.05.05/filtered_a1_s5_o60_all/'  # include trailing slash
+data_folder = 'data/2021.05.25/filtered_a5_s10_o60/'  # include trailing slash
 file_names_offset = 2  # difference in between actual distance and file names
-file_names = ['0', '3', '6', '6_2', '9', '12', '15', '18', '21', '24']
-file_distances = np.array([0, 3, 6, 6, 9, 12, 15, 18, 21, 24], dtype=float) + file_names_offset
+# file_names = ['0', '3', '6', '6_2', '9', '12', '15', '18', '21', '24']
+# file_distances = np.array([0, 3, 6, 6, 9, 12, 15, 18, 21, 24], dtype=float) + file_names_offset
+file_names = ['12-1', '12-3', '12-4', '12-5', '12-6', '12-7', '12-8', '12-9', '12-10', '12-11']
+file_distances = np.array([14, 14, 14, 14, 14, 14, 14, 14, 14, 14], dtype=float) + file_names_offset
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
 empirical_prediction = True  # whether to use collected data as the "perfect prediction"
-empirical_prediction_name = '24'
+empirical_prediction_name = '24-1'
 subract_prediction = False  # meas - pred?
 
-save_folder = root_folder + 'plots/2021.05.03_dataplots/'  # include trailing slash
-save_filename = 'all_f1,5,60_'
+save_folder = root_folder + 'plots/2021.05.29_dataplots/'  # include trailing slash
+save_filename = '14_f5,10,60_'
 
 plot_size = (18, 12)
 subplot_grid_shape = [4, 3]
