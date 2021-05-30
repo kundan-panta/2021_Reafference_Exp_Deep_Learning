@@ -45,7 +45,7 @@ epochs_number = 1000  # number of epochs
 save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
-save_folder = 'plots/2021.05.29_cycles/'  # include trailing slash
+save_folder = 'plots/2021.05.30_conv/'  # include trailing slash
 save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_3l' + str(cells_number) + '_' + str(lr) + '_f5,10,60'
 
 # %%
@@ -167,6 +167,8 @@ model.compile(
 keras.backend.set_value(model.optimizer.learning_rate, lr)
 print("Learning rate:", model.optimizer.learning_rate.numpy())
 
+callbacks_list = []
+
 # early_stopping_monitor = EarlyStopping(
 #     monitor='val_accuracy',
 #     mode='auto',
@@ -177,16 +179,14 @@ print("Learning rate:", model.optimizer.learning_rate.numpy())
 #     verbose=0
 # )
 
-model_checkpoint_monitor = ModelCheckpoint(
-    save_filename,
-    monitor='val_accuracy',
-    mode='auto',
-    save_best_only=True,
-    verbose=0
-)
-
-callbacks_list = []
 if save_model:
+    model_checkpoint_monitor = ModelCheckpoint(
+        save_filename,
+        monitor='val_accuracy',
+        mode='auto',
+        save_best_only=True,
+        verbose=0
+    )
     callbacks_list.append(model_checkpoint_monitor)
 
 history = model.fit(
