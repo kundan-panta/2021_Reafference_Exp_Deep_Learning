@@ -3,11 +3,8 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow import keras
-from tensorflow.keras import layers
-from tensorflow.python.keras import activations
 # from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.python.keras.callbacks import ModelCheckpoint
-from tensorflow.python.keras.layers import LSTMV2
 from tensorflow.math import confusion_matrix
 
 # %% design parameters
@@ -40,7 +37,9 @@ else:
     train_test_split = 0.8
     shuffle_examples = True
 
-cells_number = 64  # number of lstm cells of each lstm layer
+conv_filters = len(inputs_ft) + len(inputs_ang)
+conv_kernel_size = 1
+lstm_units = 128  # number of lstm cells of each lstm layer
 lr = 0.0001  # learning rate
 epochs_number = 1000  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
@@ -49,7 +48,7 @@ save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
 save_folder = 'plots/2021.05.30_conv/'  # include trailing slash
-save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_4l' + str(cells_number) + '_' + str(lr) + '_f5,10,60'
+save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_1c' + str(conv_filters) + ',' + str(conv_kernel_size) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 
 # %%
 # all files to extract the data from
@@ -150,9 +149,10 @@ y_val = labels[N_files_train*N_examples_train:]
 # %%
 model = keras.models.Sequential(
     [
-        keras.layers.Conv1D(N_inputs, 3, activation='relu', input_shape=(N_per_example, N_inputs)),
-        keras.layers.LSTM(cells_number, return_sequences=True),  # input_shape=(N_per_example, N_inputs)),
-        keras.layers.LSTM(cells_number),
+        keras.layers.Conv1D(conv_filters, conv_kernel_size, activation='relu', input_shape=(N_per_example, N_inputs)),
+        # keras.layers.Conv1D(N_inputs, 3, activation='relu'),
+        keras.layers.LSTM(lstm_units, return_sequences=True),  # input_shape=(N_per_example, N_inputs)),
+        keras.layers.LSTM(lstm_units),
         keras.layers.Dense(N_classes, activation='softmax')
     ]
 )
