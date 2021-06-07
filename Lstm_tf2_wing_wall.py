@@ -10,7 +10,7 @@ from tensorflow.math import confusion_matrix
 # %% design parameters
 root_folder = ''  # include trailing slash
 data_folder = 'data/2021.05.25/filtered_a5_s10_o60/'  # include trailing slash
-file_names = ['12-1', '18-1', '12-3', '18-3', '12-4', '18-4', '12-5', '18-5', '12-6', '18-6', '12-7', '18-7', '12-8', '18-8', '12-10', '18-10', '12-11', '18-11']
+file_names = ['0-1', '12-1', '0-3', '12-3', '0-4', '12-4', '0-5', '12-5', '0-6', '12-6', '0-7', '12-7', '0-8', '12-8', '0-10', '12-10', '0-11', '12-11']
 file_labels = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
@@ -29,7 +29,7 @@ inputs_ang = [0]
 
 separate_test_files = True  # if using a separate set of files for testing
 if separate_test_files:
-    file_names_test = ['12-9', '18-9']
+    file_names_test = ['0-9', '12-9']
     file_labels_test = [0, 1]
     train_test_split = 1
     shuffle_examples = False
@@ -37,8 +37,8 @@ else:
     train_test_split = 0.8
     shuffle_examples = True
 
-conv_filters = len(inputs_ft) + len(inputs_ang)
-conv_kernel_size = 1
+# conv_filters = len(inputs_ft) + len(inputs_ang)
+# conv_kernel_size = 1
 lstm_units = 128  # number of lstm cells of each lstm layer
 lr = 0.0001  # learning rate
 epochs_number = 1000  # number of epochs
@@ -47,8 +47,8 @@ epochs_number = 1000  # number of epochs
 save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
-save_folder = 'plots/2021.05.30_conv/'  # include trailing slash
-save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_1c' + str(conv_filters) + ',' + str(conv_kernel_size) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
+save_folder = 'plots/2021.06.06_rnn/'  # include trailing slash
+save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2r' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 
 # %%
 # all files to extract the data from
@@ -134,6 +134,7 @@ np.savetxt(save_filename + '/data_max.txt', np.max(data, axis=0))
 
 data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
 data = data.reshape(N_files_total * N_examples, N_per_example, N_inputs)  # example -> all data points of that example -> FT components
+# data = data.transpose(0, 2, 1)  # feature major
 
 if shuffle_examples:  # randomize order of data to be split into train and test sets
     permutation = list(np.random.permutation(N_files_total * N_examples))
@@ -149,10 +150,14 @@ y_val = labels[N_files_train*N_examples_train:]
 # %%
 model = keras.models.Sequential(
     [
-        keras.layers.Conv1D(conv_filters, conv_kernel_size, activation='relu', input_shape=(N_per_example, N_inputs)),
+        # keras.layers.Conv1D(conv_filters, conv_kernel_size, activation='relu', input_shape=(N_per_example, N_inputs)),
         # keras.layers.Conv1D(N_inputs, 3, activation='relu'),
-        keras.layers.LSTM(lstm_units, return_sequences=True),  # input_shape=(N_per_example, N_inputs)),
-        keras.layers.LSTM(lstm_units),
+        # keras.layers.LSTM(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs)),
+        # keras.layers.LSTM(lstm_units),
+        # keras.layers.RNN(keras.layers.LSTMCell(lstm_units), return_sequences=True, input_shape=(N_per_example, N_inputs)),
+        # keras.layers.RNN(keras.layers.LSTMCell(lstm_units)),
+        keras.layers.SimpleRNN(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs)),
+        keras.layers.SimpleRNN(lstm_units),
         keras.layers.Dense(N_classes, activation='softmax')
     ]
 )
