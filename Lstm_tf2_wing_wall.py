@@ -1,4 +1,7 @@
 # %%
+# python == 3.8.7
+# tensorflow == 2.4.0
+# numpy == 1.19.3
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,7 +13,7 @@ from tensorflow.math import confusion_matrix
 # %% design parameters
 root_folder = ''  # include trailing slash
 data_folder = 'data/2021.05.25/filtered_a5_s10_o60/'  # include trailing slash
-file_names = ['0-1', '12-1', '0-3', '12-3', '0-4', '12-4', '0-5', '12-5', '0-6', '12-6', '0-7', '12-7', '0-8', '12-8', '0-10', '12-10', '0-11', '12-11']
+file_names = ['18-1', '24-1', '18-3', '24-3', '18-4', '24-4', '18-5', '24-5', '18-6', '24-6', '18-7', '24-7', '18-8', '24-8', '18-10', '24-10', '18-11', '24-11']
 file_labels = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
@@ -29,7 +32,7 @@ inputs_ang = [0]
 
 separate_test_files = True  # if using a separate set of files for testing
 if separate_test_files:
-    file_names_test = ['0-9', '12-9']
+    file_names_test = ['18-9', '24-9']
     file_labels_test = [0, 1]
     train_test_split = 1
     shuffle_examples = False
@@ -156,7 +159,7 @@ model = keras.models.Sequential(
         # keras.layers.LSTM(lstm_units),
         # keras.layers.RNN(keras.layers.LSTMCell(lstm_units), return_sequences=True, input_shape=(N_per_example, N_inputs)),
         # keras.layers.RNN(keras.layers.LSTMCell(lstm_units)),
-        keras.layers.SimpleRNN(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs)),
+        keras.layers.SimpleRNN(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs), unroll=True),
         keras.layers.SimpleRNN(lstm_units),
         keras.layers.Dense(N_classes, activation='softmax')
     ]
