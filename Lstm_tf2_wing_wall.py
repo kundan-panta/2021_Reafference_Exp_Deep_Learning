@@ -224,6 +224,7 @@ cm_test = confusion_matrix(y_val, np.argmax(model.predict(x_val), axis=-1))
 if save_cm:
     np.savetxt(save_filename + '/cm_train_last.txt', cm_train, fmt='%d')
     np.savetxt(save_filename + '/cm_test_last.txt', cm_test, fmt='%d')
+print('Last:')
 print(cm_train)
 print(cm_test)
 # print(model.predict(x_val))
@@ -236,6 +237,7 @@ if save_model:  # load best weights for test accuracy
     if save_cm:
         np.savetxt(save_filename + '/cm_train_best.txt', cm_train, fmt='%d')
         np.savetxt(save_filename + '/cm_test_best.txt', cm_test, fmt='%d')
+    print('Best:')
     print(cm_train)
     print(cm_test)
     # print(model.predict(x_val))
