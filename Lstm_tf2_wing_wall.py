@@ -164,14 +164,15 @@ model = keras.models.Sequential(
         # keras.layers.RNN(keras.layers.LSTMCell(lstm_units)),
         # keras.layers.SimpleRNN(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs), unroll=True),
         # keras.layers.SimpleRNN(lstm_units),
-        keras.layers.Dense(N_classes, activation='softmax')
+        keras.layers.Dense(N_classes)  # , activation='softmax')
     ]
 )
 
 model.compile(
-    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=False),
+    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     optimizer="adam",
     metrics=["accuracy"],
+    steps_per_execution=100
 )
 keras.backend.set_value(model.optimizer.learning_rate, lr)
 print("Learning rate:", model.optimizer.learning_rate.numpy())
