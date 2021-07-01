@@ -49,7 +49,7 @@ lstm_units = 128  # number of lstm cells of each lstm layer
 lr = 0.00008  # learning rate
 epochs_number = 1000  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
-mini_batch_size = 40
+mini_batch_size = 100
 num_layers = 2
 dropout = 0
 
@@ -57,8 +57,8 @@ save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
 save_folder = 'plots/2021.06.29_pytorch/'  # include trailing slash
-save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_' + str(num_layers) + 'r' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
-# save_filename = root_folder + save_folder + 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_' + str(num_layers) + 'r' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
+# save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_' + str(num_layers) + 'r' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
+save_filename = root_folder + save_folder + 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_' + str(num_layers) + 'r' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 
 # %%
 # all files to extract the data from
@@ -165,9 +165,6 @@ y = labels[:N_files_train * N_examples_train]
 x_val = data[N_files_train * N_examples_train:]
 y_val = labels[N_files_train * N_examples_train:]
 
-# x = x.transpose(1, 0, 2)  # sequence -> batches -> features
-# x_val = x_val.transpose(1, 0, 2)  # sequence -> batches -> features
-
 # %%
 x = torch.from_numpy(x).float().to(device=device)
 y = torch.from_numpy(y).long().to(device=device)
@@ -202,18 +199,16 @@ class RNNModelCustom(torch.nn.Module):
         self.fc = torch.nn.Linear(lstm_units, N_classes)
 
     def forward(self, x):
+        batch_size = x.shape[0]  # variable batch size
         # Initialize hidden state with zeros
-        hn = torch.zeros((num_layers, mini_batch_size, lstm_units), device=device).float()  # .requires_grad_()
+        hn = torch.zeros((num_layers, batch_size, lstm_units), device=device).float().requires_grad_()
 
         # We need to detach the hidden state to prevent exploding/vanishing gradients
         # This is part of truncated backpropagation through time (BPTT)
-        out, hn = self.rnn(x, hn)  # .detach())
+        out, hn = self.rnn(x, hn.detach())
 
         # Index hidden state of last time step
-        # out.size() --> 100, 28, 100
-        # out[:, -1, :] --> 100, 100 --> just want last time step hidden states!
         out = self.fc(out[:, -1, :])
-        # out.size() --> 100, 10
         return out
 
 
@@ -252,35 +247,45 @@ for epoch in range(epochs_number):
     if (epoch + 1) % 10 == 0:
         model.eval()  # test mode
 
+        # # train
+        # accuracy_train = 0
+        # count_train = 0
+        # for mini_batch in range(0, N_files_train * N_examples_train, mini_batch_size):
+        #     x_mini = x[mini_batch:mini_batch + mini_batch_size]
+        #     y_mini = y[mini_batch:mini_batch + mini_batch_size]
+        #     count_train += mini_batch_size
+
+        #     outputs = model(x_mini)
+
+        #     # Get predictions from the maximum value
+        #     _, predicted = torch.max(outputs.data, 1)
+        #     accuracy_train += float((predicted == y_mini).sum())
+        # accuracy_train *= 100 / count_train
+
+        # # test
+        # accuracy_test = 0
+        # count_test = 0
+        # for mini_batch in range(0, N_files_test * N_examples_test, mini_batch_size):
+        #     x_val_mini = x_val[mini_batch:mini_batch + mini_batch_size]
+        #     y_val_mini = y_val[mini_batch:mini_batch + mini_batch_size]
+        #     count_test += mini_batch_size
+
+        #     outputs = model(x_val_mini)
+
+        #     # Get predictions from the maximum value
+        #     _, predicted = torch.max(outputs.data, 1)
+        #     accuracy_test += float((predicted == y_val_mini).sum())
+        # accuracy_test *= 100 / count_test
+
         # train
-        accuracy_train = 0
-        count_train = 0
-        for mini_batch in range(0, N_files_train * N_examples_train, mini_batch_size):
-            x_mini = x[mini_batch:mini_batch + mini_batch_size]
-            y_mini = y[mini_batch:mini_batch + mini_batch_size]
-            count_train += mini_batch_size
-
-            outputs = model(x_mini)
-
-            # Get predictions from the maximum value
-            _, predicted = torch.max(outputs.data, 1)
-            accuracy_train += float((predicted == y_mini).sum())
-        accuracy_train *= 100 / count_train
+        outputs = model(x)
+        _, predicted = torch.max(outputs.data, 1)
+        accuracy_train = float((predicted == y).sum()) / x.shape[0] * 100
 
         # test
-        accuracy_test = 0
-        count_test = 0
-        for mini_batch in range(0, N_files_test * N_examples_test, mini_batch_size):
-            x_val_mini = x_val[mini_batch:mini_batch + mini_batch_size]
-            y_val_mini = y_val[mini_batch:mini_batch + mini_batch_size]
-            count_test += mini_batch_size
-
-            outputs = model(x_val_mini)
-
-            # Get predictions from the maximum value
-            _, predicted = torch.max(outputs.data, 1)
-            accuracy_test += float((predicted == y_val_mini).sum())
-        accuracy_test *= 100 / count_test
+        outputs = model(x_val)
+        _, predicted = torch.max(outputs.data, 1)
+        accuracy_test = float((predicted == y_val).sum()) / x_val.shape[0] * 100
 
         print('Epoch: {}. Train: {:.2f}%. Test: {:.2f}%'.format(epoch + 1, accuracy_train, accuracy_test))
 
