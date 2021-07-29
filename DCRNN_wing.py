@@ -1,6 +1,4 @@
 # %%
-# !/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Wed Jun 13 17:52:13 2018
 
@@ -21,11 +19,11 @@ tf.disable_v2_behavior()
 
 # %%
 # Parameters
-learning_rate = 0.001
+learning_rate = 0.01
 # batch_size = 40  # mini-batch size
 epochs = 500
 n_hidden = 256   # hidden unit numbers
-n_layers = 2  # number of hidden layers used
+n_layers = 1  # number of hidden layers used
 keep_prob = 1.0  # Dropout keep probability
 c_n = 1  # c_k_rnn, k parameter
 records = np.zeros([epochs, 4])  # records keeping, nn_loss, reg_loss, train_acc, test_acc
@@ -33,7 +31,7 @@ records = np.zeros([epochs, 4])  # records keeping, nn_loss, reg_loss, train_acc
 # %% design parameters
 root_folder = ''  # include trailing slash
 data_folder = 'data/2021.05.25/filtered_a5_s10_o60/'  # include trailing slash
-file_names = ['12-1', '18-1', '12-3', '18-3', '12-4', '18-4', '12-5', '18-5', '12-6', '18-6', '12-7', '18-7', '12-8', '18-8', '12-10', '18-10', '12-11', '18-11']
+file_names = ['0-1', '6-1', '0-3', '6-3', '0-4', '6-4', '0-5', '6-5', '0-6', '6-6', '0-7', '6-7', '0-8', '6-8', '0-10', '6-10', '0-11', '6-11']
 file_labels = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
 trajectory_name = '30deg'  # choose trajectory name for which to process data
 
@@ -52,7 +50,7 @@ inputs_ang = [0]
 
 separate_test_files = True  # if using a separate set of files for testing
 if separate_test_files:
-    file_names_test = ['12-9', '18-9']
+    file_names_test = ['0-9', '6-9']
     file_labels_test = [0, 1]
     train_test_split = 1
     shuffle_examples = False
@@ -237,21 +235,27 @@ def build_rnn(rnn_size, num_layers, batch_size, num_steps, keep_prob, c_k):
     '''
     # build an rnn unit
     cell = c_k_RNNCell(rnn_size, c_k)
-#    cell = forget_cell(rnn_size, c_k)
+    # cell = forget_cell(rnn_size, c_k)
 
     # adding dropout
-#    cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=keep_prob)
+    # cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=keep_prob)
 
-#    rnn2 = c_k_RNNCell(rnn_size)
-#    drop2 = tf.contrib.rnn.DropoutWrapper(rnn2, output_keep_prob=keep_prob)
-#    stack_rnn = [drop]
-#    for _ in range(num_layers-1):
-#        stack_rnn.append(drop2)
-#    # stack (changed in TF 1.2)
-#    cell = tf.contrib.rnn.MultiRNNCell(stack_rnn, state_is_tuple = True)
+    # rnn2 = c_k_RNNCell(rnn_size)
+    # drop2 = tf.contrib.rnn.DropoutWrapper(rnn2, output_keep_prob=keep_prob)
+    # stack_rnn = [drop]
+    # for _ in range(num_layers-1):
+    #     stack_rnn.append(drop2)
+    # # stack (changed in TF 1.2)
+    # cell = tf.contrib.rnn.MultiRNNCell(stack_rnn, state_is_tuple = True)
+
+    # stack_rnn = []
+    # for _ in range(num_layers):
+    #     stack_rnn.append(cell)
+    # # stack (changed in TF 1.2)
+    # cell = tf.contrib.rnn.MultiRNNCell(stack_rnn, state_is_tuple=True)
 
     initial_state = cell.zero_state(batch_size, tf.float32)
-#    initial_state = cell.zero_state(int(batch_size/num_steps), tf.float32)
+    # initial_state = cell.zero_state(int(batch_size/num_steps), tf.float32)
     # only used the fist layer of RNN
 
     return cell, initial_state
@@ -378,7 +382,7 @@ model = ckRNN(N_classes, batch_size=batch_size, num_steps=N_per_example,
               learning_rate=learning_rate, c_k=c_n)
 graph = tf.get_default_graph()
 
-
+# %%
 saver = tf.train.Saver(max_to_keep=1)
 # for i in tqdm(range(8, 10), desc="\nTraining progress"):
 with tf.Session() as sess:
@@ -467,6 +471,8 @@ plt.legend(['train', 'test'], loc='best')
 if save_plot:
     np.save(save_filename + '/records', records)
     plt.savefig(save_filename + '.png')
+
+plt.show()
 
 # %%test
 
