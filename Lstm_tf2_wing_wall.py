@@ -43,7 +43,7 @@ else:
 # conv_filters = len(inputs_ft) + len(inputs_ang)
 # conv_kernel_size = 1
 lstm_units = 128  # number of lstm cells of each lstm layer
-lr = 0.0005  # learning rate
+lr = 0.0003  # learning rate
 epochs_number = 1000  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
@@ -56,10 +56,13 @@ save_filename = root_folder + save_folder + 'all_' + ','.join(str(temp) for temp
 
 # %%
 # all files to extract the data from
-N_files_train = len(file_names)  # if separate test files are supplied
+N_files_train = len(file_names)
 if separate_test_files:  # add test files to the list
+    N_files_test = len(file_names_test)
     file_names.extend(file_names_test)
     file_labels.extend(file_labels_test)
+else:
+    N_files_test = N_files_train
 N_files_total = len(file_names)
 
 assert len(file_labels) == N_files_total  # makes sure labels are there for all files
@@ -85,7 +88,10 @@ assert N_total >= (N_examples - 1) * N_per_step + N_per_example  # last data poi
 
 # number of training and testing stroke cycles
 N_examples_train = round(train_test_split * N_examples)
-N_examples_test = N_examples - N_examples_train
+if separate_test_files:
+    N_examples_test = N_examples
+else:
+    N_examples_test = N_examples - N_examples_train
 
 N_inputs_ft = len(inputs_ft)
 N_inputs_ang = len(inputs_ang)
@@ -172,7 +178,7 @@ model.compile(
     loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     optimizer="adam",
     metrics=["accuracy"],
-    steps_per_execution=100
+    # steps_per_execution=100
 )
 keras.backend.set_value(model.optimizer.learning_rate, lr)
 print("Learning rate:", model.optimizer.learning_rate.numpy())
