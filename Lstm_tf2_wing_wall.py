@@ -18,8 +18,8 @@ Ro = 5
 A_star = 2
 d_all = list(range(1, 41, 3))  # list of all distances from wall
 d_all_labels = [0] * 9 + [1] * 5
-sets_train = [1, 2, 3, 4, 5]
-sets_test = []
+sets_train = [4, 5]
+sets_test = [1]
 
 if len(sets_test) > 0:
     train_test_split = 1
@@ -42,7 +42,7 @@ inputs_ang = [0]
 # subract_prediction = False  # meas - pred?
 
 lstm_units = 64  # number of lstm cells of each lstm layer
-lr = 0.003  # learning rate
+lr = 0.01  # learning rate
 epochs_number = 300  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
@@ -52,7 +52,7 @@ save_model = True  # save model file
 save_folder = 'plots/2021.07.28_new_data_gru/'  # include trailing slash
 # save_filename = root_folder + save_folder + ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 # save_filename = root_folder + save_folder + 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
-save_filename = root_folder + save_folder + 'Ro={:s}_A={:s}_Tr={:s}_Te={:s}_d={:s}_in={:s}_Nc={:s}_Ns={:s}_2g{:d}_lr={:s}'.format(str(Ro), str(A_star), ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in d_all_labels), ','.join(str(temp) for temp in inputs_ft), str(N_cycles_example), str(N_cycles_step), lstm_units, str(lr))
+save_filename = root_folder + save_folder + 'Ro={:s}_A={:s}_d={:s}_Tr={:s}_Te={:s}_in={:s}_Nc={:s}_Ns={:s}_2g{:d}_lr={:s}'.format(str(Ro), str(A_star), ','.join(str(temp) for temp in d_all_labels), ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft), str(N_cycles_example), str(N_cycles_step), lstm_units, str(lr))
 
 # %%
 # get the file names and labels
@@ -167,10 +167,10 @@ if shuffle_examples:  # randomize order of data to be split into train and test 
     labels = labels[permutation]
 
 # split data into training and testing sets
-x = data[:N_files_train * N_examples_train]
-y = labels[:N_files_train * N_examples_train]
-x_val = data[N_files_train * N_examples_train:]
-y_val = labels[N_files_train * N_examples_train:]
+X_train = data[:N_files_train * N_examples_train]
+y_train = labels[:N_files_train * N_examples_train]
+X_test = data[N_files_train * N_examples_train:]
+y_test = labels[N_files_train * N_examples_train:]
 
 # %%
 model = keras.models.Sequential(
@@ -224,8 +224,8 @@ if save_model:
 
 # %%
 history = model.fit(
-    x, y,
-    validation_data=(x_val, y_val),
+    X_train, y_train,
+    validation_data=(X_test, y_test),
     epochs=epochs_number,
     verbose=0,
     callbacks=callbacks_list,
@@ -245,8 +245,8 @@ plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='best')
 
 # make and save the confusion matrix twice
-cm_train = confusion_matrix(y, np.argmax(model.predict(x), axis=-1))
-cm_test = confusion_matrix(y_val, np.argmax(model.predict(x_val), axis=-1))
+cm_train = confusion_matrix(y_train, np.argmax(model.predict(X_train), axis=-1))
+cm_test = confusion_matrix(y_test, np.argmax(model.predict(X_test), axis=-1))
 if save_cm:
     np.savetxt(save_filename + '/cm_train_last.txt', cm_train, fmt='%d')
     np.savetxt(save_filename + '/cm_test_last.txt', cm_test, fmt='%d')
@@ -254,13 +254,14 @@ print('Last:')
 print('Train accuracy: {:.1f}%\tTest accuracy: {:.1f}%'.format(np.trace(cm_train) / np.sum(cm_train) * 100, np.trace(cm_test) / np.sum(cm_test) * 100))
 print(cm_train)
 print(cm_test)
-# print(model.predict(x_val))
+print("Predictions (Test):")
+print(np.argmax(model.predict(X_test), axis=-1))
 
 if save_model:  # load best weights for test accuracy
     model = keras.models.load_model(save_filename)
     # confusion matrix again for best test weights
-    cm_train = confusion_matrix(y, np.argmax(model.predict(x), axis=-1))
-    cm_test = confusion_matrix(y_val, np.argmax(model.predict(x_val), axis=-1))
+    cm_train = confusion_matrix(y_train, np.argmax(model.predict(X_train), axis=-1))
+    cm_test = confusion_matrix(y_test, np.argmax(model.predict(X_test), axis=-1))
     if save_cm:
         np.savetxt(save_filename + '/cm_train_best.txt', cm_train, fmt='%d')
         np.savetxt(save_filename + '/cm_test_best.txt', cm_test, fmt='%d')
@@ -268,7 +269,8 @@ if save_model:  # load best weights for test accuracy
     print('Train accuracy: {:.1f}%\tTest accuracy: {:.1f}%'.format(np.trace(cm_train) / np.sum(cm_train) * 100, np.trace(cm_test) / np.sum(cm_test) * 100))
     print(cm_train)
     print(cm_test)
-    # print(model.predict(x_val))
+    print("Predictions (Test):")
+    print(np.argmax(model.predict(X_test), axis=-1))
 
 if save_plot:
     plt.savefig(save_filename + '.png')
