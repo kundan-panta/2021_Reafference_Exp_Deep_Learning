@@ -5,10 +5,6 @@
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
-# from tensorflow import keras
-# from tensorflow.keras.callbacks import EarlyStopping
-# from tensorflow.python.keras.callbacks import ModelCheckpoint
-# from tensorflow.math import confusion_matrix
 import torch
 assert torch.cuda.is_available()
 device = torch.device("cuda")
@@ -45,12 +41,12 @@ else:
 
 # conv_filters = len(inputs_ft) + len(inputs_ang)
 # conv_kernel_size = 1
-lstm_units = 128  # number of lstm cells of each lstm layer
-lr = 0.00008  # learning rate
+lstm_units = 256  # number of lstm cells of each lstm layer
+lr = 0.001  # learning rate
 epochs_number = 1000  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
-mini_batch_size = 100
-num_layers = 2
+mini_batch_size = 50
+num_layers = 4
 dropout = 0
 
 save_plot = True
@@ -231,6 +227,7 @@ for epoch in range(epochs_number):
     y = y[permutation]
 
     for mini_batch in range(0, N_files_train * N_examples_train, mini_batch_size):
+        # do I need to make x_mini a copy of the slice???
         x_mini = x[mini_batch:mini_batch + mini_batch_size].requires_grad_()
         y_mini = y[mini_batch:mini_batch + mini_batch_size]
 
@@ -246,36 +243,6 @@ for epoch in range(epochs_number):
     # print accuracy info
     if (epoch + 1) % 10 == 0:
         model.eval()  # test mode
-
-        # # train
-        # accuracy_train = 0
-        # count_train = 0
-        # for mini_batch in range(0, N_files_train * N_examples_train, mini_batch_size):
-        #     x_mini = x[mini_batch:mini_batch + mini_batch_size]
-        #     y_mini = y[mini_batch:mini_batch + mini_batch_size]
-        #     count_train += mini_batch_size
-
-        #     outputs = model(x_mini)
-
-        #     # Get predictions from the maximum value
-        #     _, predicted = torch.max(outputs.data, 1)
-        #     accuracy_train += float((predicted == y_mini).sum())
-        # accuracy_train *= 100 / count_train
-
-        # # test
-        # accuracy_test = 0
-        # count_test = 0
-        # for mini_batch in range(0, N_files_test * N_examples_test, mini_batch_size):
-        #     x_val_mini = x_val[mini_batch:mini_batch + mini_batch_size]
-        #     y_val_mini = y_val[mini_batch:mini_batch + mini_batch_size]
-        #     count_test += mini_batch_size
-
-        #     outputs = model(x_val_mini)
-
-        #     # Get predictions from the maximum value
-        #     _, predicted = torch.max(outputs.data, 1)
-        #     accuracy_test += float((predicted == y_val_mini).sum())
-        # accuracy_test *= 100 / count_test
 
         # train
         outputs = model(x)
