@@ -12,16 +12,27 @@ from tensorflow.math import confusion_matrix
 
 # %% design parameters
 root_folder = ''  # include trailing slash
-data_folder = 'data/2021.05.25/filtered_a5_s10_o60/'  # include trailing slash
-file_names = ['0-1', '6-1', '12-1', '18-1', '24-1', '0-3', '6-3', '12-3', '18-3', '24-3', '0-4', '6-4', '12-4', '18-4', '24-4', '0-5', '6-5', '12-5', '18-5', '24-5', '0-6', '6-6', '12-6', '18-6', '24-6', '0-7', '6-7', '12-7', '18-7', '24-7', '0-8', '6-8', '12-8', '18-8', '24-8', '0-10', '6-10', '12-10', '18-10', '24-10', '0-11', '6-11', '12-11', '18-11', '24-11']
-file_labels = [0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1]
-trajectory_name = '30deg'  # choose trajectory name for which to process data
+data_folder = 'data/2021.07.28/f_a6_s15_o60/'  # include trailing slash
+
+Ro = 5
+A_star = 2
+d_all = list(range(1, 41, 3))  # list of all distances from wall
+d_all_labels = [0] * 9 + [1] * 5
+sets_train = [1, 2, 3, 4, 5]
+sets_test = []
+
+if len(sets_test) > 0:
+    train_test_split = 1
+    shuffle_examples = False
+else:
+    train_test_split = 0.8
+    shuffle_examples = True
 
 N_cycles_example = 1  # use this number of stroke cycles as 1 example
 N_cycles_step = 1  # number of cycles to step between consecutive examples
 # total number of cycles to use per file
 # set 0 to automatically calculate number of examples from the first file
-N_cycles_to_use = 20
+N_cycles_to_use = 0
 
 inputs_ft = [0, 1, 2, 3, 4, 5]
 inputs_ang = [0]
@@ -30,46 +41,50 @@ inputs_ang = [0]
 # empirical_prediction_name = '22'
 # subract_prediction = False  # meas - pred?
 
-separate_test_files = True  # if using a separate set of files for testing
-if separate_test_files:
-    file_names_test = ['0-9', '6-9', '12-9', '18-9', '24-9']
-    file_labels_test = [0, 0, 0, 1, 1]
-    train_test_split = 1
-    shuffle_examples = False
-else:
-    train_test_split = 0.8
-    shuffle_examples = True
-
-# conv_filters = len(inputs_ft) + len(inputs_ang)
-# conv_kernel_size = 1
-lstm_units = 128  # number of lstm cells of each lstm layer
-lr = 0.0003  # learning rate
-epochs_number = 1000  # number of epochs
+lstm_units = 64  # number of lstm cells of each lstm layer
+lr = 0.003  # learning rate
+epochs_number = 300  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
 save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
-save_folder = 'plots/2021.06.14_gru/'  # include trailing slash
-# save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
-save_filename = root_folder + save_folder + 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
+save_folder = 'plots/2021.07.28_new_data_gru/'  # include trailing slash
+# save_filename = root_folder + save_folder + ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
+# save_filename = root_folder + save_folder + 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
+save_filename = root_folder + save_folder + 'Ro={:s}_A={:s}_Tr={:s}_Te={:s}_d={:s}_in={:s}_Nc={:s}_Ns={:s}_2g{:d}_lr={:s}'.format(str(Ro), str(A_star), ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in d_all_labels), ','.join(str(temp) for temp in inputs_ft), str(N_cycles_example), str(N_cycles_step), lstm_units, str(lr))
 
 # %%
-# all files to extract the data from
-N_files_train = len(file_names)
-if separate_test_files:  # add test files to the list
-    N_files_test = len(file_names_test)
-    file_names.extend(file_names_test)
-    file_labels.extend(file_labels_test)
-else:
-    N_files_test = N_files_train
-N_files_total = len(file_names)
+# get the file names and labels
+file_names_train = []
+file_labels_train = []
+for s in sets_train:
+    for d_index, d in enumerate(d_all):
+        file_names_train.append('Ro={:s}/A={:s}/Set={:d}/d={:d}/'.format(str(Ro), str(A_star), s, d))
+        file_labels_train.append(d_all_labels[d_index])
 
-assert len(file_labels) == N_files_total  # makes sure labels are there for all files
+file_names_test = []
+file_labels_test = []
+for s in sets_test:
+    for d_index, d in enumerate(d_all):
+        file_names_test.append('Ro={:s}/A={:s}/Set={:d}/d={:d}/'.format(str(Ro), str(A_star), s, d))
+        file_labels_test.append(d_all_labels[d_index])
+
+file_names = file_names_train + file_names_test
+file_labels = file_labels_train + file_labels_test
+#
+
+N_files_train = len(file_names_train)
+N_files_test = len(file_names_test)
+if not(len(sets_test) > 0):
+    N_files_test = N_files_train
+N_files_all = len(file_names)
+
+assert len(file_labels) == N_files_all  # makes sure labels are there for all files
 
 # get stroke cycle period information from one of the files
-t = np.around(np.loadtxt(root_folder + data_folder + file_names[0] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
-cpg_param = np.loadtxt(root_folder + data_folder + file_names[0] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
+t = np.around(np.loadtxt(root_folder + data_folder + file_names[0] + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
+cpg_param = np.loadtxt(root_folder + data_folder + file_names[0] + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
 
 t_s = round(t[1] - t[0], 3)  # sample time
 freq = cpg_param[-1, 0]  # store frequency of param set
@@ -88,7 +103,7 @@ assert N_total >= (N_examples - 1) * N_per_step + N_per_example  # last data poi
 
 # number of training and testing stroke cycles
 N_examples_train = round(train_test_split * N_examples)
-if separate_test_files:
+if len(sets_test) > 0:
     N_examples_test = N_examples
 else:
     N_examples_test = N_examples - N_examples_train
@@ -109,30 +124,30 @@ print('Inputs:', N_inputs)
 print('Clases:', N_classes)
 
 # %%
-data = np.zeros((N_files_total * N_examples * N_per_example, N_inputs))  # all input data
-labels = np.zeros((N_files_total * N_examples), dtype=int)  # all labels
+data = np.zeros((N_files_all * N_examples * N_per_example, N_inputs))  # all input data
+labels = np.zeros((N_files_all * N_examples), dtype=int)  # all labels
 
 # if empirical_prediction:  # furthest distance from wall as forward model
-#     ft_pred = np.loadtxt(root_folder + data_folder + empirical_prediction_name + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
+#     ft_pred = np.loadtxt(root_folder + data_folder + empirical_prediction_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
 
-for k in range(N_files_total):
+for k in range(N_files_all):
     # get data
-    t = np.around(np.loadtxt(root_folder + data_folder + file_names[k] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
+    t = np.around(np.loadtxt(root_folder + data_folder + file_names[k] + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
     # if not(empirical_prediction):  # use QS model if empirical prediction is not used
-    #     ft_pred = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + trajectory_name + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
-    ft_meas = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
-    ang_meas = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + trajectory_name + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
+    #     ft_pred = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
+    ft_meas = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
+    ang_meas = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
 
     # if subract_prediction:  # subtract pred from meas?
     #     ft_meas -= ft_pred
 
     for i in range(N_examples):
-        data[((k*N_examples + i) * N_per_example):((k*N_examples + i + 1) * N_per_example), :N_inputs_ft] = \
-            ft_meas[inputs_ft, (i*N_per_step):(i*N_per_step + N_per_example)].T  # measured FT
+        data[((k * N_examples + i) * N_per_example):((k * N_examples + i + 1) * N_per_example), :N_inputs_ft] = \
+            ft_meas[inputs_ft, (i * N_per_step):(i * N_per_step + N_per_example)].T  # measured FT
         if N_inputs_ang > 0:
-            data[((k*N_examples + i) * N_per_example):((k*N_examples + i + 1) * N_per_example), N_inputs_ft:] = \
-                ang_meas[inputs_ang, (i*N_per_step):(i*N_per_step + N_per_example)].T  # stroke angle
-        labels[k*N_examples + i] = file_labels[k]
+            data[((k * N_examples + i) * N_per_example):((k * N_examples + i + 1) * N_per_example), N_inputs_ft:] = \
+                ang_meas[inputs_ang, (i * N_per_step):(i * N_per_step + N_per_example)].T  # stroke angle
+        labels[k * N_examples + i] = file_labels[k]
         # sanity checks for data: looked at 1st row of 1st file, last row of 1st file, first row of 2nd file,
         # last row of last file, to make sure all the data I needed was at the right place
 
@@ -143,19 +158,19 @@ np.savetxt(save_filename + '/data_min.txt', np.min(data, axis=0))
 np.savetxt(save_filename + '/data_max.txt', np.max(data, axis=0))
 
 data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
-data = data.reshape(N_files_total * N_examples, N_per_example, N_inputs)  # example -> all data points of that example -> FT components
+data = data.reshape(N_files_all * N_examples, N_per_example, N_inputs)  # example -> all data points of that example -> FT components
 # data = data.transpose(0, 2, 1)  # feature major
 
 if shuffle_examples:  # randomize order of data to be split into train and test sets
-    permutation = list(np.random.permutation(N_files_total * N_examples))
+    permutation = list(np.random.permutation(N_files_all * N_examples))
     data = data[permutation]
     labels = labels[permutation]
 
 # split data into training and testing sets
-x = data[:N_files_train*N_examples_train]
-y = labels[:N_files_train*N_examples_train]
-x_val = data[N_files_train*N_examples_train:]
-y_val = labels[N_files_train*N_examples_train:]
+x = data[:N_files_train * N_examples_train]
+y = labels[:N_files_train * N_examples_train]
+x_val = data[N_files_train * N_examples_train:]
+y_val = labels[N_files_train * N_examples_train:]
 
 # %%
 model = keras.models.Sequential(
