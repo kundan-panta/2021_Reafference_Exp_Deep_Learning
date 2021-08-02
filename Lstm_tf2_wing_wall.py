@@ -17,9 +17,10 @@ data_folder = 'data/2021.07.28/f_a6_s15_o60/'  # include trailing slash
 Ro = 5
 A_star = 2
 d_all = list(range(1, 41, 3))  # list of all distances from wall
-d_all_labels = [0] * 9 + [1] * 5
-sets_train = [4, 5]
-sets_test = [1]
+# d_all_labels = [0] * 9 + [1] * 5
+d_all_labels = list(range(14))
+sets_train = [1, 2, 3, 4]
+sets_test = [5]
 
 if len(sets_test) > 0:
     train_test_split = 1
@@ -42,7 +43,7 @@ inputs_ang = [0]
 # subract_prediction = False  # meas - pred?
 
 lstm_units = 64  # number of lstm cells of each lstm layer
-lr = 0.01  # learning rate
+lr = 0.003  # learning rate
 epochs_number = 300  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
@@ -76,7 +77,7 @@ file_labels = file_labels_train + file_labels_test
 
 N_files_train = len(file_names_train)
 N_files_test = len(file_names_test)
-if not(len(sets_test) > 0):
+if not(len(sets_test) > 0):  # if separate test files are not provided, then we use all the files for both training and testing
     N_files_test = N_files_train
 N_files_all = len(file_names)
 
@@ -165,6 +166,8 @@ if shuffle_examples:  # randomize order of data to be split into train and test 
     permutation = list(np.random.permutation(N_files_all * N_examples))
     data = data[permutation]
     labels = labels[permutation]
+
+# labels = np.eye(N_classes)[labels]  # one-hot labels
 
 # split data into training and testing sets
 X_train = data[:N_files_train * N_examples_train]
