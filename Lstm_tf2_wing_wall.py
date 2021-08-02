@@ -19,8 +19,8 @@ A_star = 2
 d_all = list(range(1, 41, 3))  # list of all distances from wall
 # d_all_labels = [0] * 9 + [1] * 5
 d_all_labels = list(range(14))
-sets_train = [1, 2, 3, 4]
-sets_test = [5]
+sets_train = [1, 2]
+sets_test = []
 
 if len(sets_test) > 0:
     train_test_split = 1
@@ -50,7 +50,7 @@ epochs_number = 300  # number of epochs
 save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
-save_folder = 'plots/2021.07.28_new_data_gru/'  # include trailing slash
+save_folder = 'plots/2021.08.02_new_data_gru/'  # include trailing slash
 # save_filename = root_folder + save_folder + ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 # save_filename = root_folder + save_folder + 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 save_filename = root_folder + save_folder + 'Ro={:s}_A={:s}_d={:s}_Tr={:s}_Te={:s}_in={:s}_Nc={:s}_Ns={:s}_2g{:d}_lr={:s}'.format(str(Ro), str(A_star), ','.join(str(temp) for temp in d_all_labels), ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft), str(N_cycles_example), str(N_cycles_step), lstm_units, str(lr))
@@ -163,7 +163,18 @@ data = data.reshape(N_files_all * N_examples, N_per_example, N_inputs)  # exampl
 # data = data.transpose(0, 2, 1)  # feature major
 
 if shuffle_examples:  # randomize order of data to be split into train and test sets
-    permutation = list(np.random.permutation(N_files_all * N_examples))
+    if not(len(sets_test) > 0):
+        # shuffle every N_examples examples
+        # then pick the first N_examples_train examples and put it to training set
+        # and the remaining (N_examples_test) examples into the testing set
+        N_examples_train_all = N_files_train * N_examples_train
+        permutation = np.zeros(N_files_all * N_examples, dtype=int)
+        for k in range(N_files_all):  # each file has N_example examples, and everything is in order
+            shuffled = np.array(np.random.permutation(N_examples), dtype=int)
+            permutation[k * N_examples_train:(k + 1) * N_examples_train] = k * N_examples + shuffled[:N_examples_train]
+            permutation[N_examples_train_all + k * N_examples_test:N_examples_train_all + (k + 1) * N_examples_test] = k * N_examples + shuffled[N_examples_train:]
+    else:
+        permutation = list(np.random.permutation(N_files_all * N_examples))
     data = data[permutation]
     labels = labels[permutation]
 
