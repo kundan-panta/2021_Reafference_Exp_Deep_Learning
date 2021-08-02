@@ -19,7 +19,7 @@ A_star = 2
 d_all = list(range(1, 41, 3))  # list of all distances from wall
 # d_all_labels = [0] * 9 + [1] * 5
 d_all_labels = list(range(14))
-sets_train = [1, 2]
+sets_train = [1, 2, 3, 4, 5]
 sets_test = []
 
 if len(sets_test) > 0:
