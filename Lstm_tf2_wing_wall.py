@@ -12,7 +12,7 @@ from tensorflow.math import confusion_matrix
 
 # %% design parameters
 root_folder = ''  # include trailing slash
-data_folder = 'data/2021.07.28/f_a6_s15_o60/'  # include trailing slash
+data_folder = root_folder + 'data/2021.07.28/f_a6_s15_o60/'  # include trailing slash
 
 Ro = 5
 A_star = 2
@@ -84,8 +84,8 @@ N_files_all = len(file_names)
 assert len(file_labels) == N_files_all  # makes sure labels are there for all files
 
 # get stroke cycle period information from one of the files
-t = np.around(np.loadtxt(root_folder + data_folder + file_names[0] + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
-cpg_param = np.loadtxt(root_folder + data_folder + file_names[0] + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
+t = np.around(np.loadtxt(data_folder + file_names[0] + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
+cpg_param = np.loadtxt(data_folder + file_names[0] + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
 
 t_s = round(t[1] - t[0], 3)  # sample time
 freq = cpg_param[-1, 0]  # store frequency of param set
@@ -129,15 +129,15 @@ data = np.zeros((N_files_all * N_examples * N_per_example, N_inputs))  # all inp
 labels = np.zeros((N_files_all * N_examples), dtype=int)  # all labels
 
 # if empirical_prediction:  # furthest distance from wall as forward model
-#     ft_pred = np.loadtxt(root_folder + data_folder + empirical_prediction_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
+#     ft_pred = np.loadtxt(data_folder + empirical_prediction_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
 
 for k in range(N_files_all):
     # get data
-    t = np.around(np.loadtxt(root_folder + data_folder + file_names[k] + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
+    t = np.around(np.loadtxt(data_folder + file_names[k] + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
     # if not(empirical_prediction):  # use QS model if empirical prediction is not used
-    #     ft_pred = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
-    ft_meas = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
-    ang_meas = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
+    #     ft_pred = np.loadtxt(data_folder + file_names[k] + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
+    ft_meas = np.loadtxt(data_folder + file_names[k] + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
+    ang_meas = np.loadtxt(data_folder + file_names[k] + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
 
     # if subract_prediction:  # subtract pred from meas?
     #     ft_meas -= ft_pred
