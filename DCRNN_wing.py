@@ -19,27 +19,38 @@ tf.disable_v2_behavior()
 
 # %%
 # Parameters
-learning_rate = 0.01
+# lr = 0.01
 # batch_size = 40  # mini-batch size
-epochs = 500
-n_hidden = 256   # hidden unit numbers
+# epochs_number = 300
+# lstm_units = 128   # hidden unit numbers
 n_layers = 1  # number of hidden layers used
 keep_prob = 1.0  # Dropout keep probability
-c_n = 1  # c_k_rnn, k parameter
-records = np.zeros([epochs, 4])  # records keeping, nn_loss, reg_loss, train_acc, test_acc
+c_n = 2  # c_k_rnn, k parameter
+batch_size = 50
 
 # %% design parameters
 root_folder = ''  # include trailing slash
-data_folder = 'data/2021.05.25/filtered_a5_s10_o60/'  # include trailing slash
-file_names = ['0-1', '6-1', '0-3', '6-3', '0-4', '6-4', '0-5', '6-5', '0-6', '6-6', '0-7', '6-7', '0-8', '6-8', '0-10', '6-10', '0-11', '6-11']
-file_labels = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
-trajectory_name = '30deg'  # choose trajectory name for which to process data
+data_folder = 'data/2021.07.28/f_a6_s15_o60/'  # include trailing slash
+
+Ro = 5
+A_star = 2
+d_all = list(range(1, 41, 3))  # list of all distances from wall
+d_all_labels = [0] * 9 + [1] * 5
+sets_train = [2, 3, 4, 5]
+sets_test = [1]
+
+if len(sets_test) > 0:
+    train_test_split = 1
+    shuffle_examples = False
+else:
+    train_test_split = 0.8
+    shuffle_examples = True
 
 N_cycles_example = 1  # use this number of stroke cycles as 1 example
 N_cycles_step = 1  # number of cycles to step between consecutive examples
 # total number of cycles to use per file
 # set 0 to automatically calculate number of examples from the first file
-N_cycles_to_use = 20
+N_cycles_to_use = 0
 
 inputs_ft = [0, 1, 2, 3, 4, 5]
 inputs_ang = [0]
@@ -48,45 +59,50 @@ inputs_ang = [0]
 # empirical_prediction_name = '22'
 # subract_prediction = False  # meas - pred?
 
-separate_test_files = True  # if using a separate set of files for testing
-if separate_test_files:
-    file_names_test = ['0-9', '6-9']
-    file_labels_test = [0, 1]
-    train_test_split = 1
-    shuffle_examples = False
-else:
-    train_test_split = 0.8
-    shuffle_examples = True
-
-# conv_filters = len(inputs_ft) + len(inputs_ang)
-# conv_kernel_size = 1
-# lstm_units = 128  # number of lstm cells of each lstm layer
-# lr = 0.0001  # learning rate
-# epochs_number = 1000  # number of epochs
+lstm_units = 128  # number of lstm cells of each lstm layer
+lr = 0.001  # learning rate
+epochs_number = 300  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
 save_plot = True
 save_cm = True  # save confusion matrix
 save_model = True  # save model file
-save_folder = 'plots/2021.06.07_dcrnn/'  # include trailing slash
-save_filename = root_folder + save_folder + ','.join(file_names) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_' + str(n_layers) + 'd' + str(n_hidden) + 'k' + str(c_n) + '_' + str(learning_rate)  # + '_f5,10,60'
+save_folder = 'plots/2021.07.28_new_data_dcrnn/'  # include trailing slash
+# save_filename = root_folder + save_folder + ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
+# save_filename = root_folder + save_folder + 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
+save_filename = root_folder + save_folder + 'Ro={:s}_A={:s}_d={:s}_Tr={:s}_Te={:s}_in={:s}_Nc={:s}_Ns={:s}_1d{:d}k{:d}_lr={:s}'.format(str(Ro), str(A_star), ','.join(str(temp) for temp in d_all_labels), ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft), str(N_cycles_example), str(N_cycles_step), lstm_units, c_n, str(lr))
 
 # %%
-# all files to extract the data from
-N_files_train = len(file_names)
-if separate_test_files:  # add test files to the list
-    N_files_test = len(file_names_test)
-    file_names.extend(file_names_test)
-    file_labels.extend(file_labels_test)
-else:
-    N_files_test = N_files_train
-N_files_total = len(file_names)
+# get the file names and labels
+file_names_train = []
+file_labels_train = []
+for s in sets_train:
+    for d_index, d in enumerate(d_all):
+        file_names_train.append('Ro={:s}/A={:s}/Set={:d}/d={:d}/'.format(str(Ro), str(A_star), s, d))
+        file_labels_train.append(d_all_labels[d_index])
 
-assert len(file_labels) == N_files_total  # makes sure labels are there for all files
+file_names_test = []
+file_labels_test = []
+for s in sets_test:
+    for d_index, d in enumerate(d_all):
+        file_names_test.append('Ro={:s}/A={:s}/Set={:d}/d={:d}/'.format(str(Ro), str(A_star), s, d))
+        file_labels_test.append(d_all_labels[d_index])
+
+file_names = file_names_train + file_names_test
+file_labels = file_labels_train + file_labels_test
+#
+
+N_files_train = len(file_names_train)
+N_files_test = len(file_names_test)
+if not(len(sets_test) > 0):
+    N_files_test = N_files_train
+N_files_all = len(file_names)
+
+assert len(file_labels) == N_files_all  # makes sure labels are there for all files
 
 # get stroke cycle period information from one of the files
-t = np.around(np.loadtxt(root_folder + data_folder + file_names[0] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
-cpg_param = np.loadtxt(root_folder + data_folder + file_names[0] + '/' + trajectory_name + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
+t = np.around(np.loadtxt(root_folder + data_folder + file_names[0] + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
+cpg_param = np.loadtxt(root_folder + data_folder + file_names[0] + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
 
 t_s = round(t[1] - t[0], 3)  # sample time
 freq = cpg_param[-1, 0]  # store frequency of param set
@@ -105,7 +121,7 @@ assert N_total >= (N_examples - 1) * N_per_step + N_per_example  # last data poi
 
 # number of training and testing stroke cycles
 N_examples_train = round(train_test_split * N_examples)
-if separate_test_files:
+if len(sets_test) > 0:
     N_examples_test = N_examples
 else:
     N_examples_test = N_examples - N_examples_train
@@ -126,30 +142,30 @@ print('Inputs:', N_inputs)
 print('Clases:', N_classes)
 
 # %%
-data = np.zeros((N_files_total * N_examples * N_per_example, N_inputs))  # all input data
-labels = np.zeros((N_files_total * N_examples), dtype=int)  # all labels
+data = np.zeros((N_files_all * N_examples * N_per_example, N_inputs))  # all input data
+labels = np.zeros((N_files_all * N_examples), dtype=int)  # all labels
 
 # if empirical_prediction:  # furthest distance from wall as forward model
-#     ft_pred = np.loadtxt(root_folder + data_folder + empirical_prediction_name + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
+#     ft_pred = np.loadtxt(root_folder + data_folder + empirical_prediction_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
 
-for k in range(N_files_total):
+for k in range(N_files_all):
     # get data
-    t = np.around(np.loadtxt(root_folder + data_folder + file_names[k] + '/' + trajectory_name + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
+    t = np.around(np.loadtxt(root_folder + data_folder + file_names[k] + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
     # if not(empirical_prediction):  # use QS model if empirical prediction is not used
-    #     ft_pred = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + trajectory_name + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
-    ft_meas = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + trajectory_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
-    ang_meas = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + trajectory_name + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
+    #     ft_pred = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
+    ft_meas = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
+    ang_meas = np.loadtxt(root_folder + data_folder + file_names[k] + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
 
     # if subract_prediction:  # subtract pred from meas?
     #     ft_meas -= ft_pred
 
     for i in range(N_examples):
-        data[((k*N_examples + i) * N_per_example):((k*N_examples + i + 1) * N_per_example), :N_inputs_ft] = \
-            ft_meas[inputs_ft, (i*N_per_step):(i*N_per_step + N_per_example)].T  # measured FT
+        data[((k * N_examples + i) * N_per_example):((k * N_examples + i + 1) * N_per_example), :N_inputs_ft] = \
+            ft_meas[inputs_ft, (i * N_per_step):(i * N_per_step + N_per_example)].T  # measured FT
         if N_inputs_ang > 0:
-            data[((k*N_examples + i) * N_per_example):((k*N_examples + i + 1) * N_per_example), N_inputs_ft:] = \
-                ang_meas[inputs_ang, (i*N_per_step):(i*N_per_step + N_per_example)].T  # stroke angle
-        labels[k*N_examples + i] = file_labels[k]
+            data[((k * N_examples + i) * N_per_example):((k * N_examples + i + 1) * N_per_example), N_inputs_ft:] = \
+                ang_meas[inputs_ang, (i * N_per_step):(i * N_per_step + N_per_example)].T  # stroke angle
+        labels[k * N_examples + i] = file_labels[k]
         # sanity checks for data: looked at 1st row of 1st file, last row of 1st file, first row of 2nd file,
         # last row of last file, to make sure all the data I needed was at the right place
 
@@ -160,23 +176,26 @@ np.savetxt(save_filename + '/data_min.txt', np.min(data, axis=0))
 np.savetxt(save_filename + '/data_max.txt', np.max(data, axis=0))
 
 data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
-data = data.reshape(N_files_total * N_examples, N_per_example, N_inputs)  # example -> all data points of that example -> FT components
+data = data.reshape(N_files_all * N_examples, N_per_example, N_inputs)  # example -> all data points of that example -> FT components
 # data = data.transpose(0, 2, 1)  # feature major
 
 if shuffle_examples:  # randomize order of data to be split into train and test sets
-    permutation = list(np.random.permutation(N_files_total * N_examples))
+    permutation = list(np.random.permutation(N_files_all * N_examples))
     data = data[permutation]
     labels = labels[permutation]
 
 labels = np.eye(N_classes)[labels]  # one-hot labels
 
 # split data into training and testing sets
-X_train = data[:N_files_train*N_examples_train]
-y_train = labels[:N_files_train*N_examples_train]
-X_test = data[N_files_train*N_examples_train:]
-y_test = labels[N_files_train*N_examples_train:]
+X_train = data[:N_files_train * N_examples_train]
+y_train = labels[:N_files_train * N_examples_train]
+X_test = data[N_files_train * N_examples_train:]
+y_test = labels[N_files_train * N_examples_train:]
 
-batch_size = N_files_test*N_examples_test  # mini-batch size
+
+# %%
+if batch_size == 0:
+    batch_size = N_files_test*N_examples_test  # mini-batch size
 assert batch_size <= N_files_test*N_examples_test  # need this to evaluate test accuracy
 print('Mini-batch size:', batch_size)
 
@@ -316,12 +335,12 @@ def build_loss(logits, targets, rnn_size, N_classes, coeff_a, c_k):
     return loss, regularizer
 
 
-def build_optimizer(loss, learning_rate, grad_clip):
+def build_optimizer(loss, lr, grad_clip):
 
     tvars = tf.trainable_variables()
     grads, _ = tf.clip_by_global_norm(tf.gradients(loss, tvars), grad_clip)
-    train_op = tf.train.AdamOptimizer(learning_rate)
-#    train_op = tf.train.MomentumOptimizer(learning_rate, momentum=0.01)
+    train_op = tf.train.AdamOptimizer(lr)
+#    train_op = tf.train.MomentumOptimizer(lr, momentum=0.01)
     optimizer = train_op.apply_gradients(zip(grads, tvars))
 
     return optimizer
@@ -330,7 +349,7 @@ def build_optimizer(loss, learning_rate, grad_clip):
 class ckRNN:
 
     def __init__(self, N_classes, batch_size=1000, num_steps=100,
-                 rnn_size=100, num_layers=n_layers, learning_rate=0.001,
+                 rnn_size=100, num_layers=n_layers, lr=0.001,
                  c_k=1, grad_clip=5, sampling=False):
 
         # if sampling is True，use SGD, only 1 sample
@@ -371,18 +390,20 @@ class ckRNN:
         self.loss_nn, self.regularizer = build_loss(self.logits, self.targets, rnn_size, N_classes, self.coeff_a, c_k)
         self.loss = self.loss_nn + self.regularizer
 
-        self.optimizer = build_optimizer(self.loss, learning_rate, grad_clip)
+        self.optimizer = build_optimizer(self.loss, lr, grad_clip)
 
         self.accuracy, self.accuracy_op = tf.metrics.accuracy(labels=tf.argmax(self.targets, 1),
                                                               predictions=tf.argmax(self.logits, 1))
 
 
 model = ckRNN(N_classes, batch_size=batch_size, num_steps=N_per_example,
-              rnn_size=n_hidden, num_layers=n_layers,
-              learning_rate=learning_rate, c_k=c_n)
+              rnn_size=lstm_units, num_layers=n_layers,
+              lr=lr, c_k=c_n)
 graph = tf.get_default_graph()
 
 # %%
+records = np.zeros([epochs_number, 4])  # records keeping, nn_loss, reg_loss, train_acc, test_acc
+
 saver = tf.train.Saver(max_to_keep=1)
 # for i in tqdm(range(8, 10), desc="\nTraining progress"):
 with tf.Session() as sess:
@@ -390,7 +411,7 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     counter = 0
 
-    for e in range(epochs):
+    for e in range(epochs_number):
         # Train network
         new_state = sess.run(model.initial_state)
         loss = 0
@@ -417,7 +438,7 @@ with tf.Session() as sess:
 #            stream_vars = [i for i in tf.local_variables()]
 #            print('[total, count]:',sess.run(stream_vars))  #accuracy metrics
 #                print('\n',
-#                      'Epoches: {}/{}... '.format(e+1, epochs),
+#                      'Epoches: {}/{}... '.format(e+1, epochs_number),
 #                      'Training Steps: {}... '.format(counter),
 #                      'Training Loss: {:.4f}... '.format(batch_loss_nn),
 #                      'Regularizer Loss: {:.4f}... '.format(batch_loss_reg),
@@ -456,7 +477,7 @@ with tf.Session() as sess:
 
             if test_acc >= np.max(records[:, 3]) and save_model:  # save latest highest test accuracy model
                 saver.save(sess, save_filename + "/checkpoints/e{}_train_acc={:.1f}_test_acc={:.1f}".format(e, train_acc*100, test_acc*100))
-            # saver.save(sess, "./rnn_model/checkpoints/i{}_l{}.ckpt".format(counter, n_hidden))
+            # saver.save(sess, "./rnn_model/checkpoints/i{}_l{}.ckpt".format(counter, lstm_units))
 
 # np.save('results_200/records_timesteps_{}_k_{}_trial_{}'.format(N_per_example,c_n,i),records)
 
@@ -479,8 +500,8 @@ plt.show()
 
 # checkpoint = tf.train.latest_checkpoint('./rnn_model/checkpoints/')
 # model = ckRNN(y_train.shape[1], batch_size=batch_size, num_steps=N_per_example,
-#                rnn_size=n_hidden, num_layers=1,
-#                learning_rate=learning_rate, c_k=c_n)
+#                rnn_size=lstm_units, num_layers=1,
+#                lr=lr, c_k=c_n)
 # saver = tf.train.Saver()
 # with tf.Session() as sess:
 #    # load the model and restoring

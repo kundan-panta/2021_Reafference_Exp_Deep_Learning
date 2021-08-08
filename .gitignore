@@ -9,3 +9,4 @@ Lstm_tf2_wing_wall_working.py
 *.pb
 plots
 Lstm_tf2_wing_wall_prediction.py
+Lstm_tf2_wing_wall_prediction_old.py
