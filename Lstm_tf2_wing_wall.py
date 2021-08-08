@@ -155,9 +155,10 @@ for k in range(N_files_all):
 
 # %%
 # save the min and max values used for normalization of the data
-Path(save_filename).mkdir(parents=True, exist_ok=True)  # make folder
-np.savetxt(save_filename + '/data_min.txt', np.min(data, axis=0))
-np.savetxt(save_filename + '/data_max.txt', np.max(data, axis=0))
+if save_model:
+    Path(save_filename).mkdir(parents=True, exist_ok=True)  # make folder
+    np.savetxt(save_filename + '/data_min.txt', np.min(data, axis=0))
+    np.savetxt(save_filename + '/data_max.txt', np.max(data, axis=0))
 
 data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
 data = data.reshape(N_files_all * N_examples, N_per_example, N_inputs)  # example -> all data points of that example -> FT components

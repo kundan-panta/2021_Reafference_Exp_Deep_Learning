@@ -45,8 +45,8 @@ inputs_ang = [0]
 # subract_prediction = False  # meas - pred?
 
 lstm_units = 64  # number of lstm cells of each lstm layer
-lr = 0.005  # learning rate
-epochs_number = 300  # number of epochs
+lr = 0.001  # learning rate
+epochs_number = 500  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
 save_plot = False
@@ -156,9 +156,10 @@ for k in range(N_files_all):
 
 # %%
 # save the min and max values used for normalization of the data
-Path(save_filename).mkdir(parents=True, exist_ok=True)  # make folder
-np.savetxt(save_filename + '/data_min.txt', np.min(data, axis=0))
-np.savetxt(save_filename + '/data_max.txt', np.max(data, axis=0))
+if save_model:
+    Path(save_filename).mkdir(parents=True, exist_ok=True)  # make folder
+    np.savetxt(save_filename + '/data_min.txt', np.min(data, axis=0))
+    np.savetxt(save_filename + '/data_max.txt', np.max(data, axis=0))
 
 data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
 data = data.reshape(N_files_all * N_examples, N_per_example, N_inputs)  # example -> all data points of that example -> FT components
@@ -201,7 +202,8 @@ model = keras.models.Sequential(
         # keras.layers.RNN(keras.layers.LSTMCell(lstm_units)),
         # keras.layers.SimpleRNN(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs), unroll=True),
         # keras.layers.SimpleRNN(lstm_units),
-        keras.layers.Dense(1)  # , activation='softmax')
+        keras.layers.Dense(lstm_units, activation='relu'),
+        keras.layers.Dense(1)  # , activation='relu')
     ]
 )
 
@@ -270,12 +272,19 @@ plt.legend(['train', 'test'], loc='best')
 # print('Train accuracy: {:.1f}%\tTest accuracy: {:.1f}%'.format(np.trace(cm_train) / np.sum(cm_train) * 100, np.trace(cm_test) / np.sum(cm_test) * 100))
 # print(cm_train)
 # print(cm_test)
-model_prediction = np.squeeze(model.predict(X_test))
+model_prediction_test = np.squeeze(model.predict(X_test))
 print("Predictions (Test):")
-for p, prediction in enumerate(model_prediction):
+for p, prediction in enumerate(model_prediction_test):
     print('{:.1f}\t'.format(prediction), end='')
     if p % N_examples_test == N_examples_test - 1:
-        print('\n')
+        print('\t\t')
+
+model_prediction_train = np.squeeze(model.predict(X_train))
+print("Predictions (Train):")
+for p, prediction in enumerate(model_prediction_train):
+    print('{:.1f}\t'.format(prediction), end='')
+    if p % N_examples_train == N_examples_train - 1:
+        print('\t\t')
 
 # if save_model:  # load best weights for test accuracy
 #     model = keras.models.load_model(save_filename)
@@ -294,6 +303,6 @@ for p, prediction in enumerate(model_prediction):
 
 # if save_plot:
 #     plt.savefig(save_filename + '.png')
-# plt.show()
+plt.show()
 
 # %%
