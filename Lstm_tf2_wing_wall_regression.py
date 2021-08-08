@@ -194,10 +194,10 @@ model = keras.models.Sequential(
     [
         # keras.layers.Conv1D(conv_filters, conv_kernel_size, activation='relu', input_shape=(N_per_example, N_inputs)),
         # keras.layers.Conv1D(N_inputs, 3, activation='relu'),
-        # keras.layers.LSTM(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs)),
-        # keras.layers.LSTM(lstm_units),
-        keras.layers.GRU(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs)),
-        keras.layers.GRU(lstm_units),
+        keras.layers.LSTM(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs)),
+        keras.layers.LSTM(lstm_units),
+        # keras.layers.GRU(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs)),
+        # keras.layers.GRU(lstm_units),
         # keras.layers.RNN(keras.layers.LSTMCell(lstm_units), return_sequences=True, input_shape=(N_per_example, N_inputs)),
         # keras.layers.RNN(keras.layers.LSTMCell(lstm_units)),
         # keras.layers.SimpleRNN(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs), unroll=True),
@@ -208,7 +208,7 @@ model = keras.models.Sequential(
 )
 
 model.compile(
-    loss=keras.losses.MeanSquaredError(),
+    loss=keras.losses.LogCosh(),
     optimizer="adam",
     # metrics=["accuracy"],
     # steps_per_execution=100
@@ -233,7 +233,7 @@ callbacks_list = []
 if save_model:
     model_checkpoint_monitor = ModelCheckpoint(
         save_filename,
-        monitor='val_accuracy',
+        monitor='val_loss',
         mode='auto',
         save_best_only=True,
         verbose=0
