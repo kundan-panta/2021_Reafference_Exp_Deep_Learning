@@ -14,9 +14,9 @@ from tensorflow.math import confusion_matrix
 root_folder = ''  # include trailing slash
 data_folder = root_folder + 'data/2021.07.28/f_a6_s15_o60/'  # include trailing slash
 
-Ro = 5
+Ro = 3.5
 A_star = 2
-d_all = list(range(1, 41, 3))  # list of all distances from wall
+d_all = list(range(1, 43+1, 3))  # list of all distances from wall
 # d_all_labels = [0] * 11 + [1] * 5
 # d_all_labels = list(range(len(d_all)))
 # d_all_labels = [0, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4]
@@ -49,10 +49,10 @@ lr = 0.001  # learning rate
 epochs_number = 500  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
-save_plot = False
-save_cm = False  # save confusion matrix
-save_model = False  # save model file
-save_folder = 'plots/2021.08.07_regression/'  # include trailing slash
+save_plot = True
+# save_cm = False  # save confusion matrix
+save_model = True  # save model file
+save_folder = 'plots/2021.08.09_regression/'  # include trailing slash
 # save_filename = root_folder + save_folder + ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 # save_filename = root_folder + save_folder + 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 save_filename = root_folder + save_folder + 'Ro={:s}_A={:s}_d={:s}_Tr={:s}_Te={:s}_in={:s}_Nc={:s}_Ns={:s}_2g{:d}_lr={:s}'.format(str(Ro), str(A_star), ','.join(str(temp) for temp in d_all_labels), ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft), str(N_cycles_example), str(N_cycles_step), lstm_units, str(lr))
@@ -155,13 +155,16 @@ for k in range(N_files_all):
         # last row of last file, to make sure all the data I needed was at the right place
 
 # %%
+data_min = np.min(data, axis=0)
+data_max = np.max(data, axis=0)
+
 # save the min and max values used for normalization of the data
 if save_model:
     Path(save_filename).mkdir(parents=True, exist_ok=True)  # make folder
-    np.savetxt(save_filename + '/data_min.txt', np.min(data, axis=0))
-    np.savetxt(save_filename + '/data_max.txt', np.max(data, axis=0))
+    np.savetxt(save_filename + '/data_min.txt', data_min)
+    np.savetxt(save_filename + '/data_max.txt', data_max)
 
-data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))  # normalize
+data = (data - data_min) / (data_max - data_min)  # normalize
 data = data.reshape(N_files_all * N_examples, N_per_example, N_inputs)  # example -> all data points of that example -> FT components
 # data = data.transpose(0, 2, 1)  # feature major
 
@@ -286,20 +289,20 @@ for p, prediction in enumerate(model_prediction_train):
     if p % N_examples_train == N_examples_train - 1:
         print('\t\t')
 
-# if save_model:  # load best weights for test accuracy
-#     model = keras.models.load_model(save_filename)
-#     # confusion matrix again for best test weights
-#     cm_train = confusion_matrix(y_train, np.argmax(model.predict(X_train), axis=-1))
-#     cm_test = confusion_matrix(y_test, np.argmax(model.predict(X_test), axis=-1))
-#     if save_cm:
-#         np.savetxt(save_filename + '/cm_train_best.txt', cm_train, fmt='%d')
-#         np.savetxt(save_filename + '/cm_test_best.txt', cm_test, fmt='%d')
-#     print('Best:')
-#     print('Train accuracy: {:.1f}%\tTest accuracy: {:.1f}%'.format(np.trace(cm_train) / np.sum(cm_train) * 100, np.trace(cm_test) / np.sum(cm_test) * 100))
-#     print(cm_train)
-#     print(cm_test)
-#     print("Predictions (Test):")
-#     print(np.argmax(model.predict(X_test), axis=-1))
+if save_model:  # load best weights for test accuracy
+    model = keras.models.load_model(save_filename)
+    # confusion matrix again for best test weights
+    # cm_train = confusion_matrix(y_train, np.argmax(model.predict(X_train), axis=-1))
+    # cm_test = confusion_matrix(y_test, np.argmax(model.predict(X_test), axis=-1))
+    # if save_cm:
+    #     np.savetxt(save_filename + '/cm_train_best.txt', cm_train, fmt='%d')
+    #     np.savetxt(save_filename + '/cm_test_best.txt', cm_test, fmt='%d')
+    print('Best:')
+    print('Train accuracy: {:.1f}%\tTest accuracy: {:.1f}%'.format(np.trace(cm_train) / np.sum(cm_train) * 100, np.trace(cm_test) / np.sum(cm_test) * 100))
+    print(cm_train)
+    print(cm_test)
+    print("Predictions (Test):")
+    print(np.argmax(model.predict(X_test), axis=-1))
 
 # if save_plot:
 #     plt.savefig(save_filename + '.png')
