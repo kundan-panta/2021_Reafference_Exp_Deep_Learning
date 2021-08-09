@@ -16,7 +16,7 @@ data_folder = root_folder + 'data/2021.07.28/f_a6_s15_o60/'  # include trailing 
 
 Ro = 3.5
 A_star = 2
-d_all = list(range(1, 43+1, 3))  # list of all distances from wall
+d_all = list(range(1, 43 + 1, 3))  # list of all distances from wall
 # d_all_labels = [0] * 11 + [1] * 5
 # d_all_labels = list(range(len(d_all)))
 # d_all_labels = [0, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4]
@@ -265,16 +265,13 @@ plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='best')
 
-# # make and save the confusion matrix twice
-# cm_train = confusion_matrix(y_train, np.argmax(model.predict(X_train), axis=-1))
-# cm_test = confusion_matrix(y_test, np.argmax(model.predict(X_test), axis=-1))
-# if save_cm:
-#     np.savetxt(save_filename + '/cm_train_last.txt', cm_train, fmt='%d')
-#     np.savetxt(save_filename + '/cm_test_last.txt', cm_test, fmt='%d')
-# print('Last:')
-# print('Train accuracy: {:.1f}%\tTest accuracy: {:.1f}%'.format(np.trace(cm_train) / np.sum(cm_train) * 100, np.trace(cm_test) / np.sum(cm_test) * 100))
-# print(cm_train)
-# print(cm_test)
+if save_model:  # load best weights for test accuracy
+    model = keras.models.load_model(save_filename)
+    print("Best:")
+else:
+    print("Last:")
+
+# print model predictions
 model_prediction_test = np.squeeze(model.predict(X_test))
 print("Predictions (Test):")
 for p, prediction in enumerate(model_prediction_test):
@@ -289,23 +286,8 @@ for p, prediction in enumerate(model_prediction_train):
     if p % N_examples_train == N_examples_train - 1:
         print('\t\t')
 
-if save_model:  # load best weights for test accuracy
-    model = keras.models.load_model(save_filename)
-    # confusion matrix again for best test weights
-    # cm_train = confusion_matrix(y_train, np.argmax(model.predict(X_train), axis=-1))
-    # cm_test = confusion_matrix(y_test, np.argmax(model.predict(X_test), axis=-1))
-    # if save_cm:
-    #     np.savetxt(save_filename + '/cm_train_best.txt', cm_train, fmt='%d')
-    #     np.savetxt(save_filename + '/cm_test_best.txt', cm_test, fmt='%d')
-    print('Best:')
-    print('Train accuracy: {:.1f}%\tTest accuracy: {:.1f}%'.format(np.trace(cm_train) / np.sum(cm_train) * 100, np.trace(cm_test) / np.sum(cm_test) * 100))
-    print(cm_train)
-    print(cm_test)
-    print("Predictions (Test):")
-    print(np.argmax(model.predict(X_test), axis=-1))
-
-# if save_plot:
-#     plt.savefig(save_filename + '.png')
+if save_plot:
+    plt.savefig(save_filename + '.png')
 plt.show()
 
 # %%
