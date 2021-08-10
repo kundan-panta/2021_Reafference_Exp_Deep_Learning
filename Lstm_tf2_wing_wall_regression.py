@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 from tensorflow import keras
 # from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.python.keras.callbacks import ModelCheckpoint
-from tensorflow.math import confusion_matrix
 
 # %% design parameters
 root_folder = ''  # include trailing slash
@@ -45,8 +44,8 @@ inputs_ang = [0]
 # subract_prediction = False  # meas - pred?
 
 lstm_units = 64  # number of lstm cells of each lstm layer
-lr = 0.001  # learning rate
-epochs_number = 500  # number of epochs
+lr = 0.0003  # learning rate
+epochs_number = 2000  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
 save_plot = True
@@ -63,14 +62,14 @@ file_names_train = []
 file_labels_train = []
 for s in sets_train:
     for d_index, d in enumerate(d_all):
-        file_names_train.append('Ro={:s}/A={:s}/Set={:d}/d={:d}/'.format(str(Ro), str(A_star), s, d))
+        file_names_train.append('Ro={:s}/A={:s}/Set={:d}/d={:d}'.format(str(Ro), str(A_star), s, d))
         file_labels_train.append(d_all_labels[d_index])
 
 file_names_test = []
 file_labels_test = []
 for s in sets_test:
     for d_index, d in enumerate(d_all):
-        file_names_test.append('Ro={:s}/A={:s}/Set={:d}/d={:d}/'.format(str(Ro), str(A_star), s, d))
+        file_names_test.append('Ro={:s}/A={:s}/Set={:d}/d={:d}'.format(str(Ro), str(A_star), s, d))
         file_labels_test.append(d_all_labels[d_index])
 
 file_names = file_names_train + file_names_test
@@ -248,7 +247,7 @@ history = model.fit(
     X_train, y_train,
     validation_data=(X_test, y_test),
     epochs=epochs_number,
-    verbose=0,
+    verbose=1,
     callbacks=callbacks_list,
     shuffle=True,
     workers=1,
@@ -266,20 +265,21 @@ plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='best')
 
 if save_model:  # load best weights for test accuracy
-    model = keras.models.load_model(save_filename)
+    model_best = keras.models.load_model(save_filename)
     print("Best:")
 else:
+    model_best = model
     print("Last:")
 
 # print model predictions
-model_prediction_test = np.squeeze(model.predict(X_test))
+model_prediction_test = np.squeeze(model_best.predict(X_test))
 print("Predictions (Test):")
 for p, prediction in enumerate(model_prediction_test):
     print('{:.1f}\t'.format(prediction), end='')
     if p % N_examples_test == N_examples_test - 1:
         print('\t\t')
 
-model_prediction_train = np.squeeze(model.predict(X_train))
+model_prediction_train = np.squeeze(model_best.predict(X_train))
 print("Predictions (Train):")
 for p, prediction in enumerate(model_prediction_train):
     print('{:.1f}\t'.format(prediction), end='')
