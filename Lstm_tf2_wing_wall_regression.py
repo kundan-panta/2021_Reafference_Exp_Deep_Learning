@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from tensorflow import keras
 # from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.python.keras.callbacks import ModelCheckpoint
+from pandas import DataFrame
 
 # %% design parameters
 root_folder = ''  # include trailing slash
@@ -129,7 +130,7 @@ print('Inputs:', N_inputs)
 
 # %%
 data = np.zeros((N_files_all * N_examples * N_per_example, N_inputs))  # all input data
-labels = np.zeros((N_files_all * N_examples), dtype=int)  # all labels
+labels = np.zeros((N_files_all * N_examples))  # , dtype=int)  # all labels
 
 # if empirical_prediction:  # furthest distance from wall as forward model
 #     ft_pred = np.loadtxt(data_folder + empirical_prediction_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
@@ -212,7 +213,7 @@ model = keras.models.Sequential(
 )
 
 model.compile(
-    loss=keras.losses.LogCosh(),
+    loss=keras.losses.MeanSquaredError(),
     optimizer="adam",
     # metrics=["accuracy"],
     # steps_per_execution=100
@@ -273,24 +274,47 @@ else:
     model_best = model
     print("Last:")
 
+# get model predictions
+yhat_test = np.squeeze(model_best.predict(X_test))
+yhat_train = np.squeeze(model_best.predict(X_train))
+
 # print model predictions
-model_prediction_test = np.squeeze(model_best.predict(X_test))
 print("Predictions (Test):")
-for p, prediction in enumerate(model_prediction_test):
+for p, prediction in enumerate(yhat_test):
     print('{:.1f}\t'.format(prediction), end='')
     if p % N_examples_test == N_examples_test - 1:
         print('\t\t')
-
-model_prediction_train = np.squeeze(model_best.predict(X_train))
 print("Predictions (Train):")
-for p, prediction in enumerate(model_prediction_train):
+for p, prediction in enumerate(yhat_train):
     print('{:.1f}\t'.format(prediction), end='')
     if p % N_examples_train == N_examples_train - 1:
         print('\t\t')
 
+# calculate result metrics
+mu_test = np.zeros_like(d_all_labels, dtype=float)
+std_test = np.zeros_like(d_all_labels, dtype=float)
+mu_train = np.zeros_like(d_all_labels, dtype=float)
+std_train = np.zeros_like(d_all_labels, dtype=float)
+
+for d_index, d in enumerate(d_all_labels):
+    yhat_test_d = yhat_test[y_test == d]
+    mu_test[d_index] = np.mean(yhat_test_d)
+    std_test[d_index] = np.std(yhat_test_d)
+
+    yhat_train_d = yhat_train[y_train == d]
+    mu_train[d_index] = np.mean(yhat_train_d)
+    std_train[d_index] = np.std(yhat_train_d)
+
+# for printing
+df = DataFrame({"d": d_all_labels, "mu_test": mu_test, "std_test": std_test, "mu_train": mu_train, "std_train": std_train})
+print(df.round(1).to_string(index=False))
+
 if save_model:
-    np.savetxt(save_filename + '/pred_test.txt', model_prediction_test)
-    np.savetxt(save_filename + '/pred_train.txt', model_prediction_train)
+    np.savetxt(save_filename + '/truth_test.txt', y_test)
+    np.savetxt(save_filename + '/pred_test.txt', yhat_test)
+    np.savetxt(save_filename + '/truth_train.txt', y_train)
+    np.savetxt(save_filename + '/pred_train.txt', yhat_train)
+    df.round(1).to_csv(save_filename + '/metrics.txt', sep=' ', index=False)
 
 if save_plot:
     plt.savefig(save_filename + '.png')
