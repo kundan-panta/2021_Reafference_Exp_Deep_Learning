@@ -114,7 +114,7 @@ N_inputs_ft = len(inputs_ft)
 N_inputs_ang = len(inputs_ang)
 N_inputs = N_inputs_ft + N_inputs_ang  # ft_meas + other inputs
 
-N_classes = len(np.unique(file_labels))
+# N_classes = len(np.unique(file_labels))
 # assert np.max(file_labels) == N_classes - 1  # check for missing labels in between
 
 print('Frequency:', freq)
@@ -124,7 +124,7 @@ print('Total examples per file:', N_examples)
 print('Training examples per file:', N_examples_train)
 print('Testing examples per file:', N_examples_test)
 print('Inputs:', N_inputs)
-print('Clases:', N_classes)
+# print('Clases:', N_classes)
 
 # %%
 data = np.zeros((N_files_all * N_examples * N_per_example, N_inputs))  # all input data
