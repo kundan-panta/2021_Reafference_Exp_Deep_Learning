@@ -23,7 +23,8 @@ d_all_labels = list(range(len(d_all)))
 sets_train = [1, 2, 3, 5]
 sets_test = [4]
 
-if len(sets_test) > 0:
+separate_test_files = len(sets_test) > 0
+if separate_test_files:
     train_test_split = 1
     shuffle_examples = False
 else:
@@ -62,14 +63,14 @@ file_names_train = []
 file_labels_train = []
 for s in sets_train:
     for d_index, d in enumerate(d_all):
-        file_names_train.append('Ro={:s}/A={:s}/Set={:d}/d={:d}/'.format(str(Ro), str(A_star), s, d))
+        file_names_train.append('Ro={:s}/A={:s}/Set={:d}/d={:d}'.format(str(Ro), str(A_star), s, d))
         file_labels_train.append(d_all_labels[d_index])
 
 file_names_test = []
 file_labels_test = []
 for s in sets_test:
     for d_index, d in enumerate(d_all):
-        file_names_test.append('Ro={:s}/A={:s}/Set={:d}/d={:d}/'.format(str(Ro), str(A_star), s, d))
+        file_names_test.append('Ro={:s}/A={:s}/Set={:d}/d={:d}'.format(str(Ro), str(A_star), s, d))
         file_labels_test.append(d_all_labels[d_index])
 
 file_names = file_names_train + file_names_test
@@ -78,7 +79,7 @@ file_labels = file_labels_train + file_labels_test
 
 N_files_train = len(file_names_train)
 N_files_test = len(file_names_test)
-if not(len(sets_test) > 0):  # if separate test files are not provided, then we use all the files for both training and testing
+if not(separate_test_files):  # if separate test files are not provided, then we use all the files for both training and testing
     N_files_test = N_files_train
 N_files_all = len(file_names)
 
@@ -105,7 +106,7 @@ assert N_total >= (N_examples - 1) * N_per_step + N_per_example  # last data poi
 
 # number of training and testing stroke cycles
 N_examples_train = round(train_test_split * N_examples)
-if len(sets_test) > 0:
+if separate_test_files:
     N_examples_test = N_examples
 else:
     N_examples_test = N_examples - N_examples_train
@@ -115,6 +116,7 @@ N_inputs_ang = len(inputs_ang)
 N_inputs = N_inputs_ft + N_inputs_ang  # ft_meas + other inputs
 
 N_classes = len(np.unique(file_labels))
+assert np.max(file_labels) == N_classes - 1  # check for missing labels in between
 
 print('Frequency:', freq)
 print('Data points in an example:', N_per_example)

@@ -23,7 +23,8 @@ d_all_labels = d_all
 sets_train = [1, 2, 3, 4, 5]
 sets_test = []
 
-if len(sets_test) > 0:
+separate_test_files = len(sets_test) > 0
+if separate_test_files:
     train_test_split = 1
     shuffle_examples = False
 else:
@@ -49,7 +50,6 @@ epochs_number = 2000  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
 save_plot = True
-# save_cm = False  # save confusion matrix
 save_model = True  # save model file
 save_folder = 'plots/2021.08.09_regression/'  # include trailing slash
 # save_filename = root_folder + save_folder + ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
@@ -78,7 +78,7 @@ file_labels = file_labels_train + file_labels_test
 
 N_files_train = len(file_names_train)
 N_files_test = len(file_names_test)
-if not(len(sets_test) > 0):  # if separate test files are not provided, then we use all the files for both training and testing
+if not(separate_test_files):  # if separate test files are not provided, then we use all the files for both training and testing
     N_files_test = N_files_train
 N_files_all = len(file_names)
 
@@ -105,7 +105,7 @@ assert N_total >= (N_examples - 1) * N_per_step + N_per_example  # last data poi
 
 # number of training and testing stroke cycles
 N_examples_train = round(train_test_split * N_examples)
-if len(sets_test) > 0:
+if separate_test_files:
     N_examples_test = N_examples
 else:
     N_examples_test = N_examples - N_examples_train
@@ -115,6 +115,7 @@ N_inputs_ang = len(inputs_ang)
 N_inputs = N_inputs_ft + N_inputs_ang  # ft_meas + other inputs
 
 N_classes = len(np.unique(file_labels))
+# assert np.max(file_labels) == N_classes - 1  # check for missing labels in between
 
 print('Frequency:', freq)
 print('Data points in an example:', N_per_example)
@@ -168,7 +169,7 @@ data = data.reshape(N_files_all * N_examples, N_per_example, N_inputs)  # exampl
 # data = data.transpose(0, 2, 1)  # feature major
 
 if shuffle_examples:  # randomize order of data to be split into train and test sets
-    if not(len(sets_test) > 0):
+    if not(separate_test_files):
         # shuffle every N_examples examples
         # then pick the first N_examples_train examples and put it to training set
         # and the remaining (N_examples_test) examples into the testing set
@@ -285,6 +286,10 @@ for p, prediction in enumerate(model_prediction_train):
     print('{:.1f}\t'.format(prediction), end='')
     if p % N_examples_train == N_examples_train - 1:
         print('\t\t')
+
+if save_model:
+    np.savetxt(save_filename + '/pred_test.txt', model_prediction_test)
+    np.savetxt(save_filename + '/pred_train.txt', model_prediction_train)
 
 if save_plot:
     plt.savefig(save_filename + '.png')
