@@ -30,6 +30,7 @@ if separate_test_files:
 else:
     train_test_split = 0.8
     shuffle_examples = True
+    shuffle_seed = 5  # seed to split data in reproducible way
 
 N_cycles_example = 1  # use this number of stroke cycles as 1 example
 N_cycles_step = 1  # number of cycles to step between consecutive examples
@@ -176,11 +177,11 @@ if shuffle_examples:  # randomize order of data to be split into train and test 
         N_examples_train_all = N_files_train * N_examples_train
         permutation = np.zeros(N_files_all * N_examples, dtype=int)
         for k in range(N_files_all):  # each file has N_example examples, and everything is in order
-            shuffled = np.array(np.random.permutation(N_examples), dtype=int)
+            shuffled = np.array(np.random.RandomState(seed=shuffle_seed).permutation(N_examples), dtype=int)
             permutation[k * N_examples_train:(k + 1) * N_examples_train] = k * N_examples + shuffled[:N_examples_train]
             permutation[N_examples_train_all + k * N_examples_test:N_examples_train_all + (k + 1) * N_examples_test] = k * N_examples + shuffled[N_examples_train:]
     else:
-        permutation = list(np.random.permutation(N_files_all * N_examples))
+        permutation = list(np.random.RandomState(seed=shuffle_seed).permutation(N_files_all * N_examples))
     data = data[permutation]
     labels = labels[permutation]
 
