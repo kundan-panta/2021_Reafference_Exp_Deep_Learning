@@ -14,9 +14,9 @@ from pandas import DataFrame
 root_folder = ''  # include trailing slash
 data_folder = root_folder + 'data/2021.07.28/f_a6_s15_o60/'  # include trailing slash
 
-Ro = 3.5
+Ro = 2
 A_star = 2
-d_all = list(range(1, 43 + 1, 3))  # list of all distances from wall
+d_all = list(range(1, 46 + 1, 3))  # list of all distances from wall
 # d_all_labels = [0] * 11 + [1] * 5
 # d_all_labels = list(range(len(d_all)))
 # d_all_labels = [0, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4]
@@ -53,10 +53,12 @@ epochs_number = 2000  # number of epochs
 
 save_plot = True
 save_model = True  # save model file
-save_folder = 'plots/2021.08.09_regression/'  # include trailing slash
-# save_filename = root_folder + save_folder + ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
-# save_filename = root_folder + save_folder + 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
-save_filename = root_folder + save_folder + 'Ro={:s}_A={:s}_d={:s}_Tr={:s}_Te={:s}_in={:s}_Nc={:s}_Ns={:s}_2g{:d}_lr={:s}'.format(str(Ro), str(A_star), ','.join(str(temp) for temp in d_all_labels), ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft), str(N_cycles_example), str(N_cycles_step), lstm_units, str(lr))
+save_folder = root_folder + 'plots/2021.08.09_regression/'  # include trailing slash
+# save_filename = ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
+# save_filename = 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
+save_filename = 'Ro={:s}_A={:s}_Tr={:s}_Te={:s}_in={:s}_Nc={:s}_Ns={:s}_2g{:d}_lr={:s}_logcosh_elu'.format(
+    str(Ro), str(A_star), ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_test),
+    ','.join(str(temp) for temp in inputs_ft), str(N_cycles_example), str(N_cycles_step), lstm_units, str(lr))
 
 # %%
 # get the file names and labels
@@ -128,6 +130,9 @@ print('Testing examples per file:', N_examples_test)
 print('Inputs:', N_inputs)
 # print('Clases:', N_classes)
 
+if save_model or save_plot:
+    Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
+
 # %%
 data = np.zeros((N_files_all * N_examples * N_per_example, N_inputs))  # all input data
 labels = np.zeros((N_files_all * N_examples))  # , dtype=int)  # all labels
@@ -162,9 +167,8 @@ data_max = np.max(data, axis=0)
 
 # save the min and max values used for normalization of the data
 if save_model:
-    Path(save_filename).mkdir(parents=True, exist_ok=True)  # make folder
-    np.savetxt(save_filename + '/data_min.txt', data_min)
-    np.savetxt(save_filename + '/data_max.txt', data_max)
+    np.savetxt(save_folder + save_filename + '/data_min.txt', data_min)
+    np.savetxt(save_folder + save_filename + '/data_max.txt', data_max)
 
 data = (data - data_min) / (data_max - data_min)  # normalize
 data = data.reshape(N_files_all * N_examples, N_per_example, N_inputs)  # example -> all data points of that example -> FT components
@@ -207,13 +211,13 @@ model = keras.models.Sequential(
         # keras.layers.RNN(keras.layers.LSTMCell(lstm_units)),
         # keras.layers.SimpleRNN(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs), unroll=True),
         # keras.layers.SimpleRNN(lstm_units),
-        keras.layers.Dense(lstm_units, activation='relu'),
+        keras.layers.Dense(lstm_units, activation='elu'),
         keras.layers.Dense(1)  # , activation='relu')
     ]
 )
 
 model.compile(
-    loss=keras.losses.MeanSquaredError(),
+    loss=keras.losses.LogCosh(),
     optimizer="adam",
     # metrics=["accuracy"],
     # steps_per_execution=100
@@ -237,7 +241,7 @@ callbacks_list = []
 
 if save_model:
     model_checkpoint_monitor = ModelCheckpoint(
-        save_filename,
+        save_folder + save_filename,
         monitor='val_loss',
         mode='auto',
         save_best_only=True,
@@ -250,11 +254,11 @@ history = model.fit(
     X_train, y_train,
     validation_data=(X_test, y_test),
     epochs=epochs_number,
-    verbose=1,
+    verbose=0,
     callbacks=callbacks_list,
     shuffle=True,
     workers=1,
-    use_multiprocessing=False
+    use_multiprocessing=True
 )
 
 # %%
@@ -268,7 +272,7 @@ plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='best')
 
 if save_model:  # load best weights for test accuracy
-    model_best = keras.models.load_model(save_filename)
+    model_best = keras.models.load_model(save_folder + save_filename)
     print("Best:")
 else:
     model_best = model
@@ -310,14 +314,14 @@ df = DataFrame({"d": d_all_labels, "mu_test": mu_test, "std_test": std_test, "mu
 print(df.round(1).to_string(index=False))
 
 if save_model:
-    np.savetxt(save_filename + '/truth_test.txt', y_test)
-    np.savetxt(save_filename + '/pred_test.txt', yhat_test)
-    np.savetxt(save_filename + '/truth_train.txt', y_train)
-    np.savetxt(save_filename + '/pred_train.txt', yhat_train)
-    df.round(1).to_csv(save_filename + '/metrics.txt', sep=' ', index=False)
+    np.savetxt(save_folder + save_filename + '/y_test.txt', y_test)
+    np.savetxt(save_folder + save_filename + '/yhat_test.txt', yhat_test)
+    np.savetxt(save_folder + save_filename + '/y_train.txt', y_train)
+    np.savetxt(save_folder + save_filename + '/yhat_train.txt', yhat_train)
+    df.round(1).to_csv(save_folder + save_filename + '.csv', index=False)
 
 if save_plot:
-    plt.savefig(save_filename + '.png')
+    plt.savefig(save_folder + save_filename + '/plot_training.png')
 plt.show()
 
 # %%
