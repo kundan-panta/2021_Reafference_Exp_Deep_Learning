@@ -41,9 +41,8 @@ N_cycles_to_use = 0
 inputs_ft = [0, 1, 2, 3, 4, 5]
 inputs_ang = [0]
 
-# empirical_prediction = True  # whether to use collected data as the "perfect prediction"
-# empirical_prediction_name = '22'
-# subract_prediction = False  # meas - pred?
+baseline_d = 19  # what distance from the respective set to use as the baseline
+baseline_subtract = True
 
 lstm_units = 64  # number of lstm cells of each lstm layer
 lr = 0.0001  # learning rate
@@ -77,6 +76,20 @@ for s in sets_test:
 
 file_names = file_names_train + file_names_test
 file_labels = file_labels_train + file_labels_test
+#
+
+# baseline file names for each set
+if baseline_subtract:
+    baseline_file_names_train = []
+    for s in sets_train:
+        baseline_file_names_train.append('Ro={:s}/A={:s}/Set={:d}/d={:d}'.format(str(Ro), str(A_star), s, baseline_d))
+
+    baseline_file_names_test = []
+    for s in sets_test:
+        baseline_file_names_test.append('Ro={:s}/A={:s}/Set={:d}/d={:d}'.format(str(Ro), str(A_star), s, baseline_d))
+
+    baseline_file_names = baseline_file_names_train + baseline_file_names_test
+    assert len(baseline_file_names) == len(file_names)
 #
 
 N_files_train = len(file_names_train)
@@ -137,18 +150,17 @@ data = np.zeros((N_files_all * N_examples * N_per_example, N_inputs))  # all inp
 labels = np.zeros((N_files_all * N_examples))  # , dtype=int)  # all labels
 
 # if empirical_prediction:  # furthest distance from wall as forward model
-#     ft_pred = np.loadtxt(data_folder + empirical_prediction_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
+#     ft_pred = np.loadtxt(data_folder + baseline_file_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
 
 for k in range(N_files_all):
     # get data
     t = np.around(np.loadtxt(data_folder + file_names[k] + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
-    # if not(empirical_prediction):  # use QS model if empirical prediction is not used
-    #     ft_pred = np.loadtxt(data_folder + file_names[k] + '/' + 'ft_pred.csv', delimiter=',', unpack=True)
     ft_meas = np.loadtxt(data_folder + file_names[k] + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
     ang_meas = np.loadtxt(data_folder + file_names[k] + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
 
-    # if subract_prediction:  # subtract pred from meas?
-    #     ft_meas -= ft_pred
+    if baseline_subtract:  # subtract pred from meas?
+        baseline_ft_meas = np.loadtxt(data_folder + baseline_file_names[k] + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
+        ft_meas -= baseline_ft_meas
 
     for i in range(N_examples):
         data[((k * N_examples + i) * N_per_example):((k * N_examples + i + 1) * N_per_example), :N_inputs_ft] = \
