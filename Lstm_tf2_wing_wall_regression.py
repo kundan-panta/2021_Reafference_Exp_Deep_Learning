@@ -41,8 +41,7 @@ N_cycles_to_use = 0
 inputs_ft = [0, 1, 2, 3, 4, 5]
 inputs_ang = [0]
 
-baseline_d = 19  # what distance from the respective set to use as the baseline
-baseline_subtract = True
+baseline_d = 19  # set to None for no baseline
 
 lstm_units = 64  # number of lstm cells of each lstm layer
 lr = 0.0001  # learning rate
@@ -55,9 +54,9 @@ save_results = True
 save_folder = root_folder + 'plots/2021.08.21_butterworth/'  # include trailing slash
 # save_filename = ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 # save_filename = 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
-save_filename = 'Ro={:s}_A={:s}_Tr={:s}_Te={:s}_in={:s}_Nc={:s}_Ns={:s}_2g{:d}_lr={:s}'.format(
-    str(Ro), str(A_star), ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_test),
-    ','.join(str(temp) for temp in inputs_ft), str(N_cycles_example), str(N_cycles_step), lstm_units, str(lr))
+save_filename = 'Ro={}_A={}_Tr={}_Te={}_in={}_bl={}_Nc={}_Ns={}_2g{}_lr={}'.format(
+    Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_test),
+    ','.join(str(temp) for temp in inputs_ft), baseline_d, N_cycles_example, N_cycles_step, lstm_units, lr)
 
 # %%
 # get the file names and labels
@@ -65,14 +64,14 @@ file_names_train = []
 file_labels_train = []
 for s in sets_train:
     for d_index, d in enumerate(d_all):
-        file_names_train.append('Ro={:s}/A={:s}/Set={:d}/d={:d}'.format(str(Ro), str(A_star), s, d))
+        file_names_train.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, d))
         file_labels_train.append(d_all_labels[d_index])
 
 file_names_test = []
 file_labels_test = []
 for s in sets_test:
     for d_index, d in enumerate(d_all):
-        file_names_test.append('Ro={:s}/A={:s}/Set={:d}/d={:d}'.format(str(Ro), str(A_star), s, d))
+        file_names_test.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, d))
         file_labels_test.append(d_all_labels[d_index])
 
 file_names = file_names_train + file_names_test
@@ -80,14 +79,16 @@ file_labels = file_labels_train + file_labels_test
 #
 
 # baseline file names for each set
-if baseline_subtract:
+if baseline_d is not None:
     baseline_file_names_train = []
     for s in sets_train:
-        baseline_file_names_train.append('Ro={:s}/A={:s}/Set={:d}/d={:d}'.format(str(Ro), str(A_star), s, baseline_d))
+        for d_index, d in enumerate(d_all):
+            baseline_file_names_train.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
 
     baseline_file_names_test = []
     for s in sets_test:
-        baseline_file_names_test.append('Ro={:s}/A={:s}/Set={:d}/d={:d}'.format(str(Ro), str(A_star), s, baseline_d))
+        for d_index, d in enumerate(d_all):
+            baseline_file_names_test.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
 
     baseline_file_names = baseline_file_names_train + baseline_file_names_test
     assert len(baseline_file_names) == len(file_names)
@@ -159,7 +160,7 @@ for k in range(N_files_all):
     ft_meas = np.loadtxt(data_folder + file_names[k] + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
     ang_meas = np.loadtxt(data_folder + file_names[k] + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
 
-    if baseline_subtract:  # subtract pred from meas?
+    if baseline_d is not None:  # subtract pred from meas?
         baseline_ft_meas = np.loadtxt(data_folder + baseline_file_names[k] + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
         ft_meas -= baseline_ft_meas
 
