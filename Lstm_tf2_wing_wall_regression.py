@@ -12,11 +12,10 @@ from pandas import DataFrame
 
 # %% design parameters
 root_folder = ''  # include trailing slash
-data_folder = root_folder + 'data/2021.07.28/f_a6_s15_o60/'  # include trailing slash
-
-Ro = 2
+data_folder = root_folder + 'data/2021.07.28/butterworth_h0.01_l5_o10/'  # include trailing slash
+Ro = 3.5
 A_star = 2
-d_all = list(range(1, 46 + 1, 3))  # list of all distances from wall
+d_all = list(range(1, 43 + 1, 3))  # list of all distances from wall
 # d_all_labels = [0] * 11 + [1] * 5
 # d_all_labels = list(range(len(d_all)))
 # d_all_labels = [0, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4]
@@ -47,16 +46,16 @@ inputs_ang = [0]
 # subract_prediction = False  # meas - pred?
 
 lstm_units = 64  # number of lstm cells of each lstm layer
-lr = 0.0003  # learning rate
-epochs_number = 2000  # number of epochs
+lr = 0.0001  # learning rate
+epochs_number = 1500  # number of epochs
 # epochs_patience = 400  # number of epochs of no improvement after which training is stopped
 
-save_plot = True
-save_model = True  # save model file
-save_folder = root_folder + 'plots/2021.08.09_regression/'  # include trailing slash
+save_model = False  # save model file
+save_results = True
+save_folder = root_folder + 'plots/2021.08.21_butterworth/'  # include trailing slash
 # save_filename = ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 # save_filename = 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
-save_filename = 'Ro={:s}_A={:s}_Tr={:s}_Te={:s}_in={:s}_Nc={:s}_Ns={:s}_2g{:d}_lr={:s}_logcosh_elu'.format(
+save_filename = 'Ro={:s}_A={:s}_Tr={:s}_Te={:s}_in={:s}_Nc={:s}_Ns={:s}_2g{:d}_lr={:s}'.format(
     str(Ro), str(A_star), ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_test),
     ','.join(str(temp) for temp in inputs_ft), str(N_cycles_example), str(N_cycles_step), lstm_units, str(lr))
 
@@ -130,7 +129,7 @@ print('Testing examples per file:', N_examples_test)
 print('Inputs:', N_inputs)
 # print('Clases:', N_classes)
 
-if save_model or save_plot:
+if save_model or save_results:
     Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
 
 # %%
@@ -182,7 +181,7 @@ if shuffle_examples:  # randomize order of data to be split into train and test 
         N_examples_train_all = N_files_train * N_examples_train
         permutation = np.zeros(N_files_all * N_examples, dtype=int)
         for k in range(N_files_all):  # each file has N_example examples, and everything is in order
-            shuffled = np.array(np.random.RandomState(seed=shuffle_seed).permutation(N_examples), dtype=int)
+            shuffled = np.array(np.random.RandomState(seed=shuffle_seed + k).permutation(N_examples), dtype=int)
             permutation[k * N_examples_train:(k + 1) * N_examples_train] = k * N_examples + shuffled[:N_examples_train]
             permutation[N_examples_train_all + k * N_examples_test:N_examples_train_all + (k + 1) * N_examples_test] = k * N_examples + shuffled[N_examples_train:]
     else:
@@ -212,7 +211,7 @@ model = keras.models.Sequential(
         # keras.layers.SimpleRNN(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs), unroll=True),
         # keras.layers.SimpleRNN(lstm_units),
         keras.layers.Dense(lstm_units, activation='elu'),
-        keras.layers.Dense(1)  # , activation='relu')
+        keras.layers.Dense(1)  # , activation='exponential')
     ]
 )
 
@@ -310,18 +309,25 @@ for d_index, d in enumerate(d_all_labels):
     std_train[d_index] = np.std(yhat_train_d)
 
 # for printing
-df = DataFrame({"d": d_all_labels, "mu_test": mu_test, "std_test": std_test, "mu_train": mu_train, "std_train": std_train})
+df = DataFrame({"d": d_all_labels,
+                "mu_test": mu_test,
+                "std_test": std_test,
+                "ci_down_test": mu_test - 2 * std_test,
+                "ci_up_test": mu_test + 2 * std_test,
+                "mu_train": mu_train,
+                "std_train": std_train,
+                "ci_down_train": mu_train - 2 * std_train,
+                "ci_up_train": mu_train + 2 * std_train})
 print(df.round(1).to_string(index=False))
 
-if save_model:
+if save_results:
     np.savetxt(save_folder + save_filename + '/y_test.txt', y_test)
     np.savetxt(save_folder + save_filename + '/yhat_test.txt', yhat_test)
     np.savetxt(save_folder + save_filename + '/y_train.txt', y_train)
     np.savetxt(save_folder + save_filename + '/yhat_train.txt', yhat_train)
     df.round(1).to_csv(save_folder + save_filename + '.csv', index=False)
-
-if save_plot:
     plt.savefig(save_folder + save_filename + '/plot_training.png')
+
 plt.show()
 
 # %%
