@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow import keras
-# from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 from pandas import DataFrame
 
@@ -47,9 +47,10 @@ baseline_subtract = True
 lstm_units = 64  # number of lstm cells of each lstm layer
 lr = 0.0001  # learning rate
 epochs_number = 1500  # number of epochs
-# epochs_patience = 400  # number of epochs of no improvement after which training is stopped
+epochs_patience = 300  # for early stopping, set <0 to disable
 
-save_model = False  # save model file
+save_model = True  # save model file, save last model if model_checkpoint == False
+model_checkpoint = False  # doesn't do anything if save_model == False
 save_results = True
 save_folder = root_folder + 'plots/2021.08.21_butterworth/'  # include trailing slash
 # save_filename = ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
@@ -240,17 +241,19 @@ model.summary()
 
 callbacks_list = []
 
-# early_stopping_monitor = EarlyStopping(
-#     monitor='val_accuracy',
-#     mode='auto',
-#     min_delta=0,
-#     patience=epochs_patience,
-#     baseline=None,
-#     restore_best_weights=True,
-#     verbose=0
-# )
+if epochs_patience > -1:
+    early_stopping_monitor = EarlyStopping(
+        monitor='val_accuracy',
+        mode='auto',
+        min_delta=0,
+        patience=epochs_patience,
+        baseline=None,
+        restore_best_weights=True,
+        verbose=0
+    )
+    callbacks_list.append(early_stopping_monitor)
 
-if save_model:
+if save_model and model_checkpoint:
     model_checkpoint_monitor = ModelCheckpoint(
         save_folder + save_filename,
         monitor='val_loss',
@@ -282,12 +285,14 @@ plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='best')
 
-if save_model:  # load best weights for test accuracy
+if save_model and model_checkpoint:  # load best weights for test accuracy
     model_best = keras.models.load_model(save_folder + save_filename)
     print("Best:")
 else:
     model_best = model
     print("Last:")
+    if save_model:
+        model.save(save_folder + save_filename)
 
 # get model predictions
 yhat_test = np.squeeze(model_best.predict(X_test))
