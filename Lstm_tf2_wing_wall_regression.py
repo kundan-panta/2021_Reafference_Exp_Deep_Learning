@@ -15,13 +15,16 @@ root_folder = ''  # include trailing slash
 data_folder = root_folder + 'data/2021.07.28/butterworth_h0.01_l5_o10/'  # include trailing slash
 Ro = 3.5
 A_star = 2
-d_all = list(range(1, 43 + 1, 3))  # list of all distances from wall
-# d_all_labels = [0] * 11 + [1] * 5
-# d_all_labels = list(range(len(d_all)))
-# d_all_labels = [0, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4]
-d_all_labels = d_all
-sets_train = [1, 2, 3, 4, 5]
+
+sets_train = [1, 2, 3, 4, 5, 101]
+d_train = [list(range(1, 43 + 1, 3))] * 5 + [list(range(1, 37 + 1, 3))]  # list of all distances from wall for each set
+d_train_labels = d_train
+assert len(sets_train) == len(d_train)
+
 sets_test = []
+d_test = []  # list of all distances from wall
+d_test_labels = d_test
+assert len(sets_test) == len(d_test)
 
 separate_test_files = len(sets_test) > 0
 if separate_test_files:
@@ -38,13 +41,13 @@ N_cycles_step = 1  # number of cycles to step between consecutive examples
 # set 0 to automatically calculate number of examples from the first file
 N_cycles_to_use = 0
 
-inputs_ft = [0, 1, 2, 3, 4, 5]
+inputs_ft = [0]
 inputs_ang = [0]
 
-baseline_d = 19  # set to None for no baseline
+baseline_d = None  # set to None for no baseline
 
-lstm_units = 64  # number of lstm cells of each lstm layer
-lr = 0.0001  # learning rate
+lstm_units = 128  # number of lstm cells of each lstm layer
+lr = 0.00005  # learning rate
 epochs_number = 1500  # number of epochs
 epochs_patience = 300  # for early stopping, set <0 to disable
 
@@ -62,38 +65,37 @@ save_filename = 'Ro={}_A={}_Tr={}_Te={}_in={}_bl={}_Nc={}_Ns={}_2g{}_lr={}'.form
 # get the file names and labels
 file_names_train = []
 file_labels_train = []
-for s in sets_train:
-    for d_index, d in enumerate(d_all):
+for s_index, s in enumerate(sets_train):
+    for d_index, d in enumerate(d_train[s_index]):
         file_names_train.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, d))
-        file_labels_train.append(d_all_labels[d_index])
+        file_labels_train.append(d_train_labels[s_index][d_index])
 
 file_names_test = []
 file_labels_test = []
-for s in sets_test:
-    for d_index, d in enumerate(d_all):
+for s_index, s in enumerate(sets_test):
+    for d_index, d in enumerate(d_test[s_index]):
         file_names_test.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, d))
-        file_labels_test.append(d_all_labels[d_index])
+        file_labels_test.append(d_test_labels[s_index][d_index])
 
 file_names = file_names_train + file_names_test
 file_labels = file_labels_train + file_labels_test
-#
 
 # baseline file names for each set
 if baseline_d is not None:
     baseline_file_names_train = []
-    for s in sets_train:
-        for d_index, d in enumerate(d_all):
+    for s_index, s in enumerate(sets_train):
+        for d_index, d in enumerate(d_train[s_index]):
             baseline_file_names_train.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
 
     baseline_file_names_test = []
-    for s in sets_test:
-        for d_index, d in enumerate(d_all):
+    for s_index, s in enumerate(sets_test):
+        for d_index, d in enumerate(d_test[s_index]):
             baseline_file_names_test.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
 
     baseline_file_names = baseline_file_names_train + baseline_file_names_test
     assert len(baseline_file_names) == len(file_names)
-#
 
+# %%
 N_files_train = len(file_names_train)
 N_files_test = len(file_names_test)
 if not(separate_test_files):  # if separate test files are not provided, then we use all the files for both training and testing
@@ -150,9 +152,6 @@ if save_model or save_results:
 # %%
 data = np.zeros((N_files_all * N_examples * N_per_example, N_inputs))  # all input data
 labels = np.zeros((N_files_all * N_examples))  # , dtype=int)  # all labels
-
-# if empirical_prediction:  # furthest distance from wall as forward model
-#     ft_pred = np.loadtxt(data_folder + baseline_file_name + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
 
 for k in range(N_files_all):
     # get data
@@ -244,7 +243,7 @@ callbacks_list = []
 
 if epochs_patience > -1:
     early_stopping_monitor = EarlyStopping(
-        monitor='val_accuracy',
+        monitor='val_loss',
         mode='auto',
         min_delta=0,
         patience=epochs_patience,
@@ -330,12 +329,13 @@ for d_index, d in enumerate(d_all_labels):
 df = DataFrame({"d": d_all_labels,
                 "mu_test": mu_test,
                 "std_test": std_test,
-                "ci_down_test": mu_test - 2 * std_test,
-                "ci_up_test": mu_test + 2 * std_test,
+                # "ci_down_test": mu_test - 2 * std_test,
+                # "ci_up_test": mu_test + 2 * std_test,
                 "mu_train": mu_train,
                 "std_train": std_train,
-                "ci_down_train": mu_train - 2 * std_train,
-                "ci_up_train": mu_train + 2 * std_train})
+                # "ci_down_train": mu_train - 2 * std_train,
+                # "ci_up_train": mu_train + 2 * std_train
+                })
 print(df.round(1).to_string(index=False))
 
 if save_results:
