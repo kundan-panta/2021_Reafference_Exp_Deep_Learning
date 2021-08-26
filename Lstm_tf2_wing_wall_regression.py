@@ -12,19 +12,17 @@ from pandas import DataFrame
 
 # %% design parameters
 root_folder = ''  # include trailing slash
-data_folder = root_folder + 'data/2021.07.28/butterworth_h0.01_l5_o10/'  # include trailing slash
+data_folder = root_folder + 'data/2021.07.28/butterworth_h0.04_l5_o10/'  # include trailing slash
 Ro = 3.5
 A_star = 2
 
-sets_train = [1, 2, 3, 4, 5, 101]
-d_train = [list(range(1, 43 + 1, 3))] * 5 + [list(range(1, 37 + 1, 3))]  # list of all distances from wall for each set
+sets_train = [1, 2, 3, 4, 5]
+d_train = [list(range(1, 22 + 1, 3)) + list(range(28, 43 + 1, 3))] * 5  # list of all distances from wall for each set
 d_train_labels = d_train
-assert len(sets_train) == len(d_train)
 
-sets_test = []
-d_test = []  # list of all distances from wall
+sets_test = [101]
+d_test = [list(range(1, 22 + 1, 3)) + list(range(28, 37 + 1, 3))] * 1  # list of all distances from wall
 d_test_labels = d_test
-assert len(sets_test) == len(d_test)
 
 separate_test_files = len(sets_test) > 0
 if separate_test_files:
@@ -44,24 +42,33 @@ N_cycles_to_use = 0
 inputs_ft = [0]
 inputs_ang = [0]
 
-baseline_d = None  # set to None for no baseline
+baseline_d = 25  # set to None for no baseline
 
-lstm_units = 128  # number of lstm cells of each lstm layer
-lr = 0.00005  # learning rate
+lstm_units = 64  # number of lstm cells of each lstm layer
+lr = 0.001  # learning rate
 epochs_number = 1500  # number of epochs
 epochs_patience = 300  # for early stopping, set <0 to disable
 
 save_model = True  # save model file, save last model if model_checkpoint == False
 model_checkpoint = False  # doesn't do anything if save_model == False
 save_results = True
-save_folder = root_folder + 'plots/2021.08.21_butterworth/'  # include trailing slash
+save_folder = root_folder + 'plots/2021.08.25_baseline/'  # include trailing slash
 # save_filename = ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 # save_filename = 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
-save_filename = 'Ro={}_A={}_Tr={}_Te={}_in={}_bl={}_Nc={}_Ns={}_2g{}_lr={}'.format(
+save_filename = 'Ro={}_A={}_Tr={}_Te={}_in={}_bl={}_Nc={}_Ns={}_2L{}_lr={}'.format(
     Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_test),
     ','.join(str(temp) for temp in inputs_ft), baseline_d, N_cycles_example, N_cycles_step, lstm_units, lr)
 
 # %%
+# test that the sets and distances are assigned correctly
+assert len(sets_train) == len(d_train)
+for i in range(len(sets_train)):
+    assert len(d_train[i]) == len(d_train_labels[i])
+
+assert len(sets_test) == len(d_test)
+for i in range(len(sets_test)):
+    assert len(d_test[i]) == len(d_test_labels[i])
+
 # get the file names and labels
 file_names_train = []
 file_labels_train = []
@@ -272,19 +279,10 @@ history = model.fit(
     callbacks=callbacks_list,
     shuffle=True,
     workers=1,
-    use_multiprocessing=True
+    use_multiprocessing=False
 )
 
 # %%
-plt.rcParams.update({"savefig.facecolor": (1.0, 1.0, 1.0, 1)})  # disable transparent background
-plt.tight_layout()
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.title('model loss')
-plt.ylabel('loss')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='best')
-
 if save_model and model_checkpoint:  # load best weights for test accuracy
     model_best = keras.models.load_model(save_folder + save_filename)
     print("Best:")
@@ -311,6 +309,7 @@ for p, prediction in enumerate(yhat_train):
         print('\t\t')
 
 # calculate result metrics
+d_all_labels = np.unique(file_labels)
 mu_test = np.zeros_like(d_all_labels, dtype=float)
 std_test = np.zeros_like(d_all_labels, dtype=float)
 mu_train = np.zeros_like(d_all_labels, dtype=float)
@@ -337,6 +336,16 @@ df = DataFrame({"d": d_all_labels,
                 # "ci_up_train": mu_train + 2 * std_train
                 })
 print(df.round(1).to_string(index=False))
+
+# %%
+plt.rcParams.update({"savefig.facecolor": (1, 1, 1, 1)})  # disable transparent background
+plt.tight_layout()
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='best')
 
 if save_results:
     np.savetxt(save_folder + save_filename + '/y_test.txt', y_test)
