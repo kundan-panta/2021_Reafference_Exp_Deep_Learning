@@ -13,7 +13,7 @@ from pandas import DataFrame
 
 # %% design parameters
 root_folder = ''  # include trailing slash
-data_folder = root_folder + 'data/2021.07.28/butterworth_h0.01_l5_o10/'  # include trailing slash
+data_folder = root_folder + 'data/2021.07.28/butterworth_h0.04_l5_o10/'  # include trailing slash
 Ro = 3.5
 A_star = 2
 
@@ -40,7 +40,7 @@ N_cycles_step = 1  # number of cycles to step between consecutive examples
 # set 0 to automatically calculate number of examples from the first file
 N_cycles_to_use = 0
 
-inputs_ft = [0, 1, 2, 3, 4, 5]
+inputs_ft = [0]
 inputs_ang = [0]
 
 baseline_d = None  # set to None for no baseline
@@ -48,7 +48,7 @@ baseline_d = None  # set to None for no baseline
 lstm_units = 64  # number of lstm cells of each lstm layer
 lr = 0.0001  # learning rate
 epochs_number = 1500  # number of epochs
-epochs_patience = 300  # for early stopping, set <0 to disable
+epochs_patience = 500  # for early stopping, set <0 to disable
 
 save_model = True  # save model file, save last model if model_checkpoint == False
 model_checkpoint = False  # doesn't do anything if save_model == False
@@ -317,26 +317,38 @@ for p, prediction in enumerate(yhat_train):
 d_all = np.unique(d_train[0])
 mu_test = np.zeros_like(d_all, dtype=float)
 std_test = np.zeros_like(d_all, dtype=float)
+acc_test = np.zeros_like(d_all, dtype=float)
 mu_train = np.zeros_like(d_all, dtype=float)
 std_train = np.zeros_like(d_all, dtype=float)
+acc_train = np.zeros_like(d_all, dtype=float)
 
 for d_index, d in enumerate(d_all):
     yhat_test_d = yhat_test[distances_test == d]
     mu_test[d_index] = np.mean(yhat_test_d)
     std_test[d_index] = np.std(yhat_test_d)
+    # calculate accuracy
+    y_test_d = y_test[distances_test == d]
+    correct_test_d = ((np.array(yhat_test_d) > 0.5)*1 == y_test_d)
+    acc_test[d_index] = np.sum(correct_test_d) / len(correct_test_d)
 
     yhat_train_d = yhat_train[distances_train == d]
     mu_train[d_index] = np.mean(yhat_train_d)
     std_train[d_index] = np.std(yhat_train_d)
+    # calculate accuracy
+    y_train_d = y_train[distances_train == d]
+    correct_train_d = ((np.array(yhat_train_d) > 0.5)*1 == y_train_d)
+    acc_train[d_index] = np.sum(correct_train_d) / len(correct_train_d)
 
 # for printing
 df = DataFrame({"d": d_all,
                 "mu_test": mu_test,
                 "std_test": std_test,
+                "acc_test": acc_test,
                 # "ci_down_test": mu_test - 2 * std_test,
                 # "ci_up_test": mu_test + 2 * std_test,
                 "mu_train": mu_train,
                 "std_train": std_train,
+                "acc_train": acc_train,
                 # "ci_down_train": mu_train - 2 * std_train,
                 # "ci_up_train": mu_train + 2 * std_train
                 })
@@ -345,10 +357,20 @@ print(df.round(2).to_string(index=False))
 # %%
 plt.rcParams.update({"savefig.facecolor": (1, 1, 1, 1)})  # disable transparent background
 plt.tight_layout()
+
+fig_loss = plt.figure()
 plt.plot(history.history['loss'])
 plt.plot(history.history['val_loss'])
 plt.title('model loss')
 plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='best')
+
+fig_acc = plt.figure()
+plt.plot(history.history['binary_accuracy'])
+plt.plot(history.history['val_binary_accuracy'])
+plt.title('model accuracy')
+plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='best')
 
@@ -358,7 +380,8 @@ if save_results:
     np.savetxt(save_folder + save_filename + '/y_train.txt', y_train)
     np.savetxt(save_folder + save_filename + '/yhat_train.txt', yhat_train)
     df.round(2).to_csv(save_folder + save_filename + '.csv', index=False)
-    plt.savefig(save_folder + save_filename + '/plot_training.png')
+    fig_loss.savefig(save_folder + save_filename + '/plot_loss.png')
+    fig_acc.savefig(save_folder + save_filename + '/plot_acc.png')
 
 plt.show()
 
