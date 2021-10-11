@@ -16,12 +16,12 @@ data_folder = root_folder + 'data/2021.07.28/butterworth_h0.04_l5_o10/'  # inclu
 Ro = 3.5
 A_star = 2
 
-sets_train = [1, 2, 3, 4, 5]
-d_train = [list(range(1, 22 + 1, 3)) + list(range(28, 43 + 1, 3))] * 5  # list of all distances from wall for each set
+sets_train = [1, 2, 4, 5, 101]
+d_train = [list(range(1, 43 + 1, 3))] * 4 + [list(range(1, 37 + 1, 3))] * 1  # list of all distances from wall for each set
 d_train_labels = d_train
 
-sets_test = [101]
-d_test = [list(range(1, 22 + 1, 3)) + list(range(28, 37 + 1, 3))] * 1  # list of all distances from wall
+sets_test = [3]
+d_test = [list(range(1, 43 + 1, 3))]  # list of all distances from wall
 d_test_labels = d_test
 
 separate_test_files = len(sets_test) > 0
@@ -39,20 +39,20 @@ N_cycles_step = 1  # number of cycles to step between consecutive examples
 # set 0 to automatically calculate number of examples from the first file
 N_cycles_to_use = 0
 
-inputs_ft = [0]
+inputs_ft = [0, 1, 2, 3, 4, 5]
 inputs_ang = [0]
 
-baseline_d = 25  # set to None for no baseline
+baseline_d = None  # set to None for no baseline
 
 lstm_units = 64  # number of lstm cells of each lstm layer
-lr = 0.001  # learning rate
+lr = 0.0001  # learning rate
 epochs_number = 1500  # number of epochs
-epochs_patience = 300  # for early stopping, set <0 to disable
+epochs_patience = -1  # for early stopping, set <0 to disable
 
 save_model = True  # save model file, save last model if model_checkpoint == False
 model_checkpoint = False  # doesn't do anything if save_model == False
 save_results = True
-save_folder = root_folder + 'plots/2021.08.25_baseline/'  # include trailing slash
+save_folder = root_folder + 'plots/2021.10.11_new plot code/'  # include trailing slash
 # save_filename = ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 # save_filename = 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 save_filename = 'Ro={}_A={}_Tr={}_Te={}_in={}_bl={}_Nc={}_Ns={}_2L{}_lr={}'.format(
@@ -282,7 +282,7 @@ history = model.fit(
     use_multiprocessing=False
 )
 
-# %%
+# %% predict distance to wall
 if save_model and model_checkpoint:  # load best weights for test accuracy
     model_best = keras.models.load_model(save_folder + save_filename)
     print("Best:")
@@ -296,18 +296,7 @@ else:
 yhat_test = np.squeeze(model_best.predict(X_test))
 yhat_train = np.squeeze(model_best.predict(X_train))
 
-# print model predictions
-print("Predictions (Test):")
-for p, prediction in enumerate(yhat_test):
-    print('{:.1f}\t'.format(prediction), end='')
-    if p % N_examples_test == N_examples_test - 1:
-        print('\t\t')
-print("Predictions (Train):")
-for p, prediction in enumerate(yhat_train):
-    print('{:.1f}\t'.format(prediction), end='')
-    if p % N_examples_train == N_examples_train - 1:
-        print('\t\t')
-
+# %% evaluate performance
 # calculate result metrics
 d_all_labels = np.unique(file_labels)
 mu_test = np.zeros_like(d_all_labels, dtype=float)
@@ -324,6 +313,18 @@ for d_index, d in enumerate(d_all_labels):
     mu_train[d_index] = np.mean(yhat_train_d)
     std_train[d_index] = np.std(yhat_train_d)
 
+# %% print model predictions
+# print("Predictions (Test):")
+# for p, prediction in enumerate(yhat_test):
+#     print('{:.1f}\t'.format(prediction), end='')
+#     if p % N_examples_test == N_examples_test - 1:
+#         print('\t\t')
+# print("Predictions (Train):")
+# for p, prediction in enumerate(yhat_train):
+#     print('{:.1f}\t'.format(prediction), end='')
+#     if p % N_examples_train == N_examples_train - 1:
+#         print('\t\t')
+
 # for printing
 df = DataFrame({"d": d_all_labels,
                 "mu_test": mu_test,
@@ -337,9 +338,53 @@ df = DataFrame({"d": d_all_labels,
                 })
 print(df.round(1).to_string(index=False))
 
-# %%
+# %% plot performance plot as well
 plt.rcParams.update({"savefig.facecolor": (1, 1, 1, 1)})  # disable transparent background
+plt.rc('font', family='serif', size=12)
 plt.tight_layout()
+
+# for testing data
+fig_yhat_test = plt.figure(figsize=(4, 4))
+
+plt.plot(d_all_labels, mu_test - 2 * std_test, 'r--')
+plt.plot(d_all_labels, mu_test + 2 * std_test, 'r--')
+plt.fill_between(d_all_labels, mu_test - 2 * std_test, mu_test + 2 * std_test, color='r', alpha=.2)
+plt.plot(d_all_labels, mu_test, 'bo--', label='Predicted')
+plt.plot([np.min(d_all_labels), np.max(d_all_labels)], [np.min(d_all_labels), np.max(d_all_labels)], 'k-', label='Actual')
+
+plt.xlabel('True Distance (cm)')
+plt.ylabel('Distance to Wall (cm)')
+# plt.title('Method A')
+plt.legend()
+
+plt.axhline(0, color='silver')  # x = 0
+plt.axvline(0, color='silver')  # y = 0
+plt.axis('square')
+plt.xlim(0, 50)
+plt.ylim(0, 50)
+
+# same for training data
+fig_yhat_train = plt.figure(figsize=(4, 4))
+
+plt.plot(d_all_labels, mu_train - 2 * std_train, 'r--')
+plt.plot(d_all_labels, mu_train + 2 * std_train, 'r--')
+plt.fill_between(d_all_labels, mu_train - 2 * std_train, mu_train + 2 * std_train, color='r', alpha=.2)
+plt.plot(d_all_labels, mu_train, 'bo--', label='Predicted')
+plt.plot([np.min(d_all_labels), np.max(d_all_labels)], [np.min(d_all_labels), np.max(d_all_labels)], 'k-', label='Actual')
+
+plt.xlabel('True Distance (cm)')
+plt.ylabel('Distance to Wall (cm)')
+# plt.title('Method A')
+plt.legend()
+
+plt.axhline(0, color='silver')  # x = 0
+plt.axvline(0, color='silver')  # y = 0
+plt.axis('square')
+plt.xlim(0, 50)
+plt.ylim(0, 50)
+
+# %%
+fig_loss = plt.figure()
 plt.plot(history.history['loss'])
 plt.plot(history.history['val_loss'])
 plt.title('model loss')
@@ -347,13 +392,16 @@ plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='best')
 
+# %%
 if save_results:
     np.savetxt(save_folder + save_filename + '/y_test.txt', y_test)
     np.savetxt(save_folder + save_filename + '/yhat_test.txt', yhat_test)
     np.savetxt(save_folder + save_filename + '/y_train.txt', y_train)
     np.savetxt(save_folder + save_filename + '/yhat_train.txt', yhat_train)
-    df.round(1).to_csv(save_folder + save_filename + '.csv', index=False)
-    plt.savefig(save_folder + save_filename + '/plot_training.png')
+    df.round(1).to_csv(save_folder + save_filename + '/yhat_stats.csv', index=False)
+    fig_yhat_train.savefig(save_folder + save_filename + '/plot_yhat_train.svg')
+    fig_yhat_test.savefig(save_folder + save_filename + '.svg')
+    fig_loss.savefig(save_folder + save_filename + '/plot_training.svg')
 
 plt.show()
 
