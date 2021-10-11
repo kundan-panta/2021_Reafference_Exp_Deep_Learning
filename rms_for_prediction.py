@@ -11,12 +11,12 @@ data_folder = root_folder + 'data/2021.07.28/butterworth_h0.04_l5_o10/'  # inclu
 Ro = 3.5
 A_star = 2
 
-sets_train = [1, 2, 3, 4, 5]
-d_train = [list(range(1, 43 + 1, 3))] * 5  # list of all distances from wall for each set
+sets_train = [1, 2, 4, 5]
+d_train = [list(range(1, 43 + 1, 3))] * 4  # list of all distances from wall for each set
 d_train_labels = d_train
 
-sets_test = [101]
-d_test = [list(range(1, 37 + 1, 3))]  # list of all distances from wall
+sets_test = [3]
+d_test = [list(range(1, 43 + 1, 3))]  # list of all distances from wall
 d_test_labels = d_test
 
 separate_test_files = len(sets_test) > 0
@@ -34,10 +34,10 @@ N_cycles_step = 1  # number of cycles to step between consecutive examples
 # set 0 to automatically calculate number of examples from the first file
 N_cycles_to_use = 0
 
-inputs_ft = [0, 1, 2, 3, 4, 5]
+inputs_ft = [0]
 inputs_ang = []
 
-baseline_d = 1  # set to None for no baseline
+baseline_d = 43  # set to None for no baseline
 
 lstm_units = 64  # number of lstm cells of each lstm layer
 lr = 0.0001  # learning rate
@@ -353,31 +353,26 @@ fig_data_train = plt.figure(figsize=(7.5, 8))
 fig_data_train.supxlabel('Distance from wingtip to wall (cm)')
 gs = gridspec.GridSpec(3, 2, wspace=0.4, hspace=0.35)  # workaround to have no overlap between subplots
 
+plt.title('Train')
 for i in range(X_train_rms_avg.shape[1]):  # forces
     plt.subplot(gs[i])  # 2 * i])
-    # plt.xlabel('Distances of wing tip from wall (cm)')
-    plt.ylabel('Force ' + chr(ord('X') + i) + ' (N)')
+    plt.ylabel('Force ' + str(i + 1) + ' (N)')
     plt.plot(d_all_labels, X_train_rms_avg[:, i], 'bo--')
     plt.errorbar(d_all_labels, X_train_rms_avg[:, i], yerr=2 * X_train_rms_std[:, i], ecolor='red', capsize=5, fmt='none')
     plt.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
-
-plt.title('Train')
 
 # test data
 fig_data_test = plt.figure(figsize=(7.5, 8))
 fig_data_test.supxlabel('Distance from wingtip to wall (cm)')
 gs = gridspec.GridSpec(3, 2, wspace=0.4, hspace=0.35)  # workaround to have no overlap between subplots
 
+plt.title('Test')
 for i in range(X_test_rms_avg.shape[1]):  # forces
     plt.subplot(gs[i])  # 2 * i])
-    # plt.xlabel('Distances of wing tip from wall (cm)')
-    # plt.ylabel('Force ' + chr(ord('X') + i) + ' (N)')
-    plt.ylabel('Force ' + str(i) + ' (N)')
+    plt.ylabel('Force ' + str(i + 1) + ' (N)')
     plt.plot(d_all_labels, X_test_rms_avg[:, i], 'bo--')
     plt.errorbar(d_all_labels, X_test_rms_avg[:, i], yerr=2 * X_test_rms_std[:, i], ecolor='red', capsize=5, fmt='none')
     plt.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
-
-plt.title('Test')
 
 # %%
 if save_results:
