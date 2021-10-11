@@ -11,12 +11,12 @@ data_folder = root_folder + 'data/2021.07.28/butterworth_h0.04_l5_o10/'  # inclu
 Ro = 3.5
 A_star = 2
 
-sets_train = [1, 2, 3, 4, 5, 101]
-d_train = [list(range(1, 43 + 1, 3))] * 5 + [list(range(1, 37 + 1, 3))] * 1  # list of all distances from wall for each set
+sets_train = [1, 2, 3, 4, 5]
+d_train = [list(range(1, 43 + 1, 3))] * 5  # list of all distances from wall for each set
 d_train_labels = d_train
 
-sets_test = []
-d_test = []  # list of all distances from wall
+sets_test = [101]
+d_test = [list(range(1, 37 + 1, 3))]  # list of all distances from wall
 d_test_labels = d_test
 
 separate_test_files = len(sets_test) > 0
@@ -212,52 +212,6 @@ y_train = labels[:N_files_train * N_examples_train]
 X_test = data[N_files_train * N_examples_train:]
 y_test = labels[N_files_train * N_examples_train:]
 
-# %% making compatible with old variable names
-# N_cycles = N_examples
-
-# %%
-# # for each file (dim 0), for each cycle (dim 1), I need 6 components of rms (dim 2)
-# data = np.zeros((N_files_all, N_total, 6))  # for storing all data
-# rms_all = np.zeros((N_files_all, N_cycles, 6))
-# rms_all_combined = np.zeros((N_files_all, N_cycles, 2))
-
-# for k in range(N_files_all):
-#     # get data
-#     # t = np.around(np.loadtxt(data_folder + file_names[k] + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
-#     ft_meas = np.loadtxt(data_folder + file_names[k] + '/' + 'ft_meas.csv', delimiter=',', unpack=False)
-#     # ang_meas = np.loadtxt(data_folder + file_names[k] + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
-
-#     if baseline_d is not None:  # subtract pred from meas?
-#         baseline_ft_meas = np.loadtxt(data_folder + baseline_file_names[k] + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
-#         ft_meas -= baseline_ft_meas
-
-#     data[k] = ft_meas
-
-# %% normalize
-# data_min = np.reshape(np.min(np.reshape(data, (-1, 6)), axis=0), (1, -1, 6))
-# data_max = np.reshape(np.max(np.reshape(data, (-1, 6)), axis=0), (1, -1, 6))
-
-# data = (data - data_min) / (data_max - data_min)  # normalize
-
-# %%
-# for k in range(N_files_all):
-#     ft_meas = data[k].T
-
-#     # calculate RMS values for each FT, for each stroke cycle, for each param set
-#     for j in range(N_cycles):
-#         # get ft_meas_cycle
-#         ft_meas_cycle = ft_meas[:, (j * N_per_cycle):((j + 1) * N_per_cycle)]
-
-#         # take norm of F and T separately
-#         f_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[0:3, :], axis=0)
-#         # f_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[[0, 2], :], axis=0)  # only x and z forces
-#         T_meas_norm_cycle = np.linalg.norm(ft_meas_cycle[3:6, :], axis=0)
-
-#         # rms
-#         rms_all[k, j, :] = np.sqrt(1 / N_per_cycle * np.sum(ft_meas_cycle**2, axis=1))
-#         # rms_all_combined[k, j, 0] = np.sqrt(1 / N_per_cycle * np.sum(f_meas_norm_cycle**2))
-#         # rms_all_combined[k, j, 1] = np.sqrt(1 / N_per_cycle * np.sum(T_meas_norm_cycle**2))
-
 # %% calculate rms for all examples
 X_train_rms = np.zeros([X_train.shape[0], X_train.shape[2]])
 X_test_rms = np.zeros([X_test.shape[0], X_test.shape[2]])
@@ -269,25 +223,25 @@ X_test_rms = np.sqrt(1 / N_per_example * np.sum(X_test**2, axis=1))
 # %% calculate average rms for each distance
 # mean and std are calculated based on the rms of all cycles at each distance from wall
 d_all_labels = np.unique(file_labels)  # array of all distances to wall
+
 X_train_rms_avg = np.zeros([len(d_all_labels), N_inputs])
 X_train_rms_std = np.zeros_like(X_train_rms_avg)
-# rms_d_mean_combined = np.zeros([len(d_all_labels), 2])
-# rms_d_std_combined = np.zeros_like(rms_d_mean_combined)
+
+X_test_rms_avg = np.zeros([len(d_all_labels), N_inputs])
+X_test_rms_std = np.zeros_like(X_test_rms_avg)
 
 for d_index, d in enumerate(d_all_labels):
     # all stroke cycles for a distance, in a 2d matrix
     X_train_rms_d = X_train_rms[y_train == d]
-    # rms_d_all_combined = np.reshape(rms_all_combined[np.array(file_labels) == d], (-1, 2))
-
     X_train_rms_avg[d_index] = np.mean(X_train_rms_d, axis=0)
     X_train_rms_std[d_index] = np.std(X_train_rms_d, axis=0)
-    # rms_d_mean_combined[d_index, :] = np.mean(rms_d_all_combined, axis=0)
-    # rms_d_std_combined[d_index, :] = np.std(rms_d_all_combined, axis=0)
+
+    # also calculate these for the test sets
+    X_test_rms_d = X_test_rms[y_test == d]
+    X_test_rms_avg[d_index] = np.mean(X_test_rms_d, axis=0)
+    X_test_rms_std[d_index] = np.std(X_test_rms_d, axis=0)
 
 # %% predict distance to wall using RMS data
-# which force-torque components to use to find closest match?
-# inputs_ft = [0]
-
 # find index in X_train_rms_avg that's the closest to the rms of the cycle
 # order of axes: difference each distance, example, input
 X_test_rms_difference = np.reshape(X_test_rms, [1, X_test_rms.shape[0], X_test_rms.shape[1]]) - np.reshape(X_train_rms_avg, [X_train_rms_avg.shape[0], 1, X_train_rms_avg.shape[1]])
@@ -297,8 +251,6 @@ X_test_rms_difference_norm = np.linalg.norm(X_test_rms_difference, axis=2)
 yhat_test_index = np.argmin(X_test_rms_difference_norm, axis=0)
 yhat_test = d_all_labels[yhat_test_index]
 
-# yhat_mean = np.mean(yhat_test, axis=1)
-# yhat_std = np.std(yhat_test, axis=1)
 
 # calculate train set performance as well
 X_train_rms_difference = np.reshape(X_train_rms, [1, X_train_rms.shape[0], X_train_rms.shape[1]]) - np.reshape(X_train_rms_avg, [X_train_rms_avg.shape[0], 1, X_train_rms_avg.shape[1]])
@@ -309,18 +261,6 @@ yhat_train_index = np.argmin(X_train_rms_difference_norm, axis=0)
 yhat_train = d_all_labels[yhat_train_index]
 
 # %% evaluate performance
-# print model predictions
-print("Predictions (Test):")
-for p, prediction in enumerate(yhat_test):
-    print('{:.1f}\t'.format(prediction), end='')
-    if p % N_examples_test == N_examples_test - 1:
-        print('\t\t')
-print("Predictions (Train):")
-for p, prediction in enumerate(yhat_train):
-    print('{:.1f}\t'.format(prediction), end='')
-    if p % N_examples_train == N_examples_train - 1:
-        print('\t\t')
-
 # calculate result metrics
 d_all_labels = np.unique(file_labels)
 mu_test = np.zeros_like(d_all_labels, dtype=float)
@@ -337,6 +277,18 @@ for d_index, d in enumerate(d_all_labels):
     mu_train[d_index] = np.mean(yhat_train_d)
     std_train[d_index] = np.std(yhat_train_d)
 
+# %% print model predictions
+# print("Predictions (Test):")
+# for p, prediction in enumerate(yhat_test):
+#     print('{:.1f}\t'.format(prediction), end='')
+#     if p % N_examples_test == N_examples_test - 1:
+#         print('\t\t')
+# print("Predictions (Train):")
+# for p, prediction in enumerate(yhat_train):
+#     print('{:.1f}\t'.format(prediction), end='')
+#     if p % N_examples_train == N_examples_train - 1:
+#         print('\t\t')
+
 # for printing
 df = DataFrame({"d": d_all_labels,
                 "mu_test": mu_test,
@@ -351,7 +303,12 @@ df = DataFrame({"d": d_all_labels,
 print(df.round(1).to_string(index=False))
 
 # %% plot performance plot as well
-fig = plt.figure(figsize=(4, 4))
+plt.rcParams.update({"savefig.facecolor": (1, 1, 1, 1)})  # disable transparent background
+plt.rc('font', family='serif', size=12)
+plt.tight_layout()
+
+# for testing data
+fig_yhat_test = plt.figure(figsize=(4, 4))
 
 plt.plot(d_all_labels, mu_test - 2 * std_test, 'r--')
 plt.plot(d_all_labels, mu_test + 2 * std_test, 'r--')
@@ -360,66 +317,80 @@ plt.plot(d_all_labels, mu_test, 'bo--', label='Predicted')
 plt.plot([np.min(d_all_labels), np.max(d_all_labels)], [np.min(d_all_labels), np.max(d_all_labels)], 'k-', label='Actual')
 
 plt.xlabel('True Distance (cm)')
-plt.ylabel('Estimated Distance (cm)')
-plt.title('Method A')
+plt.ylabel('Distance to Wall (cm)')
+# plt.title('Method A')
 plt.legend()
 
 plt.axhline(0, color='silver')  # x = 0
 plt.axvline(0, color='silver')  # y = 0
 plt.axis('square')
-plt.rcParams.update({"savefig.facecolor": (1, 1, 1, 1)})  # disable transparent background
-plt.rc('font', family='serif', size=12)
-plt.tight_layout()
 plt.xlim(0, 50)
 plt.ylim(0, 50)
 
-# plt.savefig("fig.svg")
+# same for training data
+fig_yhat_train = plt.figure(figsize=(4, 4))
+
+plt.plot(d_all_labels, mu_train - 2 * std_train, 'r--')
+plt.plot(d_all_labels, mu_train + 2 * std_train, 'r--')
+plt.fill_between(d_all_labels, mu_train - 2 * std_train, mu_train + 2 * std_train, color='r', alpha=.2)
+plt.plot(d_all_labels, mu_train, 'bo--', label='Predicted')
+plt.plot([np.min(d_all_labels), np.max(d_all_labels)], [np.min(d_all_labels), np.max(d_all_labels)], 'k-', label='Actual')
+
+plt.xlabel('True Distance (cm)')
+plt.ylabel('Distance to Wall (cm)')
+# plt.title('Method A')
+plt.legend()
+
+plt.axhline(0, color='silver')  # x = 0
+plt.axvline(0, color='silver')  # y = 0
+plt.axis('square')
+plt.xlim(0, 50)
+plt.ylim(0, 50)
+
+# %% plotting actual rms data
+# train data
+fig_data_train = plt.figure(figsize=(7.5, 8))
+fig_data_train.supxlabel('Distance from wingtip to wall (cm)')
+gs = gridspec.GridSpec(3, 2, wspace=0.4, hspace=0.35)  # workaround to have no overlap between subplots
+
+for i in range(X_train_rms_avg.shape[1]):  # forces
+    plt.subplot(gs[i])  # 2 * i])
+    # plt.xlabel('Distances of wing tip from wall (cm)')
+    plt.ylabel('Force ' + chr(ord('X') + i) + ' (N)')
+    plt.plot(d_all_labels, X_train_rms_avg[:, i], 'bo--')
+    plt.errorbar(d_all_labels, X_train_rms_avg[:, i], yerr=2 * X_train_rms_std[:, i], ecolor='red', capsize=5, fmt='none')
+    plt.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+
+plt.title('Train')
+
+# test data
+fig_data_test = plt.figure(figsize=(7.5, 8))
+fig_data_test.supxlabel('Distance from wingtip to wall (cm)')
+gs = gridspec.GridSpec(3, 2, wspace=0.4, hspace=0.35)  # workaround to have no overlap between subplots
+
+for i in range(X_test_rms_avg.shape[1]):  # forces
+    plt.subplot(gs[i])  # 2 * i])
+    # plt.xlabel('Distances of wing tip from wall (cm)')
+    # plt.ylabel('Force ' + chr(ord('X') + i) + ' (N)')
+    plt.ylabel('Force ' + str(i) + ' (N)')
+    plt.plot(d_all_labels, X_test_rms_avg[:, i], 'bo--')
+    plt.errorbar(d_all_labels, X_test_rms_avg[:, i], yerr=2 * X_test_rms_std[:, i], ecolor='red', capsize=5, fmt='none')
+    plt.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+
+plt.title('Test')
+
+# %%
+if save_results:
+    np.savetxt(save_folder + save_filename + '/y_test.txt', y_test)
+    np.savetxt(save_folder + save_filename + '/yhat_test.txt', yhat_test)
+    np.savetxt(save_folder + save_filename + '/y_train.txt', y_train)
+    np.savetxt(save_folder + save_filename + '/yhat_train.txt', yhat_train)
+    df.round(1).to_csv(save_folder + save_filename + '/yhat_stats.csv', index=False)
+    fig_yhat_train.savefig(save_folder + save_filename + '/plot_yhat_train.svg')
+    fig_yhat_test.savefig(save_folder + save_filename + '.svg')
+    fig_data_train.savefig(save_folder + save_filename + '/plot_rms_train.svg')
+    fig_data_test.savefig(save_folder + save_filename + '/plot_rms_test.svg')
+
 plt.show()
-
-# %% subplots
-# plt.rcParams.update({"savefig.facecolor": (1, 1, 1, 1)})  # disable transparent background
-# plt.rc('font', family='serif', size=12)
-# plt.tight_layout()
-
-# fig = plt.figure(figsize=(7.5, 8))
-# fig.supxlabel('Distance from wingtip to wall (cm)')
-# gs = gridspec.GridSpec(3, 2, wspace=0.4, hspace=0.35)  # workaround to have no overlap between subplots
-
-# for i in range(3):  # forces
-#     plt.subplot(gs[2 * i])
-#     # plt.xlabel('Distances of wing tip from wall (cm)')
-#     plt.ylabel('Force ' + chr(ord('X') + i) + ' (N)')
-#     plt.plot(d_all_labels, X_train_rms_avg[:, i], 'bo--')
-#     plt.errorbar(d_all_labels, X_train_rms_avg[:, i], yerr=2 * X_train_rms_std[:, i], ecolor='red', capsize=5, fmt='none')
-#     plt.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
-
-# for i in range(3, 6):  # torques
-#     plt.subplot(gs[2 * (i - 3) + 1])
-#     # plt.xlabel('Distances of wing tip from wall (cm)')
-#     plt.ylabel('Torque ' + chr(ord('X') + i - 3) + ' (N-mm)')
-#     plt.plot(d_all_labels, X_train_rms_avg[:, i], 'bo--')
-#     plt.errorbar(d_all_labels, X_train_rms_avg[:, i], yerr=2 * X_train_rms_std[:, i], ecolor='red', capsize=5, fmt='none')
-#     plt.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
-
-# plt.savefig(save_folder + 'rms.svg')  # change this
-# plt.show()
-
-# # combined magnitude
-# plt.figure(figsize=(18, 6))
-
-# plt.subplot(1, 2, 1)
-# plt.xlabel('Distances of wing tip from wall (cm)')
-# plt.ylabel('Force (Combined) (N)')
-# plt.plot(d_all_labels, rms_d_mean_combined[:, 0], 'bo--')
-# plt.errorbar(d_all_labels, rms_d_mean_combined[:, 0], yerr=2 * rms_d_std_combined[:, 0], ecolor='red', capsize=5, fmt='none')
-
-# plt.subplot(1, 2, 2)
-# plt.xlabel('Distances of wing tip from wall (cm)')
-# plt.ylabel('Torque (Combined) (N-mm)')
-# plt.plot(d_all_labels, rms_d_mean_combined[:, 1], 'bo--')
-# plt.errorbar(d_all_labels, rms_d_mean_combined[:, 1], yerr=2 * rms_d_std_combined[:, 1], ecolor='red', capsize=5, fmt='none')
-
-# plt.savefig(save_folder + 'rms_magnitude.png')  # change this
-# plt.show()
 
 # %%
