@@ -10,3 +10,6 @@ Lstm_tf2_wing_wall_working.py
 plots
 Lstm_tf2_wing_wall_prediction.py
 Lstm_tf2_wing_wall_prediction_old.py
+plot_binary.py
+plot_cycles.py
+plot_regression.py
