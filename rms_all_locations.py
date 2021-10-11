@@ -2,6 +2,7 @@
 # from math import floor
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 # from correct_biases import correct_biases
 
 # %% design parameters
@@ -46,7 +47,7 @@ baseline_d = None  # set to None for no baseline
 # save_model = True  # save model file, save last model if model_checkpoint == False
 # model_checkpoint = False  # doesn't do anything if save_model == False
 # save_results = True
-save_folder = root_folder + 'plots/2021.08.25_rms/'  # include trailing slash
+save_folder = root_folder + 'plots/2021.10.08_rms_plots/'  # include trailing slash
 # # save_filename = ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 # # save_filename = 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 # save_filename = 'Ro={}_A={}_Tr={}_Te={}_in={}_bl={}_Nc={}_Ns={}_2L{}_lr={}'.format(
@@ -261,41 +262,46 @@ for d_index, d in enumerate(d_all_labels):
 
 # %% subplots
 plt.rcParams.update({"savefig.facecolor": (1, 1, 1, 1)})  # disable transparent background
+plt.rc('font', family='serif', size=12)
+plt.tight_layout()
 
-plt.figure(figsize=(18, 9))
+fig = plt.figure(figsize=(7.5, 8))
+fig.supxlabel('Distance from wingtip to wall (cm)')
+gs = gridspec.GridSpec(3, 2, wspace=0.4, hspace=0.35)  # workaround to have no overlap between subplots
 
 for i in range(3):  # forces
-    plt.subplot(2, 3, i + 1)
-    plt.xlabel('Distances of wing tip from wall (cm)')
+    plt.subplot(gs[2 * i])
+    # plt.xlabel('Distances of wing tip from wall (cm)')
     plt.ylabel('Force ' + chr(ord('X') + i) + ' (N)')
-    plt.plot(d_all_labels, rms_d_mean[:, i])
-    plt.errorbar(d_all_labels, rms_d_mean[:, i], yerr=2*rms_d_std[:, i], ecolor='red', capsize=5, fmt='none')
-
+    plt.plot(d_all_labels, rms_d_mean[:, i], 'bo--')
+    plt.errorbar(d_all_labels, rms_d_mean[:, i], yerr=2 * rms_d_std[:, i], ecolor='red', capsize=5, fmt='none')
+    plt.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
 
 for i in range(3, 6):  # torques
-    plt.subplot(2, 3, i + 1)
-    plt.xlabel('Distances of wing tip from wall (cm)')
+    plt.subplot(gs[2 * (i - 3) + 1])
+    # plt.xlabel('Distances of wing tip from wall (cm)')
     plt.ylabel('Torque ' + chr(ord('X') + i - 3) + ' (N-mm)')
-    plt.plot(d_all_labels, rms_d_mean[:, i])
-    plt.errorbar(d_all_labels, rms_d_mean[:, i], yerr=2*rms_d_std[:, i], ecolor='red', capsize=5, fmt='none')
+    plt.plot(d_all_labels, rms_d_mean[:, i], 'bo--')
+    plt.errorbar(d_all_labels, rms_d_mean[:, i], yerr=2 * rms_d_std[:, i], ecolor='red', capsize=5, fmt='none')
+    plt.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
 
-plt.savefig(save_folder + 'rms.png')  # change this
+plt.savefig(save_folder + 'rms.svg')  # change this
 plt.show()
 
-# norm
+# combined magnitude
 plt.figure(figsize=(18, 6))
 
 plt.subplot(1, 2, 1)
 plt.xlabel('Distances of wing tip from wall (cm)')
 plt.ylabel('Force (Combined) (N)')
-plt.plot(d_all_labels, rms_d_mean_combined[:, 0])
-plt.errorbar(d_all_labels, rms_d_mean_combined[:, 0], yerr=2*rms_d_std_combined[:, 0], ecolor='red', capsize=5, fmt='none')
+plt.plot(d_all_labels, rms_d_mean_combined[:, 0], 'bo--')
+plt.errorbar(d_all_labels, rms_d_mean_combined[:, 0], yerr=2 * rms_d_std_combined[:, 0], ecolor='red', capsize=5, fmt='none')
 
 plt.subplot(1, 2, 2)
 plt.xlabel('Distances of wing tip from wall (cm)')
 plt.ylabel('Torque (Combined) (N-mm)')
-plt.plot(d_all_labels, rms_d_mean_combined[:, 1])
-plt.errorbar(d_all_labels, rms_d_mean_combined[:, 1], yerr=2*rms_d_std_combined[:, 1], ecolor='red', capsize=5, fmt='none')
+plt.plot(d_all_labels, rms_d_mean_combined[:, 1], 'bo--')
+plt.errorbar(d_all_labels, rms_d_mean_combined[:, 1], yerr=2 * rms_d_std_combined[:, 1], ecolor='red', capsize=5, fmt='none')
 
 plt.savefig(save_folder + 'rms_magnitude.png')  # change this
 plt.show()
