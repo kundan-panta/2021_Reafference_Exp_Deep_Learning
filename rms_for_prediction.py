@@ -37,7 +37,7 @@ N_cycles_to_use = 0
 inputs_ft = [0, 1, 2, 3, 4, 5]
 inputs_ang = []
 
-baseline_d = None  # set to None for no baseline
+baseline_d = 1  # set to None for no baseline
 
 lstm_units = 64  # number of lstm cells of each lstm layer
 lr = 0.0001  # learning rate
@@ -318,7 +318,7 @@ plt.plot([np.min(d_all_labels), np.max(d_all_labels)], [np.min(d_all_labels), np
 
 plt.xlabel('True Distance (cm)')
 plt.ylabel('Distance to Wall (cm)')
-# plt.title('Method A')
+plt.title('Test')
 plt.legend()
 
 plt.axhline(0, color='silver')  # x = 0
@@ -338,7 +338,7 @@ plt.plot([np.min(d_all_labels), np.max(d_all_labels)], [np.min(d_all_labels), np
 
 plt.xlabel('True Distance (cm)')
 plt.ylabel('Distance to Wall (cm)')
-# plt.title('Method A')
+plt.title('Train')
 plt.legend()
 
 plt.axhline(0, color='silver')  # x = 0

@@ -354,7 +354,7 @@ plt.plot([np.min(d_all_labels), np.max(d_all_labels)], [np.min(d_all_labels), np
 
 plt.xlabel('True Distance (cm)')
 plt.ylabel('Distance to Wall (cm)')
-# plt.title('Method A')
+plt.title('Test')
 plt.legend()
 
 plt.axhline(0, color='silver')  # x = 0
@@ -374,7 +374,7 @@ plt.plot([np.min(d_all_labels), np.max(d_all_labels)], [np.min(d_all_labels), np
 
 plt.xlabel('True Distance (cm)')
 plt.ylabel('Distance to Wall (cm)')
-# plt.title('Method A')
+plt.title('Train')
 plt.legend()
 
 plt.axhline(0, color='silver')  # x = 0
