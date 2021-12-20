@@ -51,7 +51,8 @@ def divide_file_names(sets_train, d_train, d_train_labels,
 
 
 def data_get_info(data_folder,
-                  file_names, file_names_train, file_names_val, file_labels,
+                  file_names, file_labels,
+                  file_names_train, file_names_val,
                   train_val_split, separate_val_files,
                   N_cycles_example, N_cycles_step, N_cycles_to_use,
                   inputs_ft, inputs_ang):
@@ -215,8 +216,8 @@ def model_build_tf(lstm_units, epochs_patience, lr,
             # keras.layers.RNN(keras.layers.LSTMCell(lstm_units)),
             # keras.layers.SimpleRNN(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs), unroll=True),
             # keras.layers.SimpleRNN(lstm_units),
-            keras.layers.Dense(lstm_units, activation='elu'),
-            keras.layers.Dense(1)  # , activation='exponential')
+            keras.layers.Dense(lstm_units, activation='relu'),  # , activation='elu'),
+            keras.layers.Dense(1, activation='relu')  # , activation='exponential')
         ]
     )
 
@@ -414,3 +415,5 @@ def model_evaluate_regression(history,
         fig_loss.savefig(save_folder + save_filename + '/plot_training.svg')
 
     plt.show()
+
+    return df
