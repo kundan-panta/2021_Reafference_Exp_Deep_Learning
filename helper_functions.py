@@ -1,5 +1,5 @@
 def divide_file_names(sets_train, d_train, d_train_labels,
-                      sets_test, d_test, d_test_labels,
+                      sets_val, d_val, d_val_labels,
                       baseline_d,
                       Ro, A_star):
     # test that the sets and distances are assigned correctly
@@ -7,9 +7,9 @@ def divide_file_names(sets_train, d_train, d_train_labels,
     for i in range(len(sets_train)):
         assert len(d_train[i]) == len(d_train_labels[i])
 
-    assert len(sets_test) == len(d_test)
-    for i in range(len(sets_test)):
-        assert len(d_test[i]) == len(d_test_labels[i])
+    assert len(sets_val) == len(d_val)
+    for i in range(len(sets_val)):
+        assert len(d_val[i]) == len(d_val_labels[i])
 
     # get the file names and labels
     file_names_train = []
@@ -19,15 +19,15 @@ def divide_file_names(sets_train, d_train, d_train_labels,
             file_names_train.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, d))
             file_labels_train.append(d_train_labels[s_index][d_index])
 
-    file_names_test = []
-    file_labels_test = []
-    for s_index, s in enumerate(sets_test):
-        for d_index, d in enumerate(d_test[s_index]):
-            file_names_test.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, d))
-            file_labels_test.append(d_test_labels[s_index][d_index])
+    file_names_val = []
+    file_labels_val = []
+    for s_index, s in enumerate(sets_val):
+        for d_index, d in enumerate(d_val[s_index]):
+            file_names_val.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, d))
+            file_labels_val.append(d_val_labels[s_index][d_index])
 
-    file_names = file_names_train + file_names_test
-    file_labels = file_labels_train + file_labels_test
+    file_names = file_names_train + file_names_val
+    file_labels = file_labels_train + file_labels_val
 
     # baseline file names for each set
     if baseline_d is not None:
@@ -36,32 +36,32 @@ def divide_file_names(sets_train, d_train, d_train_labels,
             for d_index, d in enumerate(d_train[s_index]):
                 baseline_file_names_train.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
 
-        baseline_file_names_test = []
-        for s_index, s in enumerate(sets_test):
-            for d_index, d in enumerate(d_test[s_index]):
-                baseline_file_names_test.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
+        baseline_file_names_val = []
+        for s_index, s in enumerate(sets_val):
+            for d_index, d in enumerate(d_val[s_index]):
+                baseline_file_names_val.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
 
-        baseline_file_names = baseline_file_names_train + baseline_file_names_test
+        baseline_file_names = baseline_file_names_train + baseline_file_names_val
         assert len(baseline_file_names) == len(file_names)
 
     return file_names, file_labels,\
         file_names_train, file_labels_train,\
-        file_names_test, file_labels_test,\
-        baseline_file_names_train, baseline_file_names_test, baseline_file_names
+        file_names_val, file_labels_val,\
+        baseline_file_names_train, baseline_file_names_val, baseline_file_names
 
 
 def data_get_info(data_folder,
-                  file_names, file_names_train, file_names_test, file_labels,
-                  train_test_split, separate_test_files,
+                  file_names, file_names_train, file_names_val, file_labels,
+                  train_val_split, separate_val_files,
                   N_cycles_example, N_cycles_step, N_cycles_to_use,
                   inputs_ft, inputs_ang):
     import numpy as np
 
     # %%
     N_files_train = len(file_names_train)
-    N_files_test = len(file_names_test)
-    if not(separate_test_files):  # if separate test files are not provided, then we use all the files for both training and testing
-        N_files_test = N_files_train
+    N_files_val = len(file_names_val)
+    if not(separate_val_files):  # if separate test files are not provided, then we use all the files for both training and testing
+        N_files_val = N_files_train
     N_files_all = len(file_names)
 
     assert len(file_labels) == N_files_all  # makes sure labels are there for all files
@@ -86,11 +86,11 @@ def data_get_info(data_folder,
     assert N_total >= (N_examples - 1) * N_per_step + N_per_example  # last data point used must not exceed total number of data points
 
     # number of training and testing stroke cycles
-    N_examples_train = round(train_test_split * N_examples)
-    if separate_test_files:
-        N_examples_test = N_examples
+    N_examples_train = round(train_val_split * N_examples)
+    if separate_val_files:
+        N_examples_val = N_examples
     else:
-        N_examples_test = N_examples - N_examples_train
+        N_examples_val = N_examples - N_examples_train
 
     N_inputs_ft = len(inputs_ft)
     N_inputs_ang = len(inputs_ang)
@@ -104,12 +104,12 @@ def data_get_info(data_folder,
     print('Unused data points:', N_total - ((N_examples - 1) * N_per_step + N_per_example))  # print number of unused data points
     print('Total examples per file:', N_examples)
     print('Training examples per file:', N_examples_train)
-    print('Testing examples per file:', N_examples_test)
+    print('Validation examples per file:', N_examples_val)
     print('Inputs:', N_inputs)
     # print('Clases:', N_classes)
 
-    return N_files_all, N_files_train, N_files_test,\
-        N_examples, N_examples_train, N_examples_test,\
+    return N_files_all, N_files_train, N_files_val,\
+        N_examples, N_examples_train, N_examples_val,\
         N_per_example, N_per_step, N_total,\
         N_inputs, N_inputs_ft, N_inputs_ang
 
@@ -149,9 +149,9 @@ def data_load(data_folder,
 
 
 def data_process(data, labels,
-                 separate_test_files, shuffle_examples, shuffle_seed,
+                 separate_val_files, shuffle_examples, shuffle_seed,
                  save_model, save_results, save_folder, save_filename,
-                 N_files_all, N_files_train, N_examples, N_examples_train, N_examples_test, N_per_example, N_inputs):
+                 N_files_all, N_files_train, N_examples, N_examples_train, N_examples_val, N_per_example, N_inputs):
     import numpy as np
     from pathlib import Path
 
@@ -171,16 +171,16 @@ def data_process(data, labels,
     # data = data.transpose(0, 2, 1)  # feature major
 
     if shuffle_examples:  # randomize order of data to be split into train and test sets
-        if not(separate_test_files):
+        if not(separate_val_files):
             # shuffle every N_examples examples
             # then pick the first N_examples_train examples and put it to training set
-            # and the remaining (N_examples_test) examples into the testing set
+            # and the remaining (N_examples_val) examples into the testing set
             N_examples_train_all = N_files_train * N_examples_train
             permutation = np.zeros(N_files_all * N_examples, dtype=int)
             for k in range(N_files_all):  # each file has N_example examples, and everything is in order
                 shuffled = np.array(np.random.RandomState(seed=shuffle_seed + k).permutation(N_examples), dtype=int)
                 permutation[k * N_examples_train:(k + 1) * N_examples_train] = k * N_examples + shuffled[:N_examples_train]
-                permutation[N_examples_train_all + k * N_examples_test:N_examples_train_all + (k + 1) * N_examples_test] = k * N_examples + shuffled[N_examples_train:]
+                permutation[N_examples_train_all + k * N_examples_val:N_examples_train_all + (k + 1) * N_examples_val] = k * N_examples + shuffled[N_examples_train:]
         else:
             permutation = list(np.random.RandomState(seed=shuffle_seed).permutation(N_files_all * N_examples))
         data = data[permutation]
@@ -191,10 +191,10 @@ def data_process(data, labels,
     # split data into training and testing sets
     X_train = data[:N_files_train * N_examples_train]
     y_train = labels[:N_files_train * N_examples_train]
-    X_test = data[N_files_train * N_examples_train:]
-    y_test = labels[N_files_train * N_examples_train:]
+    X_val = data[N_files_train * N_examples_train:]
+    y_val = labels[N_files_train * N_examples_train:]
 
-    return X_train, y_train, X_test, y_test
+    return X_train, y_train, X_val, y_val
 
 
 def model_build_tf(lstm_units, epochs_patience, lr,
@@ -260,11 +260,11 @@ def model_build_tf(lstm_units, epochs_patience, lr,
 
 
 def model_fit_tf(model, callbacks_list, epochs_number,
-                 X_train, y_train, X_test, y_test):
+                 X_train, y_train, X_val, y_val):
     # %%
     history = model.fit(
         X_train, y_train,
-        validation_data=(X_test, y_test),
+        validation_data=(X_val, y_val),
         epochs=epochs_number,
         verbose=0,
         callbacks=callbacks_list,
@@ -277,7 +277,7 @@ def model_fit_tf(model, callbacks_list, epochs_number,
 
 
 def model_predict_tf(model, save_model, model_checkpoint, save_folder, save_filename,
-                     X_train, X_test):
+                     X_train, X_val):
     import numpy as np
     from tensorflow import keras
 
@@ -293,13 +293,13 @@ def model_predict_tf(model, save_model, model_checkpoint, save_folder, save_file
 
     # get model predictions
     yhat_train = np.squeeze(model_best.predict(X_train))
-    yhat_test = np.squeeze(model_best.predict(X_test))
+    yhat_val = np.squeeze(model_best.predict(X_val))
 
-    return yhat_train, yhat_test
+    return yhat_train, yhat_val
 
 
 def model_evaluate_regression(history,
-                              y_train, y_test, yhat_train, yhat_test,
+                              y_train, y_val, yhat_train, yhat_val,
                               save_results, save_folder, save_filename,
                               file_labels):
     import numpy as np
@@ -309,25 +309,25 @@ def model_evaluate_regression(history,
     # %% evaluate performance
     # calculate result metrics
     d_all_labels = np.unique(file_labels)
-    mu_test = np.zeros_like(d_all_labels, dtype=float)
-    std_test = np.zeros_like(d_all_labels, dtype=float)
     mu_train = np.zeros_like(d_all_labels, dtype=float)
     std_train = np.zeros_like(d_all_labels, dtype=float)
+    mu_val = np.zeros_like(d_all_labels, dtype=float)
+    std_val = np.zeros_like(d_all_labels, dtype=float)
 
     for d_index, d in enumerate(d_all_labels):
-        yhat_test_d = yhat_test[y_test == d]
-        mu_test[d_index] = np.mean(yhat_test_d)
-        std_test[d_index] = np.std(yhat_test_d)
-
         yhat_train_d = yhat_train[y_train == d]
         mu_train[d_index] = np.mean(yhat_train_d)
         std_train[d_index] = np.std(yhat_train_d)
 
+        yhat_val_d = yhat_val[y_val == d]
+        mu_val[d_index] = np.mean(yhat_val_d)
+        std_val[d_index] = np.std(yhat_val_d)
+
     # %% print model predictions
     # print("Predictions (Test):")
-    # for p, prediction in enumerate(yhat_test):
+    # for p, prediction in enumerate(yhat_val):
     #     print('{:.1f}\t'.format(prediction), end='')
-    #     if p % N_examples_test == N_examples_test - 1:
+    #     if p % N_examples_val == N_examples_val - 1:
     #         print('\t\t')
     # print("Predictions (Train):")
     # for p, prediction in enumerate(yhat_train):
@@ -337,10 +337,10 @@ def model_evaluate_regression(history,
 
     # for printing
     df = DataFrame({"d": d_all_labels,
-                    "mu_test": mu_test,
-                    "std_test": std_test,
-                    # "ci_down_test": mu_test - 2 * std_test,
-                    # "ci_up_test": mu_test + 2 * std_test,
+                    "mu_val": mu_val,
+                    "std_val": std_val,
+                    # "ci_down_val": mu_val - 2 * std_val,
+                    # "ci_up_val": mu_val + 2 * std_val,
                     "mu_train": mu_train,
                     "std_train": std_train,
                     # "ci_down_train": mu_train - 2 * std_train,
@@ -354,12 +354,12 @@ def model_evaluate_regression(history,
     plt.tight_layout()
 
     # for testing data
-    fig_yhat_test = plt.figure(figsize=(4, 4))
+    fig_yhat_val = plt.figure(figsize=(4, 4))
 
-    plt.plot(d_all_labels, mu_test - 2 * std_test, 'r--')
-    plt.plot(d_all_labels, mu_test + 2 * std_test, 'r--')
-    plt.fill_between(d_all_labels, mu_test - 2 * std_test, mu_test + 2 * std_test, color='r', alpha=.2)
-    plt.plot(d_all_labels, mu_test, 'bo--', label='Predicted')
+    plt.plot(d_all_labels, mu_val - 2 * std_val, 'r--')
+    plt.plot(d_all_labels, mu_val + 2 * std_val, 'r--')
+    plt.fill_between(d_all_labels, mu_val - 2 * std_val, mu_val + 2 * std_val, color='r', alpha=.2)
+    plt.plot(d_all_labels, mu_val, 'bo--', label='Predicted')
     plt.plot([np.min(d_all_labels), np.max(d_all_labels)], [np.min(d_all_labels), np.max(d_all_labels)], 'k-', label='Actual')
 
     plt.xlabel('True Distance (cm)')
@@ -404,13 +404,13 @@ def model_evaluate_regression(history,
 
     # %%
     if save_results:
-        np.savetxt(save_folder + save_filename + '/y_test.txt', y_test)
-        np.savetxt(save_folder + save_filename + '/yhat_test.txt', yhat_test)
+        np.savetxt(save_folder + save_filename + '/y_val.txt', y_val)
+        np.savetxt(save_folder + save_filename + '/yhat_val.txt', yhat_val)
         np.savetxt(save_folder + save_filename + '/y_train.txt', y_train)
         np.savetxt(save_folder + save_filename + '/yhat_train.txt', yhat_train)
         df.round(1).to_csv(save_folder + save_filename + '/yhat_stats.csv', index=False)
         fig_yhat_train.savefig(save_folder + save_filename + '/plot_yhat_train.svg')
-        fig_yhat_test.savefig(save_folder + save_filename + '.svg')
+        fig_yhat_val.savefig(save_folder + save_filename + '.svg')
         fig_loss.savefig(save_folder + save_filename + '/plot_training.svg')
 
     plt.show()
