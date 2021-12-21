@@ -299,10 +299,10 @@ def model_predict_tf(model, save_model, model_checkpoint, save_folder, save_file
     return yhat_train, yhat_val
 
 
-def model_evaluate_regression(history,
-                              y_train, y_val, yhat_train, yhat_val,
-                              save_results, save_folder, save_filename,
-                              file_labels):
+def model_evaluate_regression_tf(history,
+                                 y_train, y_val, yhat_train, yhat_val,
+                                 save_results, save_folder, save_filename,
+                                 file_labels):
     import numpy as np
     import matplotlib.pyplot as plt
     from pandas import DataFrame

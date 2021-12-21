@@ -10,12 +10,12 @@ import numpy as np
 # from tensorflow.python.keras.callbacks import ModelCheckpoint
 # from pandas import DataFrame
 from helper_functions import divide_file_names, data_get_info, data_load, data_process,\
-    model_build_tf, model_fit_tf, model_predict_tf, model_evaluate_regression
+    model_build_tf, model_fit_tf, model_predict_tf, model_evaluate_regression_tf
 
 # %% design parameters
 root_folder = ''  # include trailing slash
 data_folder = root_folder + 'data/2021.07.28/butterworth_h0.04_l5_o10/'  # include trailing slash
-Ro = 3.5
+Ro = 5
 A_star = 2
 
 sets_train = [1, 2, 4, 5, 101]
@@ -115,9 +115,9 @@ yhat_train, yhat_val = model_predict_tf(model,
                                         X_train, X_val)
 
 # %% evaluate performance
-df = model_evaluate_regression(history,
-                               y_train, y_val, yhat_train, yhat_val,
-                               save_results, save_folder, save_filename,
-                               file_labels)
+df = model_evaluate_regression_tf(history,
+                                  y_train, y_val, yhat_train, yhat_val,
+                                  save_results, save_folder, save_filename,
+                                  file_labels)
 
 # %%
