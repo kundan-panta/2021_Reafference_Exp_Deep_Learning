@@ -6,10 +6,8 @@
 import numpy as np
 # import matplotlib.pyplot as plt
 # from tensorflow import keras
-# from tensorflow.keras.callbacks import EarlyStopping
-# from tensorflow.python.keras.callbacks import ModelCheckpoint
 # from pandas import DataFrame
-from helper_functions import divide_file_names, data_get_info, data_load, data_process,\
+from helper_functions import divide_file_names, data_get_info, data_load,\
     model_build_tf, model_fit_tf, model_predict_tf, model_evaluate_regression_tf
 
 # %% design parameters
@@ -83,20 +81,16 @@ N_files_all, N_files_train, N_files_val,\
                                                         inputs_ft, inputs_ang)
 
 # %%
-data, labels = data_load(data_folder,
-                         file_names, file_labels,
-                         baseline_d, baseline_file_names,
-                         inputs_ft, inputs_ang,
-                         N_files_all, N_examples,
-                         N_per_example, N_per_step,
-                         N_inputs, N_inputs_ft, N_inputs_ang)
-
-# %%
-X_train, y_train, X_val, y_val = data_process(data, labels,
-                                              separate_val_files, shuffle_examples, shuffle_seed,
-                                              save_model, save_results, save_folder, save_filename,
-                                              N_files_all, N_files_train, N_examples,
-                                              N_examples_train, N_examples_val, N_per_example, N_inputs)
+X_train, y_train, X_val, y_val = data_load(data_folder,
+                                           file_names, file_labels,
+                                           baseline_d, baseline_file_names,
+                                           inputs_ft, inputs_ang,
+                                           separate_val_files, shuffle_examples, shuffle_seed,
+                                           save_model, save_results, save_folder, save_filename,
+                                           N_files_all, N_files_train,
+                                           N_examples, N_examples_train, N_examples_val,
+                                           N_per_example, N_per_step,
+                                           N_inputs, N_inputs_ft, N_inputs_ang)
 
 # %%
 model, callbacks_list = model_build_tf(lstm_units, epochs_patience, lr,

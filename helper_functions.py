@@ -119,8 +119,14 @@ def data_load(data_folder,
               file_names, file_labels,
               baseline_d, baseline_file_names,
               inputs_ft, inputs_ang,
-              N_files_all, N_examples, N_per_example, N_per_step, N_inputs, N_inputs_ft, N_inputs_ang):
+              separate_val_files, shuffle_examples, shuffle_seed,
+              save_model, save_results, save_folder, save_filename,
+              N_files_all, N_files_train,
+              N_examples, N_examples_train, N_examples_val,
+              N_per_example, N_per_step,
+              N_inputs, N_inputs_ft, N_inputs_ang):
     import numpy as np
+    from pathlib import Path
 
     # %%
     data = np.zeros((N_files_all * N_examples * N_per_example, N_inputs))  # all input data
@@ -145,16 +151,6 @@ def data_load(data_folder,
             labels[k * N_examples + i] = file_labels[k]
             # sanity checks for data: looked at 1st row of 1st file, last row of 1st file, first row of 2nd file,
             # last row of last file, to make sure all the data I needed was at the right place
-
-    return data, labels
-
-
-def data_process(data, labels,
-                 separate_val_files, shuffle_examples, shuffle_seed,
-                 save_model, save_results, save_folder, save_filename,
-                 N_files_all, N_files_train, N_examples, N_examples_train, N_examples_val, N_per_example, N_inputs):
-    import numpy as np
-    from pathlib import Path
 
     # %%
     data_min = np.min(data, axis=0)
