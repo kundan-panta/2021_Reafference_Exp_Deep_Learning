@@ -3,7 +3,7 @@
 # tensorflow == 2.4.0
 # numpy == 1.19.3
 # from pathlib import Path
-import numpy as np
+# import numpy as np
 # import matplotlib.pyplot as plt
 # from tensorflow import keras
 # from pandas import DataFrame
@@ -12,8 +12,8 @@ from helper_functions import divide_file_names, data_get_info, data_load,\
 
 # %% design parameters
 root_folder = ''  # include trailing slash
-data_folder = root_folder + 'data/2021.07.28/butterworth_h0.04_l5_o10/'  # include trailing slash
-Ro = 5
+data_folder = root_folder + 'data/2021.07.28/raw/'  # include trailing slash
+Ro = 3.5
 A_star = 2
 
 sets_train = [1, 2, 4, 5, 101]
@@ -28,6 +28,7 @@ separate_val_files = len(sets_val) > 0
 if separate_val_files:
     train_val_split = 1
     shuffle_examples = False
+    shuffle_seed = None
 else:
     train_val_split = 0.8
     shuffle_examples = True
@@ -46,20 +47,20 @@ baseline_d = None  # set to None for no baseline
 
 lstm_units = 64  # number of lstm cells of each lstm layer
 lr = 0.0001  # learning rate
-epochs_number = 1500  # number of epochs
+epochs_number = 100  # number of epochs
 epochs_patience = -1  # for early stopping, set <0 to disable
 
 save_model = True  # save model file, save last model if model_checkpoint == False
 model_checkpoint = False  # doesn't do anything if save_model == False
 save_results = True
-save_folder = root_folder + 'plots/2021.10.11_new plot code/'  # include trailing slash
+save_folder = root_folder + 'plots/2021.12.22_refactor/'  # include trailing slash
 # save_filename = ','.join(file_names_train) + '_' + ','.join(file_names_val) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 # save_filename = 'all_' + ','.join(str(temp) for temp in file_labels_val) + '_' + ','.join(file_names_val) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 save_filename = 'Ro={}_A={}_Tr={}_Te={}_in={}_bl={}_Nc={}_Ns={}_2L{}_lr={}'.format(
     Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_val),
     ','.join(str(temp) for temp in inputs_ft), baseline_d, N_cycles_example, N_cycles_step, lstm_units, lr)
 
-# %%
+# %% get the file names to load data from
 file_names, file_labels,\
     file_names_train, file_labels_train,\
     file_names_val, file_labels_val,\
@@ -69,7 +70,7 @@ file_names, file_labels,\
                                             baseline_d,
                                             Ro, A_star)
 
-# %%
+# %% get info about the data
 N_files_all, N_files_train, N_files_val,\
     N_examples, N_examples_train, N_examples_val,\
     N_per_example, N_per_step, N_total,\
@@ -80,7 +81,7 @@ N_files_all, N_files_train, N_files_val,\
                                                         N_cycles_example, N_cycles_step, N_cycles_to_use,
                                                         inputs_ft, inputs_ang)
 
-# %%
+# %% get training and validation datasets
 X_train, y_train, X_val, y_val = data_load(data_folder,
                                            file_names, file_labels,
                                            baseline_d, baseline_file_names,
@@ -92,17 +93,17 @@ X_train, y_train, X_val, y_val = data_load(data_folder,
                                            N_per_example, N_per_step,
                                            N_inputs, N_inputs_ft, N_inputs_ang)
 
-# %%
+# %% initialize the model
 model, callbacks_list = model_build_tf(lstm_units, epochs_patience, lr,
                                        save_model, model_checkpoint,
                                        save_folder, save_filename,
                                        N_per_example, N_inputs)
 
-# %%
-history = model_fit_tf(model, callbacks_list, epochs_number,
-                       X_train, y_train, X_val, y_val)
+# %% train the model
+model, history = model_fit_tf(model, callbacks_list, epochs_number,
+                              X_train, y_train, X_val, y_val)
 
-# %% predict distance to wall
+# %% predict on training and testing data using trained model
 yhat_train, yhat_val = model_predict_tf(model,
                                         save_model, model_checkpoint,
                                         save_folder, save_filename,

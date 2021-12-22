@@ -30,13 +30,15 @@ def divide_file_names(sets_train, d_train, d_train_labels,
     file_labels = file_labels_train + file_labels_val
 
     # baseline file names for each set
+    baseline_file_names_train = []
+    baseline_file_names_val = []
+    baseline_file_names = []
+
     if baseline_d is not None:
-        baseline_file_names_train = []
         for s_index, s in enumerate(sets_train):
             for d_index, d in enumerate(d_train[s_index]):
                 baseline_file_names_train.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
 
-        baseline_file_names_val = []
         for s_index, s in enumerate(sets_val):
             for d_index, d in enumerate(d_val[s_index]):
                 baseline_file_names_val.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
@@ -270,7 +272,7 @@ def model_fit_tf(model, callbacks_list, epochs_number,
         use_multiprocessing=False
     )
 
-    return history
+    return model, history
 
 
 def model_predict_tf(model, save_model, model_checkpoint, save_folder, save_filename,

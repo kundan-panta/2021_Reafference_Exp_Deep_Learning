@@ -7,12 +7,12 @@ from pathlib import Path
 
 # %% design parameters
 root_folder = ''  # include trailing slash
-data_folder = root_folder + 'data/2021.07.28/butterworth_h0.04_l5_o10/'  # include trailing slash
+data_folder = root_folder + 'data/2021.07.28/raw/'  # include trailing slash
 Ro = 3.5
 A_star = 2
 
-sets_train = [1, 2, 3, 4, 5, 101]
-d_train = [list(range(1, 43 + 1, 3))] * 5 + [list(range(1, 37 + 1, 3))] * 1  # list of all distances from wall for each set
+sets_train = [1, 2, 3, 4, 5]
+d_train = [list(range(1, 43 + 1, 3))] * 5  # list of all distances from wall for each set
 d_labels_train = d_train
 
 sets_test = []
@@ -47,7 +47,7 @@ epochs_patience = -1  # for early stopping, set <0 to disable
 save_model = False  # save model file, save last model if model_checkpoint == False
 model_checkpoint = False  # doesn't do anything if save_model == False
 save_results = True
-save_folder = root_folder + 'plots/2021.10.15_new plot code/'  # include trailing slash
+save_folder = root_folder + 'plots/2021.12.21_new plot code/'  # include trailing slash
 # save_filename = ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 # save_filename = 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 save_filename = 'Ro={}_A={}_Tr={}_Te={}_in={}_bl={}_Nc={}_Ns={}_2L{}_lr={}'.format(
