@@ -13,6 +13,7 @@ def divide_file_names(sets_train, d_train, d_train_labels,
                       sets_val, d_val, d_val_labels,
                       baseline_d,
                       Ro, A_star):
+
     # test that the sets and distances are assigned correctly
     assert len(sets_train) == len(d_train)
     for i in range(len(sets_train)):
@@ -69,7 +70,6 @@ def data_get_info(data_folder,
                   train_val_split, separate_val_files,
                   N_cycles_example, N_cycles_step, N_cycles_to_use,
                   inputs_ft, inputs_ang):
-    # import numpy as np
 
     # %%
     N_files_train = len(file_names_train)
@@ -138,8 +138,6 @@ def data_load(data_folder,
               N_examples, N_examples_train, N_examples_val,
               N_per_example, N_per_step,
               N_inputs, N_inputs_ft, N_inputs_ang):
-    # import numpy as np
-    # from pathlib import Path
 
     # %%
     data = np.zeros((N_files_all * N_examples * N_per_example, N_inputs))  # all input data
@@ -210,7 +208,6 @@ def data_load(data_folder,
 def model_build_tf(lstm_units, epochs_patience, lr,
                    save_model, model_checkpoint, save_folder, save_filename,
                    N_per_example, N_inputs):
-    # from tensorflow import keras
 
     # %%
     model = keras.models.Sequential(
@@ -271,7 +268,7 @@ def model_build_tf(lstm_units, epochs_patience, lr,
 
 def model_fit_tf(model, callbacks_list, epochs_number,
                  X_train, y_train, X_val, y_val):
-    # %%
+
     history = model.fit(
         X_train, y_train,
         validation_data=(X_val, y_val),
@@ -288,16 +285,14 @@ def model_fit_tf(model, callbacks_list, epochs_number,
 
 def model_predict_tf(model, save_model, model_checkpoint, save_folder, save_filename,
                      X_train, X_val):
-    # import numpy as np
-    # from tensorflow import keras
 
     # %% predict distance to wall
     if save_model and model_checkpoint:  # load best weights for test accuracy
         model_best = keras.models.load_model(save_folder + save_filename)
-        print("Best:")
+        # print("Best:")
     else:
         model_best = model
-        print("Last:")
+        # print("Last:")
         if save_model:
             model.save(save_folder + save_filename)
 
@@ -312,9 +307,6 @@ def model_evaluate_regression_tf(history,
                                  y_train, y_val, yhat_train, yhat_val,
                                  save_results, save_folder, save_filename,
                                  file_labels):
-    # import numpy as np
-    # import matplotlib.pyplot as plt
-    # from pandas import DataFrame
 
     # %% evaluate performance
     # calculate result metrics

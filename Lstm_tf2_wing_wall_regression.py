@@ -16,11 +16,11 @@ data_folder = root_folder + 'data/2021.07.28/raw/'  # include trailing slash
 Ro = 3.5
 A_star = 2
 
-sets_train = [1, 2, 4, 5, 101]
-d_train = [list(range(1, 43 + 1, 3))] * 4 + [list(range(1, 37 + 1, 3))] * 1  # list of all distances from wall for each set
+sets_train = [1, 2, 3, 5]
+d_train = [list(range(1, 43 + 1, 3))] * 4  # list of all distances from wall for each set
 d_train_labels = d_train
 
-sets_val = [3]
+sets_val = [4]
 d_val = [list(range(1, 43 + 1, 3))]  # list of all distances from wall
 d_val_labels = d_val
 
@@ -41,24 +41,25 @@ N_cycles_step = 1  # number of cycles to step between consecutive examples
 N_cycles_to_use = 0
 
 inputs_ft = [0, 1, 2, 3, 4, 5]
-inputs_ang = [0]
+inputs_ang = []
+average_window = 8
 
 baseline_d = None  # set to None for no baseline
 
 lstm_units = 64  # number of lstm cells of each lstm layer
 lr = 0.0001  # learning rate
-epochs_number = 100  # number of epochs
+epochs_number = 2000  # number of epochs
 epochs_patience = -1  # for early stopping, set <0 to disable
 
 save_model = True  # save model file, save last model if model_checkpoint == False
 model_checkpoint = False  # doesn't do anything if save_model == False
 save_results = True
-save_folder = root_folder + 'plots/2021.12.22_refactor/'  # include trailing slash
+save_folder = root_folder + 'plots/2021.12.22_averaged/'  # include trailing slash
 # save_filename = ','.join(file_names_train) + '_' + ','.join(file_names_val) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 # save_filename = 'all_' + ','.join(str(temp) for temp in file_labels_val) + '_' + ','.join(file_names_val) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
-save_filename = 'Ro={}_A={}_Tr={}_Te={}_in={}_bl={}_Nc={}_Ns={}_2L{}_lr={}'.format(
+save_filename = 'Ro={}_A={}_Tr={}_Te={}_in={}_bl={}_Nc={}_Ns={}_2L{}_lr={}_win={}'.format(
     Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_val),
-    ','.join(str(temp) for temp in inputs_ft), baseline_d, N_cycles_example, N_cycles_step, lstm_units, lr)
+    ','.join(str(temp) for temp in inputs_ft), baseline_d, N_cycles_example, N_cycles_step, lstm_units, lr, average_window)
 
 # %% get the file names to load data from
 file_names, file_labels,\
@@ -92,6 +93,17 @@ X_train, y_train, X_val, y_val = data_load(data_folder,
                                            N_examples, N_examples_train, N_examples_val,
                                            N_per_example, N_per_step,
                                            N_inputs, N_inputs_ft, N_inputs_ang)
+
+# %% reduce sequence length
+N_per_example = N_per_example // average_window  # update sequence length
+
+# cut out last data points so the number of data points is divisible by average_window
+X_train = X_train[:, 0:N_per_example * average_window, :]
+X_val = X_val[:, 0:N_per_example * average_window, :]
+
+# reshape the time series so
+X_train = X_train.reshape(X_train.shape[0], -1, average_window, X_train.shape[2]).mean(axis=2)
+X_val = X_val.reshape(X_val.shape[0], -1, average_window, X_val.shape[2]).mean(axis=2)
 
 # %% initialize the model
 model, callbacks_list = model_build_tf(lstm_units, epochs_patience, lr,

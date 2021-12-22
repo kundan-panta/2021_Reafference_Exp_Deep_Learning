@@ -15,16 +15,16 @@ sets_train = [1, 2, 3, 4, 5]
 d_train = [list(range(1, 43 + 1, 3))] * 5  # list of all distances from wall for each set
 d_labels_train = d_train
 
-sets_test = []
-d_test = []  # list of all distances from wall
-d_labels_test = d_test
+sets_val = []
+d_val = []  # list of all distances from wall
+d_labels_val = d_val
 
-separate_test_files = len(sets_test) > 0
-if separate_test_files:
-    train_test_split = 1
+separate_val_files = len(sets_val) > 0
+if separate_val_files:
+    train_val_split = 1
     shuffle_examples = False
 else:
-    train_test_split = 1.0
+    train_val_split = 1.0
     shuffle_examples = True
     shuffle_seed = 5  # seed to split data in reproducible way
 
@@ -36,6 +36,7 @@ N_cycles_to_use = 0
 
 inputs_ft = [0, 1, 2, 3, 4, 5]
 inputs_ang = []
+average_window = 8
 
 baseline_d = None  # set to None for no baseline
 
@@ -47,11 +48,11 @@ epochs_patience = -1  # for early stopping, set <0 to disable
 save_model = False  # save model file, save last model if model_checkpoint == False
 model_checkpoint = False  # doesn't do anything if save_model == False
 save_results = True
-save_folder = root_folder + 'plots/2021.12.21_new plot code/'  # include trailing slash
-# save_filename = ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
-# save_filename = 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
+save_folder = root_folder + 'plots/2021.12.22_plot_averaged/'  # include trailing slash
+# save_filename = ','.join(file_names_train) + '_' + ','.join(file_names_val) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
+# save_filename = 'all_' + ','.join(str(temp) for temp in file_labels_val) + '_' + ','.join(file_names_val) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 save_filename = 'Ro={}_A={}_Tr={}_Te={}_in={}_bl={}_Nc={}_Ns={}_2L{}_lr={}'.format(
-    Ro, A_star, 'all', ','.join(str(temp) for temp in sets_test),
+    Ro, A_star, 'all', ','.join(str(temp) for temp in sets_val),
     ','.join(str(temp) for temp in inputs_ft), baseline_d, N_cycles_example, N_cycles_step, lstm_units, lr)
 
 # %% For 1 set at a time sets together
@@ -78,9 +79,9 @@ assert len(sets_train) == len(d_train)
 for i in range(len(sets_train)):
     assert len(d_train[i]) == len(d_labels_train[i])
 
-assert len(sets_test) == len(d_test)
-for i in range(len(sets_test)):
-    assert len(d_test[i]) == len(d_labels_test[i])
+assert len(sets_val) == len(d_val)
+for i in range(len(sets_val)):
+    assert len(d_val[i]) == len(d_labels_val[i])
 
 # get the file names and labels
 file_names_train = []
@@ -92,18 +93,18 @@ for s_index, s in enumerate(sets_train):
         file_labels_train.append(d_labels_train[s_index][d_index])
         file_sets_train.append(s)
 
-file_names_test = []
-file_labels_test = []
-file_sets_test = []
-for s_index, s in enumerate(sets_test):
-    for d_index, d in enumerate(d_test[s_index]):
-        file_names_test.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, d))
-        file_labels_test.append(d_labels_test[s_index][d_index])
-        file_sets_test.append(s)
+file_names_val = []
+file_labels_val = []
+file_sets_val = []
+for s_index, s in enumerate(sets_val):
+    for d_index, d in enumerate(d_val[s_index]):
+        file_names_val.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, d))
+        file_labels_val.append(d_labels_val[s_index][d_index])
+        file_sets_val.append(s)
 
-file_names = file_names_train + file_names_test
-file_labels = file_labels_train + file_labels_test
-file_sets = file_sets_train + file_sets_test
+file_names = file_names_train + file_names_val
+file_labels = file_labels_train + file_labels_val
+file_sets = file_sets_train + file_sets_val
 
 # baseline file names for each set
 if baseline_d is not None:
@@ -112,19 +113,19 @@ if baseline_d is not None:
         for d_index, d in enumerate(d_train[s_index]):
             baseline_file_names_train.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
 
-    baseline_file_names_test = []
-    for s_index, s in enumerate(sets_test):
-        for d_index, d in enumerate(d_test[s_index]):
-            baseline_file_names_test.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
+    baseline_file_names_val = []
+    for s_index, s in enumerate(sets_val):
+        for d_index, d in enumerate(d_val[s_index]):
+            baseline_file_names_val.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
 
-    baseline_file_names = baseline_file_names_train + baseline_file_names_test
+    baseline_file_names = baseline_file_names_train + baseline_file_names_val
     assert len(baseline_file_names) == len(file_names)
 
 # %%
 N_files_train = len(file_names_train)
-N_files_test = len(file_names_test)
-if not(separate_test_files):  # if separate test files are not provided, then we use all the files for both training and testing
-    N_files_test = N_files_train
+N_files_val = len(file_names_val)
+if not(separate_val_files):  # if separate test files are not provided, then we use all the files for both training and testing
+    N_files_val = N_files_train
 N_files_all = len(file_names)
 
 assert len(file_labels) == N_files_all  # makes sure labels are there for all files
@@ -149,11 +150,11 @@ N_examples = (N_total - N_per_example) // N_per_step + 1  # floor division
 assert N_total >= (N_examples - 1) * N_per_step + N_per_example  # last data point used must not exceed total number of data points
 
 # number of training and testing stroke cycles
-N_examples_train = round(train_test_split * N_examples)
-if separate_test_files:
-    N_examples_test = N_examples
+N_examples_train = round(train_val_split * N_examples)
+if separate_val_files:
+    N_examples_val = N_examples
 else:
-    N_examples_test = N_examples - N_examples_train
+    N_examples_val = N_examples - N_examples_train
 
 N_inputs_ft = len(inputs_ft)
 N_inputs_ang = len(inputs_ang)
@@ -163,11 +164,11 @@ N_inputs = N_inputs_ft + N_inputs_ang  # ft_meas + other inputs
 # assert np.max(file_labels) == N_classes - 1  # check for missing labels in between
 
 print('Frequency:', freq)
-print('Data points in an example:', N_per_example)
+print('Data points in an example:', N_per_example // average_window)
 print('Unused data points:', N_total - ((N_examples - 1) * N_per_step + N_per_example))  # print number of unused data points
 print('Total examples per file:', N_examples)
 print('Training examples per file:', N_examples_train)
-print('Testing examples per file:', N_examples_test)
+print('Testing examples per file:', N_examples_val)
 print('Inputs:', N_inputs)
 # print('Clases:', N_classes)
 
@@ -214,16 +215,16 @@ data = data.reshape(N_files_all * N_examples, N_per_example, N_inputs)  # exampl
 # data = data.transpose(0, 2, 1)  # feature major
 
 if shuffle_examples:  # randomize order of data to be split into train and test sets
-    if not(separate_test_files):
+    if not(separate_val_files):
         # shuffle every N_examples examples
         # then pick the first N_examples_train examples and put it to training set
-        # and the remaining (N_examples_test) examples into the testing set
+        # and the remaining (N_examples_val) examples into the testing set
         N_examples_train_all = N_files_train * N_examples_train
         permutation = np.zeros(N_files_all * N_examples, dtype=int)
         for k in range(N_files_all):  # each file has N_example examples, and everything is in order
             shuffled = np.array(np.random.RandomState(seed=shuffle_seed + k).permutation(N_examples), dtype=int)
             permutation[k * N_examples_train:(k + 1) * N_examples_train] = k * N_examples + shuffled[:N_examples_train]
-            permutation[N_examples_train_all + k * N_examples_test:N_examples_train_all + (k + 1) * N_examples_test] = k * N_examples + shuffled[N_examples_train:]
+            permutation[N_examples_train_all + k * N_examples_val:N_examples_train_all + (k + 1) * N_examples_val] = k * N_examples + shuffled[N_examples_train:]
     else:
         permutation = list(np.random.RandomState(seed=shuffle_seed).permutation(N_files_all * N_examples))
     data = data[permutation]
@@ -235,11 +236,26 @@ if shuffle_examples:  # randomize order of data to be split into train and test 
 # split data into training and testing sets
 X_train = data[:N_files_train * N_examples_train]
 y_train = labels[:N_files_train * N_examples_train]
-X_test = data[N_files_train * N_examples_train:]
-y_test = labels[N_files_train * N_examples_train:]
+X_val = data[N_files_train * N_examples_train:]
+y_val = labels[N_files_train * N_examples_train:]
 
 set_identifier_train = sets[:N_files_train * N_examples_train]
-set_identifier_test = sets[N_files_train * N_examples_train:]
+set_identifier_val = sets[N_files_train * N_examples_train:]
+
+# %% reduce sequence length
+N_per_example = N_per_example // average_window  # update sequence length
+
+# cut out last data points so the number of data points is divisible by average_window
+X_train = X_train[:, 0:N_per_example * average_window, :]
+# X_val = X_val[:, 0:N_per_example * average_window, :]
+
+# reshape the time series so
+X_train = X_train.reshape(X_train.shape[0], -1, average_window, X_train.shape[2]).mean(axis=2)
+# X_val = X_val.reshape(X_val.shape[0], -1, average_window, X_val.shape[2]).mean(axis=2)
+
+# fix time length
+t_s = round(t_s * average_window, 3)  # sample time
+t = np.arange(0, t_s * N_per_example, t_s)
 
 # %% Find the average time-series for all examples at a distance
 d_labels_all = np.unique(file_labels)  # array of all distances to wall
