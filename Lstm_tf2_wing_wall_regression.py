@@ -3,8 +3,8 @@
 # tensorflow == 2.4.0
 # numpy == 1.19.3
 # from pathlib import Path
-# import numpy as np
-# import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.pyplot as plt
 # from tensorflow import keras
 # from pandas import DataFrame
 from helper_functions import divide_file_names, data_get_info, data_load,\

@@ -1,3 +1,14 @@
+# python == 3.8.7
+# tensorflow == 2.4.0
+# numpy == 1.19.3
+
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+from tensorflow import keras
+from pandas import DataFrame
+
+
 def divide_file_names(sets_train, d_train, d_train_labels,
                       sets_val, d_val, d_val_labels,
                       baseline_d,
@@ -58,7 +69,7 @@ def data_get_info(data_folder,
                   train_val_split, separate_val_files,
                   N_cycles_example, N_cycles_step, N_cycles_to_use,
                   inputs_ft, inputs_ang):
-    import numpy as np
+    # import numpy as np
 
     # %%
     N_files_train = len(file_names_train)
@@ -127,8 +138,8 @@ def data_load(data_folder,
               N_examples, N_examples_train, N_examples_val,
               N_per_example, N_per_step,
               N_inputs, N_inputs_ft, N_inputs_ang):
-    import numpy as np
-    from pathlib import Path
+    # import numpy as np
+    # from pathlib import Path
 
     # %%
     data = np.zeros((N_files_all * N_examples * N_per_example, N_inputs))  # all input data
@@ -199,7 +210,7 @@ def data_load(data_folder,
 def model_build_tf(lstm_units, epochs_patience, lr,
                    save_model, model_checkpoint, save_folder, save_filename,
                    N_per_example, N_inputs):
-    from tensorflow import keras
+    # from tensorflow import keras
 
     # %%
     model = keras.models.Sequential(
@@ -214,8 +225,8 @@ def model_build_tf(lstm_units, epochs_patience, lr,
             # keras.layers.RNN(keras.layers.LSTMCell(lstm_units)),
             # keras.layers.SimpleRNN(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs), unroll=True),
             # keras.layers.SimpleRNN(lstm_units),
-            keras.layers.Dense(lstm_units, activation='relu'),  # , activation='elu'),
-            keras.layers.Dense(1, activation='relu')  # , activation='exponential')
+            keras.layers.Dense(lstm_units, activation='elu'),
+            keras.layers.Dense(1)  # , activation='relu')  # , activation='exponential')
         ]
     )
 
@@ -277,8 +288,8 @@ def model_fit_tf(model, callbacks_list, epochs_number,
 
 def model_predict_tf(model, save_model, model_checkpoint, save_folder, save_filename,
                      X_train, X_val):
-    import numpy as np
-    from tensorflow import keras
+    # import numpy as np
+    # from tensorflow import keras
 
     # %% predict distance to wall
     if save_model and model_checkpoint:  # load best weights for test accuracy
@@ -301,9 +312,9 @@ def model_evaluate_regression_tf(history,
                                  y_train, y_val, yhat_train, yhat_val,
                                  save_results, save_folder, save_filename,
                                  file_labels):
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from pandas import DataFrame
+    # import numpy as np
+    # import matplotlib.pyplot as plt
+    # from pandas import DataFrame
 
     # %% evaluate performance
     # calculate result metrics
@@ -352,27 +363,7 @@ def model_evaluate_regression_tf(history,
     plt.rc('font', family='serif', size=12)
     plt.tight_layout()
 
-    # for testing data
-    fig_yhat_val = plt.figure(figsize=(4, 4))
-
-    plt.plot(d_all_labels, mu_val - 2 * std_val, 'r--')
-    plt.plot(d_all_labels, mu_val + 2 * std_val, 'r--')
-    plt.fill_between(d_all_labels, mu_val - 2 * std_val, mu_val + 2 * std_val, color='r', alpha=.2)
-    plt.plot(d_all_labels, mu_val, 'bo--', label='Predicted')
-    plt.plot([np.min(d_all_labels), np.max(d_all_labels)], [np.min(d_all_labels), np.max(d_all_labels)], 'k-', label='Actual')
-
-    plt.xlabel('True Distance (cm)')
-    plt.ylabel('Distance to Wall (cm)')
-    plt.title('Test')
-    plt.legend()
-
-    plt.axhline(0, color='silver')  # x = 0
-    plt.axvline(0, color='silver')  # y = 0
-    plt.axis('square')
-    plt.xlim(0, 50)
-    plt.ylim(0, 50)
-
-    # same for training data
+    # for training data
     fig_yhat_train = plt.figure(figsize=(4, 4))
 
     plt.plot(d_all_labels, mu_train - 2 * std_train, 'r--')
@@ -392,6 +383,26 @@ def model_evaluate_regression_tf(history,
     plt.xlim(0, 50)
     plt.ylim(0, 50)
 
+    # for val data
+    fig_yhat_val = plt.figure(figsize=(4, 4))
+
+    plt.plot(d_all_labels, mu_val - 2 * std_val, 'r--')
+    plt.plot(d_all_labels, mu_val + 2 * std_val, 'r--')
+    plt.fill_between(d_all_labels, mu_val - 2 * std_val, mu_val + 2 * std_val, color='r', alpha=.2)
+    plt.plot(d_all_labels, mu_val, 'bo--', label='Predicted')
+    plt.plot([np.min(d_all_labels), np.max(d_all_labels)], [np.min(d_all_labels), np.max(d_all_labels)], 'k-', label='Actual')
+
+    plt.xlabel('True Distance (cm)')
+    plt.ylabel('Distance to Wall (cm)')
+    plt.title('Val')
+    plt.legend()
+
+    plt.axhline(0, color='silver')  # x = 0
+    plt.axvline(0, color='silver')  # y = 0
+    plt.axis('square')
+    plt.xlim(0, 50)
+    plt.ylim(0, 50)
+
     # %%
     fig_loss = plt.figure()
     plt.plot(history.history['loss'])
@@ -399,7 +410,7 @@ def model_evaluate_regression_tf(history,
     plt.title('model loss')
     plt.ylabel('loss')
     plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='best')
+    plt.legend(['train', 'val'], loc='best')
 
     # %%
     if save_results:
