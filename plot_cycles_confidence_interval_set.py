@@ -11,8 +11,8 @@ data_folder = root_folder + 'data/2021.07.28/raw/'  # include trailing slash
 Ro = 3.5
 A_star = 2
 
-sets_train = [1, 2, 3, 4, 5]
-d_train = [list(range(1, 43 + 1, 3))] * 5  # list of all distances from wall for each set
+sets_train = [1, 2, 3, 4, 5, 101]
+d_train = [list(range(1, 37 + 1, 3))] * 6  # list of all distances from wall for each set
 d_labels_train = d_train
 
 sets_val = []
@@ -36,7 +36,8 @@ N_cycles_to_use = 0
 
 inputs_ft = [0, 1, 2, 3, 4, 5]
 inputs_ang = []
-average_window = 8
+average_window = 10
+truncate_sequence = 1
 
 baseline_d = None  # set to None for no baseline
 
@@ -48,12 +49,12 @@ epochs_patience = -1  # for early stopping, set <0 to disable
 save_model = False  # save model file, save last model if model_checkpoint == False
 model_checkpoint = False  # doesn't do anything if save_model == False
 save_results = True
-save_folder = root_folder + 'plots/2021.12.22_plot_averaged/'  # include trailing slash
+save_folder = root_folder + 'plots/2022.01.13_plot_averaged/'  # include trailing slash
 # save_filename = ','.join(file_names_train) + '_' + ','.join(file_names_val) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 # save_filename = 'all_' + ','.join(str(temp) for temp in file_labels_val) + '_' + ','.join(file_names_val) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
-save_filename = 'Ro={}_A={}_Tr={}_Te={}_in={}_bl={}_Nc={}_Ns={}_2L{}_lr={}'.format(
-    Ro, A_star, 'all', ','.join(str(temp) for temp in sets_val),
-    ','.join(str(temp) for temp in inputs_ft), baseline_d, N_cycles_example, N_cycles_step, lstm_units, lr)
+save_filename = 'Ro={}_A={}_Tr={}_Te={}_in={}_bl={}_Nc={}_Ns={}_2L{}_lr={}_win={}_trun={}'.format(
+    Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_val),
+    ','.join(str(temp) for temp in inputs_ft), baseline_d, N_cycles_example, N_cycles_step, lstm_units, lr, average_window, truncate_sequence)
 
 # %% For 1 set at a time sets together
 # sets_train = [1, 2, 3, 4, 5]

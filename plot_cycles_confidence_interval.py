@@ -8,7 +8,7 @@ from pathlib import Path
 # %% For all sets together
 # %% design parameters
 root_folder = ''  # include trailing slash
-data_folder = root_folder + 'data/2021.07.28/butterworth_h0.04_l5_o10/'  # include trailing slash
+data_folder = root_folder + 'data/2021.07.28/raw/'  # include trailing slash
 Ro = 3.5
 A_star = 2
 
@@ -48,7 +48,7 @@ epochs_patience = -1  # for early stopping, set <0 to disable
 save_model = False  # save model file, save last model if model_checkpoint == False
 model_checkpoint = False  # doesn't do anything if save_model == False
 save_results = True
-save_folder = root_folder + 'plots/2021.10.11_new plot code/'  # include trailing slash
+save_folder = root_folder + 'plots/2022.01.13_plot all sets/'  # include trailing slash
 # save_filename = ','.join(file_names_train) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2l' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 # save_filename = 'all_' + ','.join(str(temp) for temp in file_labels_test) + '_' + ','.join(file_names_test) + '_' + ','.join(str(temp) for temp in inputs_ft) + '_' + str(N_cycles_example) + ',' + str(N_cycles_step) + '_2g' + str(lstm_units) + '_' + str(lr)  # + '_f5,10,60'
 save_filename = 'Ro={}_A={}_Tr={}_Te={}_in={}_bl={}_Nc={}_Ns={}_2L{}_lr={}'.format(
