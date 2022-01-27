@@ -6,7 +6,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 from tensorflow import keras
-from tensorflow.keras import layers
 from pandas import DataFrame
 
 
@@ -447,6 +446,8 @@ def model_evaluate_regression_tf(history,
 
 # Transformer stuff
 def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
+    from tensorflow.keras import layers
+
     # Normalization and Attention
     x = layers.LayerNormalization(epsilon=1e-6)(inputs)
     x = layers.MultiHeadAttention(
@@ -473,6 +474,8 @@ def transformer_return_model(
     dropout=0,
     mlp_dropout=0,
 ):
+    from tensorflow.keras import layers
+
     inputs = keras.Input(shape=input_shape)
     x = inputs
     for _ in range(num_transformer_blocks):
