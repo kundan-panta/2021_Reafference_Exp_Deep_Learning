@@ -207,7 +207,7 @@ def data_load(data_folder,
 
 
 def data_shorten_sequence(X_train, X_val, N_per_example,
-                         average_window, truncate_sequence):
+                          average_window, truncate_sequence):
     # %% reduce sequence length
     N_per_example = N_per_example // average_window  # update sequence length
 
