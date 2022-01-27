@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 from tensorflow import keras
+from tensorflow.keras import layers
 from pandas import DataFrame
 
 
@@ -205,8 +206,32 @@ def data_load(data_folder,
     return X_train, y_train, X_val, y_val
 
 
-def model_build_tf(lstm_units, epochs_patience, lr,
-                   save_model, model_checkpoint, save_folder, save_filename,
+def data_shorten_sequence(X_train, X_val, N_per_example,
+                         average_window, truncate_sequence):
+    # %% reduce sequence length
+    N_per_example = N_per_example // average_window  # update sequence length
+
+    # cut out last data points so the number of data points is divisible by average_window
+    X_train = X_train[:, 0:N_per_example * average_window, :]
+    X_val = X_val[:, 0:N_per_example * average_window, :]
+
+    # reshape the time series so
+    X_train = X_train.reshape(X_train.shape[0], -1, average_window, X_train.shape[2]).mean(axis=2)
+    X_val = X_val.reshape(X_val.shape[0], -1, average_window, X_val.shape[2]).mean(axis=2)
+
+    # %% truncate sequence further
+    N_per_example = round(N_per_example * truncate_sequence)
+    X_train = X_train[:, 0:N_per_example, :]
+    X_val = X_val[:, 0:N_per_example, :]
+
+    print('Data points in an example after averaging:', N_per_example)
+
+    return X_train, X_val, N_per_example
+
+
+def model_build_tf(lstm_layers, lstm_units, epochs_patience, lr,
+                   save_model, model_checkpoint,
+                   save_folder, save_filename,
                    N_per_example, N_inputs):
 
     # %%
@@ -418,3 +443,99 @@ def model_evaluate_regression_tf(history,
     plt.show()
 
     return df
+
+
+# Transformer stuff
+def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
+    # Normalization and Attention
+    x = layers.LayerNormalization(epsilon=1e-6)(inputs)
+    x = layers.MultiHeadAttention(
+        key_dim=head_size, num_heads=num_heads, dropout=dropout
+    )(x, x)
+    x = layers.Dropout(dropout)(x)
+    res = x + inputs
+
+    # Feed Forward Part
+    x = layers.LayerNormalization(epsilon=1e-6)(res)
+    x = layers.Conv1D(filters=ff_dim, kernel_size=1, activation="relu")(x)
+    x = layers.Dropout(dropout)(x)
+    x = layers.Conv1D(filters=inputs.shape[-1], kernel_size=1)(x)
+    return x + res
+
+
+def transformer_return_model(
+    input_shape,
+    head_size,
+    num_heads,
+    ff_dim,
+    num_transformer_blocks,
+    mlp_units,
+    dropout=0,
+    mlp_dropout=0,
+):
+    inputs = keras.Input(shape=input_shape)
+    x = inputs
+    for _ in range(num_transformer_blocks):
+        x = transformer_encoder(x, head_size, num_heads, ff_dim, dropout)
+
+    x = layers.GlobalAveragePooling1D(data_format="channels_last")(x)
+    for dim in mlp_units:
+        x = layers.Dense(dim, activation="relu")(x)
+        x = layers.Dropout(mlp_dropout)(x)
+    outputs = layers.Dense(1)(x)
+    return keras.Model(inputs, outputs)
+
+
+def model_build_transformer_tf(lstm_layers, lstm_units, epochs_patience, lr,
+                               save_model, model_checkpoint, save_folder, save_filename,
+                               N_per_example, N_inputs):
+    input_shape = (N_per_example, N_inputs)
+
+    model = transformer_return_model(
+        input_shape,
+        head_size=4,
+        num_heads=4,
+        ff_dim=4,
+        num_transformer_blocks=lstm_layers,
+        mlp_units=[lstm_units],
+        mlp_dropout=0,
+        dropout=0,
+    )
+
+    model.compile(
+        loss=keras.losses.MeanSquaredError(),
+        optimizer="adam",
+        # metrics=["accuracy"],
+        # steps_per_execution=100
+    )
+    keras.backend.set_value(model.optimizer.learning_rate, lr)
+    print("Learning rate:", model.optimizer.learning_rate.numpy())
+
+    model.summary()
+
+    # callbacks
+    callbacks_list = []
+
+    if epochs_patience > -1:
+        early_stopping_monitor = keras.callbacks.EarlyStopping(
+            monitor='val_loss',
+            mode='auto',
+            min_delta=0,
+            patience=epochs_patience,
+            baseline=None,
+            restore_best_weights=True,
+            verbose=0
+        )
+        callbacks_list.append(early_stopping_monitor)
+
+    if save_model and model_checkpoint:
+        model_checkpoint_monitor = keras.callbacks.ModelCheckpoint(
+            save_folder + save_filename,
+            monitor='val_loss',
+            mode='auto',
+            save_best_only=True,
+            verbose=0
+        )
+        callbacks_list.append(model_checkpoint_monitor)
+
+    return model, callbacks_list
