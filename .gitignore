@@ -15,3 +15,4 @@ plot_cycles.py
 plot_regression.py
 .idea
 *desktop.ini
+*.svg
