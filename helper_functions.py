@@ -283,7 +283,8 @@ def model_build_tf(lstm_layers, lstm_units, epochs_patience, lr,
             monitor='val_loss',
             mode='auto',
             save_best_only=True,
-            verbose=0
+            verbose=0,
+            save_freq="epoch"
         )
         callbacks_list.append(model_checkpoint_monitor)
 
@@ -300,8 +301,8 @@ def model_fit_tf(model, callbacks_list, epochs_number,
         verbose=0,
         callbacks=callbacks_list,
         shuffle=True,
-        workers=1,
-        use_multiprocessing=False
+        workers=4,
+        use_multiprocessing=True
     )
 
     return model, history
