@@ -26,20 +26,25 @@ def divide_file_names(sets_train, d_train, d_train_labels,
     # get the file names and labels
     file_names_train = []
     file_labels_train = []
+    file_sets_train = []
     for s_index, s in enumerate(sets_train):
         for d_index, d in enumerate(d_train[s_index]):
             file_names_train.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, d))
             file_labels_train.append(d_train_labels[s_index][d_index])
+            file_sets_train.append(s)
 
     file_names_val = []
     file_labels_val = []
+    file_sets_val = []
     for s_index, s in enumerate(sets_val):
         for d_index, d in enumerate(d_val[s_index]):
             file_names_val.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, d))
             file_labels_val.append(d_val_labels[s_index][d_index])
+            file_sets_val.append(s)
 
     file_names = file_names_train + file_names_val
     file_labels = file_labels_train + file_labels_val
+    file_sets = file_sets_train + file_sets_val
 
     # baseline file names for each set
     baseline_file_names_train = []
@@ -58,9 +63,9 @@ def divide_file_names(sets_train, d_train, d_train_labels,
         baseline_file_names = baseline_file_names_train + baseline_file_names_val
         assert len(baseline_file_names) == len(file_names)
 
-    return file_names, file_labels,\
-        file_names_train, file_labels_train,\
-        file_names_val, file_labels_val,\
+    return file_names, file_labels, file_sets,\
+        file_names_train, file_labels_train, file_sets_train,\
+        file_names_val, file_labels_val, file_sets_val,\
         baseline_file_names_train, baseline_file_names_val, baseline_file_names
 
 
@@ -229,6 +234,7 @@ def data_shorten_sequence(X_train, X_val, N_per_example,
 
 
 def model_build_tf(lstm_layers, lstm_units, epochs_patience, lr,
+                   dropout, recurrent_dropout,
                    save_model, model_checkpoint,
                    save_folder, save_filename,
                    N_per_example, N_inputs):
@@ -238,15 +244,17 @@ def model_build_tf(lstm_layers, lstm_units, epochs_patience, lr,
         [
             # keras.layers.Conv1D(conv_filters, conv_kernel_size, activation='relu', input_shape=(N_per_example, N_inputs)),
             # keras.layers.Conv1D(N_inputs, 3, activation='relu'),
-            keras.layers.LSTM(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs)),
-            keras.layers.LSTM(lstm_units),
+            keras.layers.LSTM(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs), recurrent_dropout=recurrent_dropout),
+            keras.layers.LSTM(lstm_units, recurrent_dropout=recurrent_dropout, dropout=dropout),
             # keras.layers.GRU(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs)),
             # keras.layers.GRU(lstm_units),
             # keras.layers.RNN(keras.layers.LSTMCell(lstm_units), return_sequences=True, input_shape=(N_per_example, N_inputs)),
             # keras.layers.RNN(keras.layers.LSTMCell(lstm_units)),
             # keras.layers.SimpleRNN(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs), unroll=True),
             # keras.layers.SimpleRNN(lstm_units),
+            keras.layers.Dropout(dropout),
             keras.layers.Dense(lstm_units, activation='elu'),
+            keras.layers.Dropout(dropout),
             keras.layers.Dense(1)  # , activation='relu')  # , activation='exponential')
         ]
     )
@@ -338,17 +346,23 @@ def model_evaluate_regression_tf(history,
     d_all_labels = np.unique(file_labels)
     mu_train = np.zeros_like(d_all_labels, dtype=float)
     std_train = np.zeros_like(d_all_labels, dtype=float)
+    loss_train = np.zeros_like(d_all_labels, dtype=float)
     mu_val = np.zeros_like(d_all_labels, dtype=float)
     std_val = np.zeros_like(d_all_labels, dtype=float)
+    loss_val = np.zeros_like(d_all_labels, dtype=float)
 
     for d_index, d in enumerate(d_all_labels):
         yhat_train_d = yhat_train[y_train == d]
         mu_train[d_index] = np.mean(yhat_train_d)
         std_train[d_index] = np.std(yhat_train_d)
+        loss_train[d_index] = keras.losses.log_cosh(y_train[y_train == d], yhat_train_d).numpy()
 
         yhat_val_d = yhat_val[y_val == d]
         mu_val[d_index] = np.mean(yhat_val_d)
         std_val[d_index] = np.std(yhat_val_d)
+        loss_val[d_index] = keras.losses.log_cosh(y_val[y_val == d], yhat_val_d).numpy()
+
+    loss_val_total = keras.losses.log_cosh(y_val, yhat_val).numpy()
 
     # %% print model predictions
     # print("Predictions (Test):")
@@ -366,10 +380,12 @@ def model_evaluate_regression_tf(history,
     df = DataFrame({"d": d_all_labels,
                     "mu_val": mu_val,
                     "std_val": std_val,
+                    "loss_val": loss_val,
                     # "ci_down_val": mu_val - 2 * std_val,
                     # "ci_up_val": mu_val + 2 * std_val,
                     "mu_train": mu_train,
                     "std_train": std_train,
+                    "loss_train": loss_train,
                     # "ci_down_train": mu_train - 2 * std_train,
                     # "ci_up_train": mu_train + 2 * std_train
                     })
@@ -390,7 +406,7 @@ def model_evaluate_regression_tf(history,
     plt.plot([np.min(d_all_labels), np.max(d_all_labels)], [np.min(d_all_labels), np.max(d_all_labels)], 'k-', label='Actual')
 
     plt.xlabel('True Distance (cm)')
-    plt.ylabel('Distance to Wall (cm)')
+    plt.ylabel('Predicted Distance (cm)')
     plt.title('Train')
     plt.legend()
 
@@ -410,7 +426,7 @@ def model_evaluate_regression_tf(history,
     plt.plot([np.min(d_all_labels), np.max(d_all_labels)], [np.min(d_all_labels), np.max(d_all_labels)], 'k-', label='Actual')
 
     plt.xlabel('True Distance (cm)')
-    plt.ylabel('Distance to Wall (cm)')
+    plt.ylabel('Predicted Distance (cm)')
     plt.title('Val')
     plt.legend()
 
@@ -420,14 +436,26 @@ def model_evaluate_regression_tf(history,
     plt.xlim(0, 50)
     plt.ylim(0, 50)
 
-    # %%
+    # loss over distance
+    fig_loss_dist = plt.figure(figsize=(4, 4))
+
+    plt.plot(d_all_labels, loss_val, 'bo--', label='Train')
+    plt.plot(d_all_labels, loss_val, 'rx:', label='Test')
+
+    plt.xlabel('True Distance (cm)')
+    plt.ylabel('Loss')
+    plt.legend()
+
+    plt.xlim(0, 50)
+
+    # loss over time
     fig_loss = plt.figure()
     plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])
-    plt.title('model loss')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'val'], loc='best')
+    plt.title('Model Loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Val'], loc='best')
 
     # %%
     if save_results:
@@ -435,14 +463,80 @@ def model_evaluate_regression_tf(history,
         np.savetxt(save_folder + save_filename + '/yhat_val.txt', yhat_val)
         np.savetxt(save_folder + save_filename + '/y_train.txt', y_train)
         np.savetxt(save_folder + save_filename + '/yhat_train.txt', yhat_train)
+        np.savetxt(save_folder + save_filename + '/loss_val_total.txt', loss_val_total)
         df.round(1).to_csv(save_folder + save_filename + '/yhat_stats.csv', index=False)
         fig_yhat_train.savefig(save_folder + save_filename + '/plot_yhat_train.svg')
         fig_yhat_val.savefig(save_folder + save_filename + '.svg')
+        fig_loss_dist.savefig(save_folder + save_filename + '/plot_loss_dist.svg')
         fig_loss.savefig(save_folder + save_filename + '/plot_training.svg')
 
     plt.show()
 
-    return df
+    return df, loss_val_total
+
+
+def model_k_fold_tf(X_train, y_train,
+                    lstm_layers, lstm_units, lr, epochs_number, epochs_patience,
+                    dropout, recurrent_dropout,
+                    k_fold_splits, shuffle_seed,
+                    save_model, model_checkpoint, save_results,
+                    save_folder, save_filename,
+                    N_per_example, N_inputs, file_labels
+                    ):
+    from sklearn.model_selection import KFold
+
+    kf = KFold(n_splits=k_fold_splits, shuffle=False, random_state=shuffle_seed)
+
+    VALIDATION_LOSS = []
+    histories = []
+    fold_var = 0
+
+    for train_index, val_index in kf.split(X_train, y_train):
+        # get training and validation data
+        X_train_fold = X_train[train_index]
+        y_train_fold = y_train[train_index]
+        X_val_fold = X_train[val_index]
+        y_val_fold = y_train[val_index]
+
+        # build the model
+        save_filename_fold = save_filename + '/fold={}'.format(fold_var)
+        model, callbacks_list = \
+            model_build_tf(lstm_layers, lstm_units, epochs_patience, lr,
+                           dropout, recurrent_dropout,
+                           save_model, model_checkpoint,
+                           save_folder, save_filename_fold,
+                           N_per_example, N_inputs)
+
+        # FIT THE MODEL
+        model, history = \
+            model_fit_tf(model, callbacks_list, epochs_number,
+                         X_train, y_train, X_val_fold, y_val_fold)
+        histories.append(history)
+
+        # get validation performance for model selection
+        yhat_train_fold, yhat_val_fold = \
+            model_predict_tf(model, save_model, model_checkpoint, save_folder, save_filename_fold,
+                             X_train_fold, X_val_fold)
+
+        df_fold, loss_val_total_fold = \
+            model_evaluate_regression_tf(history,
+                                         y_train_fold, y_val_fold, yhat_train_fold, yhat_val_fold,
+                                         save_results, save_folder, save_filename_fold,
+                                         file_labels)
+
+        VALIDATION_LOSS.append(loss_val_total_fold)
+
+        keras.backend.clear_session()
+
+        fold_var += 1
+
+    # best model
+    fold_best = np.argmin(VALIDATION_LOSS)
+    save_filename_fold = save_filename + '/fold={}'.format(fold_best)
+    np.savetxt(save_folder + save_filename + '/fold_best.txt', fold_best)
+    model = keras.models.load_model(save_folder + save_filename_fold)
+
+    return model, histories[fold_best]
 
 
 # Transformer stuff
