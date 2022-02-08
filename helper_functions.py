@@ -142,7 +142,8 @@ def data_load(data_folder,
               N_files_all, N_files_train,
               N_examples, N_examples_train, N_examples_val,
               N_per_example, N_per_step,
-              N_inputs, N_inputs_ft, N_inputs_ang):
+              N_inputs, N_inputs_ft, N_inputs_ang,
+              data_min, data_max):
 
     # %%
     data = np.zeros((N_files_all * N_examples * N_per_example, N_inputs))  # all input data
@@ -169,8 +170,9 @@ def data_load(data_folder,
             # last row of last file, to make sure all the data I needed was at the right place
 
     # %%
-    data_min = np.min(data, axis=0)
-    data_max = np.max(data, axis=0)
+    if (data_min is None) or (data_max is None):
+        data_min = np.min(data, axis=0)
+        data_max = np.max(data, axis=0)
 
     # save the min and max values used for normalization of the data
     if save_model or save_results:
@@ -207,11 +209,10 @@ def data_load(data_folder,
     X_val = data[N_files_train * N_examples_train:]
     y_val = labels[N_files_train * N_examples_train:]
 
-    return X_train, y_train, X_val, y_val
+    return X_train, y_train, X_val, y_val, data_min, data_max
 
 
-def data_shorten_sequence(X_train, X_val, N_per_example,
-                          average_window, truncate_sequence):
+def data_shorten_sequence(X_train, X_val, N_per_example, average_window):
     # %% reduce sequence length
     N_per_example = N_per_example // average_window  # update sequence length
 
@@ -219,45 +220,76 @@ def data_shorten_sequence(X_train, X_val, N_per_example,
     X_train = X_train[:, 0:N_per_example * average_window, :]
     X_val = X_val[:, 0:N_per_example * average_window, :]
 
-    # reshape the time series so
+    # reshape the time series so mean can be taken for consecutive average_window time steps
     X_train = X_train.reshape(X_train.shape[0], -1, average_window, X_train.shape[2]).mean(axis=2)
-    X_val = X_val.reshape(X_val.shape[0], -1, average_window, X_val.shape[2]).mean(axis=2)
-
-    # %% truncate sequence further
-    N_per_example = round(N_per_example * truncate_sequence)
-    X_train = X_train[:, 0:N_per_example, :]
-    X_val = X_val[:, 0:N_per_example, :]
+    if X_val.size > 0:
+        X_val = X_val.reshape(X_val.shape[0], -1, average_window, X_val.shape[2]).mean(axis=2)
 
     print('Data points in an example after averaging:', N_per_example)
 
     return X_train, X_val, N_per_example
 
 
-def model_build_tf(lstm_layers, lstm_units, epochs_patience, lr,
-                   dropout, recurrent_dropout,
+def model_lstm_tf(lstm_layers, dense_hidden_layers, N_units,
+                  dropout, recurrent_dropout, N_per_example, N_inputs):
+
+    model = keras.models.Sequential()  # initialize
+
+    # LSTM layers
+    if lstm_layers == 1:
+        model.add(keras.layers.LSTM(N_units, input_shape=(N_per_example, N_inputs), recurrent_dropout=recurrent_dropout))
+    else:
+        # first LSTM layer
+        model.add(keras.layers.LSTM(N_units, input_shape=(N_per_example, N_inputs), recurrent_dropout=recurrent_dropout, return_sequences=True))
+        # middle LSTM layers
+        for _ in range(lstm_layers - 2):
+            model.add(keras.layers.LSTM(N_units, recurrent_dropout=recurrent_dropout, dropout=dropout, return_sequences=True))
+        # final LSTM layer
+        model.add(keras.layers.LSTM(N_units, recurrent_dropout=recurrent_dropout, dropout=dropout))
+
+    # Dense hidden layers
+    for _ in range(dense_hidden_layers):
+        if dropout > 0:
+            model.add(keras.layers.Dropout(dropout))
+        model.add(keras.layers.Dense(N_units, activation='elu'))
+
+    # Output layer
+    if dropout > 0:
+        model.add(keras.layers.Dropout(dropout))
+    model.add(keras.layers.Dense(1))
+
+    # model = keras.models.Sequential(
+    #     [
+    #         # keras.layers.Conv1D(conv_filters, conv_kernel_size, activation='relu', input_shape=(N_per_example, N_inputs)),
+    #         # keras.layers.Conv1D(N_inputs, 3, activation='relu'),
+    #         keras.layers.LSTM(N_units, return_sequences=True, input_shape=(N_per_example, N_inputs), recurrent_dropout=recurrent_dropout),
+    #         keras.layers.LSTM(N_units, recurrent_dropout=recurrent_dropout, dropout=dropout),
+    #         # keras.layers.GRU(N_units, return_sequences=True, input_shape=(N_per_example, N_inputs)),
+    #         # keras.layers.GRU(N_units),
+    #         # keras.layers.RNN(keras.layers.LSTMCell(N_units), return_sequences=True, input_shape=(N_per_example, N_inputs)),
+    #         # keras.layers.RNN(keras.layers.LSTMCell(N_units)),
+    #         # keras.layers.SimpleRNN(N_units, return_sequences=True, input_shape=(N_per_example, N_inputs), unroll=True),
+    #         # keras.layers.SimpleRNN(N_units),
+    #         keras.layers.Dropout(dropout),
+    #         keras.layers.Dense(N_units, activation='elu'),
+    #         keras.layers.Dropout(dropout),
+    #         keras.layers.Dense(1)  # , activation='relu')  # , activation='exponential')
+    #     ]
+    # )
+
+    return model
+
+
+def model_build_tf(lstm_layers, dense_hidden_layers, N_units,
+                   epochs_patience, lr, dropout, recurrent_dropout,
                    save_model, model_checkpoint,
                    save_folder, save_filename,
                    N_per_example, N_inputs):
-
     # %%
-    model = keras.models.Sequential(
-        [
-            # keras.layers.Conv1D(conv_filters, conv_kernel_size, activation='relu', input_shape=(N_per_example, N_inputs)),
-            # keras.layers.Conv1D(N_inputs, 3, activation='relu'),
-            keras.layers.LSTM(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs), recurrent_dropout=recurrent_dropout),
-            keras.layers.LSTM(lstm_units, recurrent_dropout=recurrent_dropout, dropout=dropout),
-            # keras.layers.GRU(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs)),
-            # keras.layers.GRU(lstm_units),
-            # keras.layers.RNN(keras.layers.LSTMCell(lstm_units), return_sequences=True, input_shape=(N_per_example, N_inputs)),
-            # keras.layers.RNN(keras.layers.LSTMCell(lstm_units)),
-            # keras.layers.SimpleRNN(lstm_units, return_sequences=True, input_shape=(N_per_example, N_inputs), unroll=True),
-            # keras.layers.SimpleRNN(lstm_units),
-            keras.layers.Dropout(dropout),
-            keras.layers.Dense(lstm_units, activation='elu'),
-            keras.layers.Dropout(dropout),
-            keras.layers.Dense(1)  # , activation='relu')  # , activation='exponential')
-        ]
-    )
+    keras.backend.clear_session()
+
+    model = model_lstm_tf(lstm_layers, dense_hidden_layers, N_units,
+                          dropout, recurrent_dropout, N_per_example, N_inputs)
 
     model.compile(
         loss=keras.losses.LogCosh(),
@@ -268,13 +300,22 @@ def model_build_tf(lstm_layers, lstm_units, epochs_patience, lr,
     keras.backend.set_value(model.optimizer.learning_rate, lr)
     print("Learning rate:", model.optimizer.learning_rate.numpy())
 
-    model.summary()
+    def print_summary(info):
+        # function to print and save model info
+        if save_model:
+            Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
+            f = open(save_folder + save_filename + '/model_info.txt', 'a')
+            f.write(info)
+            f.write('\n')
+            f.close()
+        print(info)
+    model.summary(print_fn=print_summary)
 
     # callbacks
     callbacks_list = []
 
     if epochs_patience > -1:
-        early_stopping_monitor = keras.callbacks.EarlyStopping(
+        early_stopping_monitor = early_stopping_custom_tf(
             monitor='val_loss',
             mode='auto',
             min_delta=0,
@@ -338,7 +379,7 @@ def model_predict_tf(model, save_model, model_checkpoint, save_folder, save_file
 
 def model_evaluate_regression_tf(history,
                                  y_train, y_val, yhat_train, yhat_val,
-                                 save_results, save_folder, save_filename,
+                                 save_results, save_folder, save_filename, test_or_val,
                                  file_labels):
 
     # %% evaluate performance
@@ -363,6 +404,7 @@ def model_evaluate_regression_tf(history,
         loss_val[d_index] = keras.losses.log_cosh(y_val[y_val == d], yhat_val_d).numpy()
 
     loss_val_total = keras.losses.log_cosh(y_val, yhat_val).numpy()
+    print("Total", test_or_val, "loss:", loss_val_total)
 
     # %% print model predictions
     # print("Predictions (Test):")
@@ -378,9 +420,9 @@ def model_evaluate_regression_tf(history,
 
     # for printing
     df = DataFrame({"d": d_all_labels,
-                    "mu_val": mu_val,
-                    "std_val": std_val,
-                    "loss_val": loss_val,
+                    "mu_{}".format(test_or_val): mu_val,
+                    "std_{}".format(test_or_val): std_val,
+                    "loss_{}".format(test_or_val): loss_val,
                     # "ci_down_val": mu_val - 2 * std_val,
                     # "ci_up_val": mu_val + 2 * std_val,
                     "mu_train": mu_train,
@@ -427,7 +469,7 @@ def model_evaluate_regression_tf(history,
 
     plt.xlabel('True Distance (cm)')
     plt.ylabel('Predicted Distance (cm)')
-    plt.title('Val')
+    plt.title(test_or_val.title())
     plt.legend()
 
     plt.axhline(0, color='silver')  # x = 0
@@ -439,8 +481,8 @@ def model_evaluate_regression_tf(history,
     # loss over distance
     fig_loss_dist = plt.figure(figsize=(4, 4))
 
-    plt.plot(d_all_labels, loss_val, 'bo--', label='Train')
-    plt.plot(d_all_labels, loss_val, 'rx:', label='Test')
+    plt.plot(d_all_labels, loss_train, 'bo--', label='Train')
+    plt.plot(d_all_labels, loss_val, 'rx:', label=test_or_val.title())
 
     plt.xlabel('True Distance (cm)')
     plt.ylabel('Loss')
@@ -449,46 +491,59 @@ def model_evaluate_regression_tf(history,
     plt.xlim(0, 50)
 
     # loss over time
-    fig_loss = plt.figure()
+    fig_loss_training = plt.figure()
     plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])
     plt.title('Model Loss')
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
-    plt.legend(['Train', 'Val'], loc='best')
+    plt.legend(['Train', test_or_val.title()], loc='best')
 
     # %%
     if save_results:
-        np.savetxt(save_folder + save_filename + '/y_val.txt', y_val)
-        np.savetxt(save_folder + save_filename + '/yhat_val.txt', yhat_val)
+        np.savetxt(save_folder + save_filename + '/y_{}.txt'.format(test_or_val), y_val)
+        np.savetxt(save_folder + save_filename + '/yhat_{}.txt'.format(test_or_val), yhat_val)
         np.savetxt(save_folder + save_filename + '/y_train.txt', y_train)
         np.savetxt(save_folder + save_filename + '/yhat_train.txt', yhat_train)
-        np.savetxt(save_folder + save_filename + '/loss_val_total.txt', loss_val_total)
-        df.round(1).to_csv(save_folder + save_filename + '/yhat_stats.csv', index=False)
+        f = open(save_folder + save_filename + '/loss_{}_total.txt'.format(test_or_val), 'w')
+        f.write(str(loss_val_total))
+        f.close()
+        df.round(1).to_csv(save_folder + save_filename + '/yhat_stats_{}.csv'.format(test_or_val), index=False)
         fig_yhat_train.savefig(save_folder + save_filename + '/plot_yhat_train.svg')
-        fig_yhat_val.savefig(save_folder + save_filename + '.svg')
-        fig_loss_dist.savefig(save_folder + save_filename + '/plot_loss_dist.svg')
-        fig_loss.savefig(save_folder + save_filename + '/plot_training.svg')
+        if test_or_val == 'test':
+            fig_yhat_val.savefig(save_folder + save_filename + '.svg')
+        else:
+            fig_yhat_val.savefig(save_folder + save_filename + '/plot_yhat_val.svg')
+        fig_loss_dist.savefig(save_folder + save_filename + '/plot_loss_{}_dist.svg'.format(test_or_val))
+        if test_or_val == 'val':
+            fig_loss_training.savefig(save_folder + save_filename + '/plot_training.svg')
 
-    plt.show()
+    # plt.show()
+    plt.close(fig_yhat_train)
+    plt.close(fig_yhat_val)
+    plt.close(fig_loss_dist)
+    plt.close(fig_loss_training)
 
     return df, loss_val_total
 
 
 def model_k_fold_tf(X_train, y_train,
-                    lstm_layers, lstm_units, lr, epochs_number, epochs_patience,
-                    dropout, recurrent_dropout,
+                    lstm_layers, dense_hidden_layers, N_units,
+                    lr, epochs_number, epochs_patience, dropout, recurrent_dropout,
                     k_fold_splits, shuffle_seed,
                     save_model, model_checkpoint, save_results,
                     save_folder, save_filename,
                     N_per_example, N_inputs, file_labels
                     ):
+    # https://medium.com/the-owl/k-fold-cross-validation-in-keras-3ec4a3a00538
+
     from sklearn.model_selection import KFold
 
     kf = KFold(n_splits=k_fold_splits, shuffle=False, random_state=shuffle_seed)
 
-    VALIDATION_LOSS = []
-    histories = []
+    VALIDATION_LOSS = [np.inf] * k_fold_splits
+    models = [0] * k_fold_splits
+    histories = [0] * k_fold_splits
     fold_var = 0
 
     for train_index, val_index in kf.split(X_train, y_train):
@@ -500,43 +555,280 @@ def model_k_fold_tf(X_train, y_train,
 
         # build the model
         save_filename_fold = save_filename + '/fold={}'.format(fold_var)
-        model, callbacks_list = \
-            model_build_tf(lstm_layers, lstm_units, epochs_patience, lr,
-                           dropout, recurrent_dropout,
+        models[fold_var], callbacks_list = \
+            model_build_tf(lstm_layers, dense_hidden_layers, N_units,
+                           epochs_patience, lr, dropout, recurrent_dropout,
                            save_model, model_checkpoint,
                            save_folder, save_filename_fold,
                            N_per_example, N_inputs)
 
         # FIT THE MODEL
-        model, history = \
-            model_fit_tf(model, callbacks_list, epochs_number,
+        models[fold_var], histories[fold_var] = \
+            model_fit_tf(models[fold_var], callbacks_list, epochs_number,
                          X_train, y_train, X_val_fold, y_val_fold)
-        histories.append(history)
 
         # get validation performance for model selection
         yhat_train_fold, yhat_val_fold = \
-            model_predict_tf(model, save_model, model_checkpoint, save_folder, save_filename_fold,
+            model_predict_tf(models[fold_var], save_model, model_checkpoint, save_folder, save_filename_fold,
                              X_train_fold, X_val_fold)
 
         df_fold, loss_val_total_fold = \
-            model_evaluate_regression_tf(history,
+            model_evaluate_regression_tf(histories[fold_var],
                                          y_train_fold, y_val_fold, yhat_train_fold, yhat_val_fold,
                                          save_results, save_folder, save_filename_fold,
                                          file_labels)
 
-        VALIDATION_LOSS.append(loss_val_total_fold)
+        VALIDATION_LOSS[fold_var] = loss_val_total_fold
 
-        keras.backend.clear_session()
+        # keras.backend.clear_session()
 
         fold_var += 1
 
     # best model
     fold_best = np.argmin(VALIDATION_LOSS)
-    save_filename_fold = save_filename + '/fold={}'.format(fold_best)
-    np.savetxt(save_folder + save_filename + '/fold_best.txt', fold_best)
-    model = keras.models.load_model(save_folder + save_filename_fold)
+    # print(VALIDATION_LOSS)
+    # print(models)
 
-    return model, histories[fold_best]
+    if save_model:
+        f = open(save_folder + save_filename + '/fold_best.txt', 'w')
+        f.write(str(fold_best))
+        f.close()
+        # save_filename_fold = save_filename + '/fold={}'.format(fold_best)
+        # model = keras.models.load_model(save_folder + save_filename_fold)
+
+    return models[fold_best], histories[fold_best]
+
+
+def early_stopping_custom_tf(monitor='val_loss',
+                             mode='auto',
+                             min_delta=0,
+                             patience=0,
+                             baseline=None,
+                             restore_best_weights=True,
+                             verbose=0):
+    # Modified to restore best weights at the end of training, even if early stopping was not triggered
+    # Base code from https://github.com/keras-team/keras/blob/v2.7.0/keras/callbacks.py
+    # Latest commit 9088756 on Sep 17, 2021
+
+    # import numpy as np
+    from tensorflow.keras.callbacks import Callback
+    from tensorflow.python.platform import tf_logging as logging
+
+    class EarlyStoppingCustom(Callback):
+        """Stop training when a monitored metric has stopped improving.
+
+        Assuming the goal of a training is to minimize the loss. With this, the
+        metric to be monitored would be `'loss'`, and mode would be `'min'`. A
+        `model.fit()` training loop will check at end of every epoch whether
+        the loss is no longer decreasing, considering the `min_delta` and
+        `patience` if applicable. Once it's found no longer decreasing,
+        `model.stop_training` is marked True and the training terminates.
+
+        The quantity to be monitored needs to be available in `logs` dict.
+        To make it so, pass the loss or metrics at `model.compile()`.
+
+        Args:
+        monitor: Quantity to be monitored.
+        min_delta: Minimum change in the monitored quantity
+            to qualify as an improvement, i.e. an absolute
+            change of less than min_delta, will count as no
+            improvement.
+        patience: Number of epochs with no improvement
+            after which training will be stopped.
+        verbose: verbosity mode.
+        mode: One of `{"auto", "min", "max"}`. In `min` mode,
+            training will stop when the quantity
+            monitored has stopped decreasing; in `"max"`
+            mode it will stop when the quantity
+            monitored has stopped increasing; in `"auto"`
+            mode, the direction is automatically inferred
+            from the name of the monitored quantity.
+        baseline: Baseline value for the monitored quantity.
+            Training will stop if the model doesn't show improvement over the
+            baseline.
+        restore_best_weights: Whether to restore model weights from
+            the epoch with the best value of the monitored quantity.
+            If False, the model weights obtained at the last step of
+            training are used. An epoch will be restored regardless
+            of the performance relative to the `baseline`. If no epoch
+            improves on `baseline`, training will run for `patience`
+            epochs and restore weights from the best epoch in that set.
+
+        Example:
+
+        >>> callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3)
+        >>> # This callback will stop the training when there is no improvement in
+        >>> # the loss for three consecutive epochs.
+        >>> model = tf.keras.models.Sequential([tf.keras.layers.Dense(10)])
+        >>> model.compile(tf.keras.optimizers.SGD(), loss='mse')
+        >>> history = model.fit(np.arange(100).reshape(5, 20), np.zeros(5),
+        ...                     epochs=10, batch_size=1, callbacks=[callback],
+        ...                     verbose=0)
+        >>> len(history.history['loss'])  # Only 4 epochs are run.
+        4
+        """
+
+        def __init__(self,
+                     monitor='val_loss',
+                     min_delta=0,
+                     patience=0,
+                     verbose=0,
+                     mode='auto',
+                     baseline=None,
+                     restore_best_weights=False):
+            super(EarlyStoppingCustom, self).__init__()
+
+            self.monitor = monitor
+            self.patience = patience
+            self.verbose = verbose
+            self.baseline = baseline
+            self.min_delta = abs(min_delta)
+            self.wait = 0
+            self.stopped_epoch = 0
+            self.restore_best_weights = restore_best_weights
+            self.best_weights = None
+
+            if mode not in ['auto', 'min', 'max']:
+                logging.warning('EarlyStopping mode %s is unknown, '
+                                'fallback to auto mode.', mode)
+                mode = 'auto'
+
+            if mode == 'min':
+                self.monitor_op = np.less
+            elif mode == 'max':
+                self.monitor_op = np.greater
+            else:
+                if (self.monitor.endswith('acc') or self.monitor.endswith('accuracy') or
+                        self.monitor.endswith('auc')):
+                    self.monitor_op = np.greater
+                else:
+                    self.monitor_op = np.less
+
+            if self.monitor_op == np.greater:
+                self.min_delta *= 1
+            else:
+                self.min_delta *= -1
+
+        def on_train_begin(self, logs=None):
+            # Allow instances to be re-used
+            self.wait = 0
+            self.stopped_epoch = 0
+            self.best = np.Inf if self.monitor_op == np.less else -np.Inf
+            self.best_weights = None
+            self.best_epoch = 0
+
+        def on_epoch_end(self, epoch, logs=None):
+            current = self.get_monitor_value(logs)
+            if current is None:
+                return
+            if self.restore_best_weights and self.best_weights is None:
+                # Restore the weights after first epoch if no progress is ever made.
+                self.best_weights = self.model.get_weights()
+
+            self.wait += 1
+            if self._is_improvement(current, self.best):
+                self.best = current
+                self.best_epoch = epoch
+                if self.restore_best_weights:
+                    self.best_weights = self.model.get_weights()
+                # Only restart wait if we beat both the baseline and our previous best.
+                if self.baseline is None or self._is_improvement(current, self.baseline):
+                    self.wait = 0
+
+            # Only check after the first epoch.
+            if self.wait >= self.patience and epoch > 0:
+                self.stopped_epoch = epoch
+                self.model.stop_training = True
+                # if self.restore_best_weights and self.best_weights is not None:
+                #     if self.verbose > 0:
+                #         print('Restoring model weights from the end of the best epoch: '
+                #               f'{self.best_epoch + 1}.')
+                #     self.model.set_weights(self.best_weights)
+
+        def on_train_end(self, logs=None):
+            if self.stopped_epoch > 0 and self.verbose > 0:
+                print('Epoch %05d: early stopping' % (self.stopped_epoch + 1))
+
+            if self.restore_best_weights and self.best_weights is not None:
+                # if self.verbose > 0:
+                print('Restoring model weights from the end of the best epoch: '
+                      f'{self.best_epoch + 1}.')
+                self.model.set_weights(self.best_weights)
+
+        def get_monitor_value(self, logs):
+            logs = logs or {}
+            monitor_value = logs.get(self.monitor)
+            if monitor_value is None:
+                logging.warning('Early stopping conditioned on metric `%s` '
+                                'which is not available. Available metrics are: %s',
+                                self.monitor, ','.join(list(logs.keys())))
+            return monitor_value
+
+        def _is_improvement(self, monitor_value, reference_value):
+            return self.monitor_op(monitor_value - self.min_delta, reference_value)
+
+    return EarlyStoppingCustom(
+        monitor=monitor,
+        mode=mode,
+        min_delta=min_delta,
+        patience=patience,
+        baseline=baseline,
+        restore_best_weights=restore_best_weights,
+        verbose=verbose
+    )
+
+
+def data_full_process(sets_train, d_train, d_train_labels,
+                      sets_val, d_val, d_val_labels,
+                      baseline_d,
+                      Ro, A_star,
+                      inputs_ft, inputs_ang,
+                      data_min, data_max,
+                      N_cycles_example, N_cycles_step, N_cycles_to_use, average_window,
+                      train_val_split, separate_val_files, shuffle_examples, shuffle_seed,
+                      data_folder, save_model, save_results, save_folder, save_filename):
+
+    # %% get the file names to load data from
+    file_names, file_labels, file_sets,\
+        file_names_train, file_labels_train, file_sets_train,\
+        file_names_val, file_labels_val, file_sets_val,\
+        baseline_file_names_train, baseline_file_names_val, baseline_file_names = \
+        divide_file_names(sets_train, d_train, d_train_labels,
+                          sets_val, d_val, d_val_labels,
+                          baseline_d,
+                          Ro, A_star)
+
+    # %% get info about the data
+    N_files_all, N_files_train, N_files_val,\
+        N_examples, N_examples_train, N_examples_val,\
+        N_per_example, N_per_step, N_total,\
+        N_inputs, N_inputs_ft, N_inputs_ang = \
+        data_get_info(data_folder,
+                      file_names, file_labels,
+                      file_names_train, file_names_val,
+                      train_val_split, separate_val_files,
+                      N_cycles_example, N_cycles_step, N_cycles_to_use,
+                      inputs_ft, inputs_ang)
+
+    # %% get training and validation datasets
+    X_train, y_train, X_val, y_val, data_min, data_max = \
+        data_load(data_folder,
+                  file_names, file_labels,
+                  baseline_d, baseline_file_names,
+                  inputs_ft, inputs_ang,
+                  separate_val_files, shuffle_examples, shuffle_seed,
+                  save_model, save_results, save_folder, save_filename,
+                  N_files_all, N_files_train,
+                  N_examples, N_examples_train, N_examples_val,
+                  N_per_example, N_per_step,
+                  N_inputs, N_inputs_ft, N_inputs_ang,
+                  data_min, data_max)
+
+    # %% reduce sequence length
+    X_train, X_val, N_per_example = \
+        data_shorten_sequence(X_train, X_val, N_per_example, average_window)
+
+    return X_train, y_train, X_val, y_val, N_per_example, N_inputs, file_labels, data_min, data_max
 
 
 # Transformer stuff
@@ -584,7 +876,7 @@ def transformer_return_model(
     return keras.Model(inputs, outputs)
 
 
-def model_build_transformer_tf(lstm_layers, lstm_units, epochs_patience, lr,
+def model_build_transformer_tf(lstm_layers, N_units, epochs_patience, lr,
                                save_model, model_checkpoint, save_folder, save_filename,
                                N_per_example, N_inputs):
     input_shape = (N_per_example, N_inputs)
@@ -593,9 +885,9 @@ def model_build_transformer_tf(lstm_layers, lstm_units, epochs_patience, lr,
         input_shape,
         head_size=4,
         num_heads=4,
-        ff_dim=4,
+        ff_dim=4,  # PROBABLY CHANGE THIS TO 1 OR GET RID OF THE CONV1D LAYER
         num_transformer_blocks=lstm_layers,
-        mlp_units=[lstm_units],
+        mlp_units=[N_units],
         mlp_dropout=0,
         dropout=0,
     )
