@@ -392,18 +392,24 @@ def model_evaluate_regression_tf(history,
     std_val = np.zeros_like(d_all_labels, dtype=float)
     loss_val = np.zeros_like(d_all_labels, dtype=float)
 
+    def loss_fn(y, yhat):
+        # define loss to be the average over samples
+        # NOTE: input arrays need to be reshaped into 2D
+        loss_fn_avg = keras.losses.LogCosh(reduction='sum_over_batch_size')
+        return loss_fn_avg(np.reshape(y, (-1, 1)), np.reshape(yhat, (-1, 1))).numpy()
+
     for d_index, d in enumerate(d_all_labels):
         yhat_train_d = yhat_train[y_train == d]
         mu_train[d_index] = np.mean(yhat_train_d)
         std_train[d_index] = np.std(yhat_train_d)
-        loss_train[d_index] = keras.losses.log_cosh(y_train[y_train == d], yhat_train_d).numpy()
+        loss_train[d_index] = loss_fn(y_train[y_train == d], yhat_train_d)
 
         yhat_val_d = yhat_val[y_val == d]
         mu_val[d_index] = np.mean(yhat_val_d)
         std_val[d_index] = np.std(yhat_val_d)
-        loss_val[d_index] = keras.losses.log_cosh(y_val[y_val == d], yhat_val_d).numpy()
+        loss_val[d_index] = loss_fn(y_val[y_val == d], yhat_val_d)
 
-    loss_val_all = keras.losses.log_cosh(y_val, yhat_val).numpy()
+    loss_val_all = loss_fn(y_val, yhat_val)
     print("Average", test_or_val, "loss:", loss_val_all)
 
     # %% print model predictions
