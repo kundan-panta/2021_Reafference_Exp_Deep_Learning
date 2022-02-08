@@ -403,8 +403,8 @@ def model_evaluate_regression_tf(history,
         std_val[d_index] = np.std(yhat_val_d)
         loss_val[d_index] = keras.losses.log_cosh(y_val[y_val == d], yhat_val_d).numpy()
 
-    loss_val_total = keras.losses.log_cosh(y_val, yhat_val).numpy()
-    print("Total", test_or_val, "loss:", loss_val_total)
+    loss_val_all = keras.losses.log_cosh(y_val, yhat_val).numpy()
+    print("Average", test_or_val, "loss:", loss_val_all)
 
     # %% print model predictions
     # print("Predictions (Test):")
@@ -506,7 +506,7 @@ def model_evaluate_regression_tf(history,
         np.savetxt(save_folder + save_filename + '/y_train.txt', y_train)
         np.savetxt(save_folder + save_filename + '/yhat_train.txt', yhat_train)
         f = open(save_folder + save_filename + '/loss_{}_total.txt'.format(test_or_val), 'w')
-        f.write(str(loss_val_total))
+        f.write(str(loss_val_all))
         f.close()
         df.round(1).to_csv(save_folder + save_filename + '/yhat_stats_{}.csv'.format(test_or_val), index=False)
         fig_yhat_train.savefig(save_folder + save_filename + '/plot_yhat_train.svg')
@@ -524,7 +524,7 @@ def model_evaluate_regression_tf(history,
     plt.close(fig_loss_dist)
     plt.close(fig_loss_training)
 
-    return df, loss_val_total
+    return df, loss_val_all
 
 
 def model_k_fold_tf(X_train, y_train,
@@ -572,13 +572,13 @@ def model_k_fold_tf(X_train, y_train,
             model_predict_tf(models[fold_var], save_model, model_checkpoint, save_folder, save_filename_fold,
                              X_train_fold, X_val_fold)
 
-        df_fold, loss_val_total_fold = \
+        df_fold, loss_val_all_fold = \
             model_evaluate_regression_tf(histories[fold_var],
                                          y_train_fold, y_val_fold, yhat_train_fold, yhat_val_fold,
                                          save_results, save_folder, save_filename_fold,
                                          file_labels)
 
-        VALIDATION_LOSS[fold_var] = loss_val_total_fold
+        VALIDATION_LOSS[fold_var] = loss_val_all_fold
 
         # keras.backend.clear_session()
 

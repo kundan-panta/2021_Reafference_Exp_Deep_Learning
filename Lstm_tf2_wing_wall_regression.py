@@ -139,7 +139,7 @@ def experiment(parameters):
                          X_train, X_val)
 
     # %% evaluate performance
-    df_val, loss_val_total = \
+    df_val, loss_val_all = \
         model_evaluate_regression_tf(history,
                                      y_train, y_val, yhat_train, yhat_val,
                                      save_results, save_folder, save_filename, 'val',
@@ -153,7 +153,7 @@ def experiment(parameters):
                          X_train, X_test)
 
     # %% evaluate performance
-    df_test, loss_test_total = \
+    df_test, loss_test_all = \
         model_evaluate_regression_tf(history,
                                      y_train, y_test, yhat_train, yhat_test,
                                      save_results, save_folder, save_filename, 'test',
