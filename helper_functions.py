@@ -86,23 +86,49 @@ def data_get_info(data_folder,
     assert len(file_labels) == N_files_all  # makes sure labels are there for all files
 
     # get stroke cycle period information from one of the files
-    t = np.around(np.loadtxt(data_folder + file_names[0] + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
-    cpg_param = np.loadtxt(data_folder + file_names[0] + '/' + 'cpg_param.csv', delimiter=',', unpack=True)
+    t = np.around(np.loadtxt(data_folder + file_names[0] + '/' + 't.csv', delimiter=','), decimals=3)  # round to ms
+    cpg_param = np.loadtxt(data_folder + file_names[0] + '/' + 'cpg_param.csv', delimiter=',')
+    ang_meas = np.loadtxt(data_folder + file_names[0] + '/' + 'ang_meas.csv', delimiter=',')
 
     t_s = round(t[1] - t[0], 3)  # sample time
-    freq = cpg_param[-1, 0]  # store frequency of param set
+    freq = cpg_param[0, -1]  # store frequency of param set
     t_cycle = 1 / freq  # stroke cycle time
 
-    if N_cycles_to_use == 0:  # if number of cycles per file is not explicitly specified
-        N_total = len(t)  # number of data points
-    else:
-        N_per_cycle = round(t_cycle / t_s)  # number of data points per cycle, round instead of floor
-        N_total = N_cycles_to_use * N_per_cycle + 100  # limit amount of data to use
+    # if N_cycles_to_use == 0:  # if number of cycles per file is not explicitly specified
+    #     N_total = len(t)  # number of data points
+    # else:
+    #     N_per_cycle = round(t_cycle / t_s)  # number of data points per cycle, round instead of floor
+    #     N_total = N_cycles_to_use * N_per_cycle + 100  # limit amount of data to use
+
+    N_total = len(t)  # number of data points
+    N_per_cycle = round(t_cycle / t_s)  # number of data points per cycle, round instead of floor
 
     N_per_example = round(N_cycles_example * t_cycle / t_s)  # number of data points per example, round instead of floor
     N_per_step = round(N_cycles_step * t_cycle / t_s)
-    N_examples = (N_total - N_per_example) // N_per_step + 1  # floor division
-    assert N_total >= (N_examples - 1) * N_per_step + N_per_example  # last data point used must not exceed total number of data points
+
+    # set the phase of each example
+    # find indices where stroke angle is 0 exactly or it changes signs
+    # https://stackoverflow.com/questions/61233411/find-indices-where-a-python-array-becomes-positive-but-not-negative
+    zero_ind = np.where(ang_meas[:-1, 0] * ang_meas[1:, 0] <= 0)[0]
+    zero_ind = zero_ind[ang_meas[zero_ind, 0] <= 0]
+    zero_ind = zero_ind[ang_meas[zero_ind + 20, 0] > 0]  # make sure no accidental + to - changes
+    zero_ind = zero_ind[np.append(np.diff(zero_ind), -1) > N_per_cycle - 20]  # remove indices that are less than a N_per_step apart
+
+    # start at a different phase
+    # zero_ind += N_per_cycle // 4
+
+    if zero_ind[-1] + N_per_example > N_total:
+        zero_ind = zero_ind[:-1]  # remove last index if not enough data points
+    print("Available cycles:", len(zero_ind))
+
+    # update number of examples
+    if N_cycles_to_use == 0:
+        N_cycles_to_use = len(zero_ind)
+    else:
+        zero_ind = zero_ind[len(zero_ind) - N_cycles_to_use:]  # skip the 1st cycles if too many cycles available
+
+    N_examples = (N_total - zero_ind[0] - N_per_example) // N_per_step + 1  # floor division
+    assert N_total - zero_ind[0] >= (N_examples - 1) * N_per_step + N_per_example  # last data point used must not exceed total number of data points
 
     # number of training and testing stroke cycles
     N_examples_train = round(train_val_split * N_examples)
@@ -120,7 +146,7 @@ def data_get_info(data_folder,
 
     print('Frequency:', freq)
     print('Data points in an example:', N_per_example)
-    print('Unused data points:', N_total - ((N_examples - 1) * N_per_step + N_per_example))  # print number of unused data points
+    # print('Unused data points:', N_total - ((N_examples - 1) * N_per_step + N_per_example))  # print number of unused data points
     print('Total examples per file:', N_examples)
     print('Training examples per file:', N_examples_train)
     print('Validation examples per file:', N_examples_val)
@@ -129,7 +155,7 @@ def data_get_info(data_folder,
 
     return N_files_all, N_files_train, N_files_val,\
         N_examples, N_examples_train, N_examples_val,\
-        N_per_example, N_per_step, N_total,\
+        N_per_example, N_per_step, N_total, zero_ind,\
         N_inputs, N_inputs_ft, N_inputs_ang
 
 
@@ -141,38 +167,53 @@ def data_load(data_folder,
               save_model, save_results, save_folder, save_filename,
               N_files_all, N_files_train,
               N_examples, N_examples_train, N_examples_val,
-              N_per_example, N_per_step,
+              N_cycles_step, N_per_example, N_total, zero_ind,
               N_inputs, N_inputs_ft, N_inputs_ang,
               data_min, data_max):
 
     # %%
-    data = np.zeros((N_files_all * N_examples * N_per_example, N_inputs))  # all input data
-    labels = np.zeros((N_files_all * N_examples))  # , dtype=int)  # all labels
+    data = np.zeros((N_files_all, N_total, N_inputs))  # all input data
+    # labels = np.zeros((N_files_all * N_examples))  # , dtype=int)  # all labels
 
     for k in range(N_files_all):
         # get data
-        t = np.around(np.loadtxt(data_folder + file_names[k] + '/' + 't.csv', delimiter=',', unpack=True), decimals=3)  # round to ms
-        ft_meas = np.loadtxt(data_folder + file_names[k] + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
-        ang_meas = np.loadtxt(data_folder + file_names[k] + '/' + 'ang_meas.csv', delimiter=',', unpack=True)
+        t = np.around(np.loadtxt(data_folder + file_names[k] + '/' + 't.csv', delimiter=','), decimals=3)  # round to ms
+        ft_meas = np.loadtxt(data_folder + file_names[k] + '/' + 'ft_meas.csv', delimiter=',')
+        if N_inputs_ang > 0:
+            ang_meas = np.loadtxt(data_folder + file_names[k] + '/' + 'ang_meas.csv', delimiter=',')
 
         if baseline_d is not None:  # subtract pred from meas?
-            baseline_ft_meas = np.loadtxt(data_folder + baseline_file_names[k] + '/' + 'ft_meas.csv', delimiter=',', unpack=True)
+            baseline_ft_meas = np.loadtxt(data_folder + baseline_file_names[k] + '/' + 'ft_meas.csv', delimiter=',')
             ft_meas -= baseline_ft_meas
 
+        # for i in range(N_examples):
+        #     data[((k * N_examples + i) * N_per_example):((k * N_examples + i + 1) * N_per_example), :N_inputs_ft] = \
+        #         ft_meas[inputs_ft, (i * N_per_step):(i * N_per_step + N_per_example)].T  # measured FT
+        #     if N_inputs_ang > 0:
+        #         data[((k * N_examples + i) * N_per_example):((k * N_examples + i + 1) * N_per_example), N_inputs_ft:] = \
+        #             ang_meas[inputs_ang, (i * N_per_step):(i * N_per_step + N_per_example)].T  # stroke angle
+        #     labels[k * N_examples + i] = file_labels[k]
+        #     # sanity checks for data: looked at 1st row of 1st file, last row of 1st file, first row of 2nd file,
+        #     # last row of last file, to make sure all the data I needed was at the right place
+
+        data[k, :, :N_inputs_ft] = ft_meas[:, inputs_ft]
+        if N_inputs_ang > 0:
+            data[k, :, N_inputs_ft:] = ang_meas[:, inputs_ang]
+
+    # %% convert the data into examples
+    # make a new array with examples as the 1st dim
+    X_all = np.zeros((N_files_all * N_examples, N_per_example, N_inputs))
+    y_all = np.zeros((N_files_all * N_examples))  # , dtype=int)  # all labels
+
+    for k in range(N_files_all):
         for i in range(N_examples):
-            data[((k * N_examples + i) * N_per_example):((k * N_examples + i + 1) * N_per_example), :N_inputs_ft] = \
-                ft_meas[inputs_ft, (i * N_per_step):(i * N_per_step + N_per_example)].T  # measured FT
-            if N_inputs_ang > 0:
-                data[((k * N_examples + i) * N_per_example):((k * N_examples + i + 1) * N_per_example), N_inputs_ft:] = \
-                    ang_meas[inputs_ang, (i * N_per_step):(i * N_per_step + N_per_example)].T  # stroke angle
-            labels[k * N_examples + i] = file_labels[k]
-            # sanity checks for data: looked at 1st row of 1st file, last row of 1st file, first row of 2nd file,
-            # last row of last file, to make sure all the data I needed was at the right place
+            X_all[k * N_examples + i] = data[k, zero_ind[i * N_cycles_step]: zero_ind[i * N_cycles_step] + N_per_example, :]
+        y_all[k * N_examples: (k + 1) * N_examples] = file_labels[k]
 
     # %%
     if (data_min is None) or (data_max is None):
-        data_min = np.min(data, axis=0)
-        data_max = np.max(data, axis=0)
+        data_min = np.min(data, axis=(0, 1))
+        data_max = np.max(data, axis=(0, 1))
 
     # save the min and max values used for normalization of the data
     if save_model or save_results:
@@ -181,8 +222,13 @@ def data_load(data_folder,
         np.savetxt(save_folder + save_filename + '/data_min.txt', data_min)
         np.savetxt(save_folder + save_filename + '/data_max.txt', data_max)
 
-    data = (data - data_min) / (data_max - data_min)  # normalize
-    data = data.reshape(N_files_all * N_examples, N_per_example, N_inputs)  # example -> all data points of that example -> FT components
+    # normalize
+    data_min_reshaped = np.reshape(data_min, (1, 1, -1))
+    data_max_reshaped = np.reshape(data_max, (1, 1, -1))
+    X_all = (X_all - data_min_reshaped) / (data_max_reshaped - data_min_reshaped)
+
+    # data = (data - data_min) / (data_max - data_min)  # normalize
+    # data = data.reshape(N_files_all * N_examples, N_per_example, N_inputs)  # example -> all data points of that example -> FT components
     # data = data.transpose(0, 2, 1)  # feature major
 
     if shuffle_examples:  # randomize order of data to be split into train and test sets
@@ -198,16 +244,16 @@ def data_load(data_folder,
                 permutation[N_examples_train_all + k * N_examples_val:N_examples_train_all + (k + 1) * N_examples_val] = k * N_examples + shuffled[N_examples_train:]
         else:
             permutation = list(np.random.RandomState(seed=shuffle_seed).permutation(N_files_all * N_examples))
-        data = data[permutation]
-        labels = labels[permutation]
+        X_all = X_all[permutation]
+        y_all = y_all[permutation]
 
     # labels = np.eye(N_classes)[labels]  # one-hot labels
 
     # split data into training and testing sets
-    X_train = data[:N_files_train * N_examples_train]
-    y_train = labels[:N_files_train * N_examples_train]
-    X_val = data[N_files_train * N_examples_train:]
-    y_val = labels[N_files_train * N_examples_train:]
+    X_train = X_all[:N_files_train * N_examples_train]
+    y_train = y_all[:N_files_train * N_examples_train]
+    X_val = X_all[N_files_train * N_examples_train:]
+    y_val = y_all[N_files_train * N_examples_train:]
 
     return X_train, y_train, X_val, y_val, data_min, data_max
 
@@ -807,7 +853,7 @@ def data_full_process(sets_train, d_train, d_train_labels,
     # %% get info about the data
     N_files_all, N_files_train, N_files_val,\
         N_examples, N_examples_train, N_examples_val,\
-        N_per_example, N_per_step, N_total,\
+        N_per_example, N_per_step, N_total, zero_ind,\
         N_inputs, N_inputs_ft, N_inputs_ang = \
         data_get_info(data_folder,
                       file_names, file_labels,
@@ -826,7 +872,7 @@ def data_full_process(sets_train, d_train, d_train_labels,
                   save_model, save_results, save_folder, save_filename,
                   N_files_all, N_files_train,
                   N_examples, N_examples_train, N_examples_val,
-                  N_per_example, N_per_step,
+                  N_cycles_step, N_per_example, N_total, zero_ind,
                   N_inputs, N_inputs_ft, N_inputs_ang,
                   data_min, data_max)
 

@@ -56,10 +56,10 @@ def experiment(parameters):
     N_cycles_step = 1  # number of cycles to step between consecutive examples
     # total number of cycles to use per file
     # set 0 to automatically calculate number of examples from the first file
-    N_cycles_to_use = 0
+    N_cycles_to_use = 14
 
     inputs_ft = [0, 1, 2, 3, 4, 5]
-    inputs_ang = []
+    inputs_ang = [0]
     # average_window = 10
 
     baseline_d = None  # set to None for no baseline
@@ -77,7 +77,7 @@ def experiment(parameters):
     save_model = True  # save model file, save last model if model_checkpoint == False
     model_checkpoint = False  # doesn't do anything if save_model == False
     save_results = True
-    save_folder = root_folder + 'plots/2022.02.07_experiment/'  # include trailing slash
+    save_folder = root_folder + 'plots/2022.02.09_experiment/'  # include trailing slash
     save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_in={}_bl={}_Ne={}_Ns={}_win={}_{}L{}D{}_lr={}_dr={}_recdr={}'.format(
         Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_val),
         ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft),
