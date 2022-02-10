@@ -494,7 +494,7 @@ def model_evaluate_regression_tf(history,
                     # "ci_down_train": mu_train - 2 * std_train,
                     # "ci_up_train": mu_train + 2 * std_train
                     })
-    print(df.round(1).to_string(index=False))
+    # print(df.round(1).to_string(index=False))
 
     # %% plot performance plot as well
     plt.rcParams.update({"savefig.facecolor": (1, 1, 1, 1)})  # disable transparent background
