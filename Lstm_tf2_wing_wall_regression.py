@@ -70,14 +70,14 @@ def experiment(parameters):
     # lr = 0.0002  # learning rate
     # dropout = 0.2
     recurrent_dropout = 0.0
-    epochs_number = 10000  # number of epochs
+    epochs_number = 2  # number of epochs
     epochs_patience = 10000  # for early stopping, set <0 to disable
     k_fold_splits = len(sets_train)
 
     save_model = True  # save model file, save last model if model_checkpoint == False
     model_checkpoint = False  # doesn't do anything if save_model == False
     save_results = True
-    save_folder = root_folder + 'plots/2022.02.09_experiment/'  # include trailing slash
+    save_folder = root_folder + 'plots/2022.02.09_history_test/'  # include trailing slash
     save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_in={}_bl={}_Ne={}_Ns={}_win={}_{}L{}D{}_lr={}_dr={}_recdr={}'.format(
         Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_val),
         ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft),
@@ -100,7 +100,7 @@ def experiment(parameters):
     model, callbacks_list = \
         model_build_tf(lstm_layers, dense_hidden_layers, N_units,
                        epochs_patience, lr, dropout, recurrent_dropout,
-                       save_model, model_checkpoint,
+                       save_model, model_checkpoint, save_results,
                        save_folder, save_filename,
                        N_per_example, N_inputs)
 
@@ -148,7 +148,7 @@ def experiment(parameters):
     # %% predict on training and testing data using trained model
     yhat_train, yhat_test = \
         model_predict_tf(model,
-                         save_model, model_checkpoint,
+                         False, model_checkpoint,
                          save_folder, save_filename,
                          X_train, X_test)
 

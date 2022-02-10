@@ -328,7 +328,7 @@ def model_lstm_tf(lstm_layers, dense_hidden_layers, N_units,
 
 def model_build_tf(lstm_layers, dense_hidden_layers, N_units,
                    epochs_patience, lr, dropout, recurrent_dropout,
-                   save_model, model_checkpoint,
+                   save_model, model_checkpoint, save_results,
                    save_folder, save_filename,
                    N_per_example, N_inputs):
     # %%
@@ -368,7 +368,9 @@ def model_build_tf(lstm_layers, dense_hidden_layers, N_units,
             patience=epochs_patience,
             baseline=None,
             restore_best_weights=True,
-            verbose=0
+            verbose=0,
+            save_info=save_results,
+            save_filename=save_folder + save_filename
         )
         callbacks_list.append(early_stopping_monitor)
 
@@ -408,17 +410,17 @@ def model_predict_tf(model, save_model, model_checkpoint, save_folder, save_file
 
     # %% predict distance to wall
     if save_model and model_checkpoint:  # load best weights for test accuracy
-        model_best = keras.models.load_model(save_folder + save_filename)
+        model = keras.models.load_model(save_folder + save_filename)
         # print("Best:")
     else:
-        model_best = model
+        # model = model
         # print("Last:")
         if save_model:
             model.save(save_folder + save_filename)
 
     # get model predictions
-    yhat_train = np.squeeze(model_best.predict(X_train))
-    yhat_val = np.squeeze(model_best.predict(X_val))
+    yhat_train = np.squeeze(model.predict(X_train))
+    yhat_val = np.squeeze(model.predict(X_val))
 
     return yhat_train, yhat_val
 
@@ -433,30 +435,37 @@ def model_evaluate_regression_tf(history,
     d_all_labels = np.unique(file_labels)
     mu_train = np.zeros_like(d_all_labels, dtype=float)
     std_train = np.zeros_like(d_all_labels, dtype=float)
-    loss_train = np.zeros_like(d_all_labels, dtype=float)
+    loss_mu_train = np.zeros_like(d_all_labels, dtype=float)
+    loss_std_train = np.zeros_like(d_all_labels, dtype=float)
     mu_val = np.zeros_like(d_all_labels, dtype=float)
     std_val = np.zeros_like(d_all_labels, dtype=float)
-    loss_val = np.zeros_like(d_all_labels, dtype=float)
+    loss_mu_val = np.zeros_like(d_all_labels, dtype=float)
+    loss_std_val = np.zeros_like(d_all_labels, dtype=float)
 
     def loss_fn(y, yhat):
-        # define loss to be the average over samples
+        # return loss per sample
         # NOTE: input arrays need to be reshaped into 2D
-        loss_fn_avg = keras.losses.LogCosh(reduction='sum_over_batch_size')
-        return loss_fn_avg(np.reshape(y, (-1, 1)), np.reshape(yhat, (-1, 1))).numpy()
+        loss_fn_all = keras.losses.LogCosh(reduction='none')
+        return loss_fn_all(np.reshape(y, (-1, 1)), np.reshape(yhat, (-1, 1))).numpy()
 
     for d_index, d in enumerate(d_all_labels):
         yhat_train_d = yhat_train[y_train == d]
         mu_train[d_index] = np.mean(yhat_train_d)
         std_train[d_index] = np.std(yhat_train_d)
-        loss_train[d_index] = loss_fn(y_train[y_train == d], yhat_train_d)
+        loss_train_d = loss_fn(y_train[y_train == d], yhat_train_d)
+        loss_mu_train[d_index] = np.mean(loss_train_d)
+        loss_std_train[d_index] = np.std(loss_train_d)
 
         yhat_val_d = yhat_val[y_val == d]
         mu_val[d_index] = np.mean(yhat_val_d)
         std_val[d_index] = np.std(yhat_val_d)
-        loss_val[d_index] = loss_fn(y_val[y_val == d], yhat_val_d)
+        loss_val_d = loss_fn(y_val[y_val == d], yhat_val_d)
+        loss_mu_val[d_index] = np.mean(loss_val_d)
+        loss_std_val[d_index] = np.std(loss_val_d)
 
+    loss_train_all = loss_fn(y_train, yhat_train)
     loss_val_all = loss_fn(y_val, yhat_val)
-    print("Average", test_or_val, "loss:", loss_val_all)
+    # print("Average", test_or_val, "loss:", loss_val_all)
 
     # %% print model predictions
     # print("Predictions (Test):")
@@ -474,12 +483,14 @@ def model_evaluate_regression_tf(history,
     df = DataFrame({"d": d_all_labels,
                     "mu_{}".format(test_or_val): mu_val,
                     "std_{}".format(test_or_val): std_val,
-                    "loss_{}".format(test_or_val): loss_val,
+                    "loss_mu_{}".format(test_or_val): loss_mu_val,
+                    "loss_std_{}".format(test_or_val): loss_std_val,
                     # "ci_down_val": mu_val - 2 * std_val,
                     # "ci_up_val": mu_val + 2 * std_val,
                     "mu_train": mu_train,
                     "std_train": std_train,
-                    "loss_train": loss_train,
+                    "loss_mu_train": loss_mu_train,
+                    "loss_std_train": loss_std_train,
                     # "ci_down_train": mu_train - 2 * std_train,
                     # "ci_up_train": mu_train + 2 * std_train
                     })
@@ -533,8 +544,8 @@ def model_evaluate_regression_tf(history,
     # loss over distance
     fig_loss_dist = plt.figure(figsize=(4, 4))
 
-    plt.plot(d_all_labels, loss_train, 'bo--', label='Train')
-    plt.plot(d_all_labels, loss_val, 'rx:', label=test_or_val.title())
+    plt.errorbar(d_all_labels, loss_mu_train, fmt='bo--', label='Train', yerr=2*loss_std_train, capsize=4)
+    plt.errorbar(d_all_labels, loss_mu_val, fmt='rx:', label=test_or_val.title(), yerr=2*loss_std_val, capsize=4)
 
     plt.xlabel('True Distance (cm)')
     plt.ylabel('Loss')
@@ -557,18 +568,21 @@ def model_evaluate_regression_tf(history,
         np.savetxt(save_folder + save_filename + '/yhat_{}.txt'.format(test_or_val), yhat_val)
         np.savetxt(save_folder + save_filename + '/y_train.txt', y_train)
         np.savetxt(save_folder + save_filename + '/yhat_train.txt', yhat_train)
-        f = open(save_folder + save_filename + '/loss_{}_total.txt'.format(test_or_val), 'w')
-        f.write(str(loss_val_all))
-        f.close()
-        df.round(1).to_csv(save_folder + save_filename + '/yhat_stats_{}.csv'.format(test_or_val), index=False)
+        np.savetxt(save_folder + save_filename + '/loss_{}_all.txt'.format(test_or_val), loss_val_all)
+        np.savetxt(save_folder + save_filename + '/loss_train_all.txt', loss_train_all)
+        df.to_csv(save_folder + save_filename + '/yhat_stats_{}.csv'.format(test_or_val), index=False)
+
         fig_yhat_train.savefig(save_folder + save_filename + '/plot_yhat_train.svg')
+        fig_loss_dist.savefig(save_folder + save_filename + '/plot_loss_{}_dist.svg'.format(test_or_val))
+
         if test_or_val == 'test':
             fig_yhat_val.savefig(save_folder + save_filename + '.svg')
         else:
             fig_yhat_val.savefig(save_folder + save_filename + '/plot_yhat_val.svg')
-        fig_loss_dist.savefig(save_folder + save_filename + '/plot_loss_{}_dist.svg'.format(test_or_val))
-        if test_or_val == 'val':
             fig_loss_training.savefig(save_folder + save_filename + '/plot_training.svg')
+            np.save(save_folder + save_filename + '/history.npy', history.history)
+            # load the history dictionary with:
+            # history = np.load(save_folder + save_filename + '/history.npy', allow_pickle='TRUE').item()
 
     # plt.show()
     plt.close(fig_yhat_train)
@@ -576,7 +590,7 @@ def model_evaluate_regression_tf(history,
     plt.close(fig_loss_dist)
     plt.close(fig_loss_training)
 
-    return df, loss_val_all
+    return df, np.mean(loss_val_all)
 
 
 def model_k_fold_tf(X_train, y_train,
@@ -610,7 +624,7 @@ def model_k_fold_tf(X_train, y_train,
         models[fold_var], callbacks_list = \
             model_build_tf(lstm_layers, dense_hidden_layers, N_units,
                            epochs_patience, lr, dropout, recurrent_dropout,
-                           save_model, model_checkpoint,
+                           save_model, model_checkpoint, save_results,
                            save_folder, save_filename_fold,
                            N_per_example, N_inputs)
 
@@ -641,10 +655,11 @@ def model_k_fold_tf(X_train, y_train,
     # print(VALIDATION_LOSS)
     # print(models)
 
-    if save_model:
-        f = open(save_folder + save_filename + '/fold_best.txt', 'w')
-        f.write(str(fold_best))
-        f.close()
+    if save_model or save_results:
+        np.savetxt(save_folder + save_filename + '/fold_best.txt', fold_best, fmt='%i')
+        # f = open(save_folder + save_filename + '/fold_best.txt', 'w')
+        # f.write(str(fold_best))
+        # f.close()
         # save_filename_fold = save_filename + '/fold={}'.format(fold_best)
         # model = keras.models.load_model(save_folder + save_filename_fold)
 
@@ -657,7 +672,9 @@ def early_stopping_custom_tf(monitor='val_loss',
                              patience=0,
                              baseline=None,
                              restore_best_weights=True,
-                             verbose=0):
+                             verbose=0,
+                             save_info=False,
+                             save_filename=None):
     # Modified to restore best weights at the end of training, even if early stopping was not triggered
     # Base code from https://github.com/keras-team/keras/blob/v2.7.0/keras/callbacks.py
     # Latest commit 9088756 on Sep 17, 2021
@@ -806,6 +823,9 @@ def early_stopping_custom_tf(monitor='val_loss',
                 print('Restoring model weights from the end of the best epoch: '
                       f'{self.best_epoch + 1}.')
                 self.model.set_weights(self.best_weights)
+
+            if save_info:
+                np.savetxt(save_filename + '/epoch_best.txt', [self.best_epoch + 1], fmt='%i')
 
         def get_monitor_value(self, logs):
             logs = logs or {}
