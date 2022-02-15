@@ -14,7 +14,7 @@ def experiment(parameters):
     from helper_functions import model_build_tf, model_fit_tf
     from helper_functions import model_predict_tf, model_evaluate_regression_tf
     # import matplotlib.pyplot as plt
-    # import numpy as np
+    import numpy as np
     # %load_ext autoreload
     # %autoreload 2
 
@@ -48,9 +48,10 @@ def experiment(parameters):
         shuffle_examples = False
         shuffle_seed = None
     else:
-        train_val_split = 0.8
+        train_val_split = 0.75
         shuffle_examples = True
-        shuffle_seed = 5  # seed to split data in reproducible way
+        shuffle_seed = np.random.default_rng().integers(0, high=100)
+        # shuffle_seed = 5  # seed to split data in reproducible way
 
     N_cycles_example = 1  # use this number of stroke cycles as 1 example
     N_cycles_step = 1  # number of cycles to step between consecutive examples
@@ -70,15 +71,15 @@ def experiment(parameters):
     # lr = 0.0002  # learning rate
     # dropout = 0.2
     recurrent_dropout = 0.0
-    epochs_number = 2  # number of epochs
+    epochs_number = 10000  # number of epochs
     epochs_patience = 10000  # for early stopping, set <0 to disable
-    k_fold_splits = len(sets_train)
+    # k_fold_splits = len(sets_train)
 
     save_model = True  # save model file, save last model if model_checkpoint == False
     model_checkpoint = False  # doesn't do anything if save_model == False
     save_results = True
-    save_folder = root_folder + 'plots/2022.02.09_history_test/'  # include trailing slash
-    save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_in={}_bl={}_Ne={}_Ns={}_win={}_{}L{}D{}_lr={}_dr={}_recdr={}'.format(
+    save_folder = root_folder + 'plots/2022.02.14_avg_win/'  # include trailing slash
+    save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_in={}_bl={}_Ne={}_Ns={}_win={}_{}L{}D{}_lr={}_dr={}'.format(
         Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_val),
         ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft),
         baseline_d, N_cycles_example, N_cycles_step, average_window,

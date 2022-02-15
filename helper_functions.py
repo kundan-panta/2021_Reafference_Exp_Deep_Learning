@@ -247,6 +247,8 @@ def data_load(data_folder,
         X_all = X_all[permutation]
         y_all = y_all[permutation]
 
+    if (save_model or save_results) and shuffle_examples:
+        np.savetxt(save_folder + save_filename + '/shuffle_seed.txt', [shuffle_seed], fmt='%i')
     # labels = np.eye(N_classes)[labels]  # one-hot labels
 
     # split data into training and testing sets
@@ -398,8 +400,9 @@ def model_fit_tf(model, callbacks_list, epochs_number,
         verbose=0,
         callbacks=callbacks_list,
         shuffle=True,
-        workers=4,
-        use_multiprocessing=True
+        max_queue_size=100,
+        workers=16,
+        use_multiprocessing=False
     )
 
     return model, history
@@ -544,8 +547,8 @@ def model_evaluate_regression_tf(history,
     # loss over distance
     fig_loss_dist = plt.figure(figsize=(4, 4))
 
-    plt.errorbar(d_all_labels, loss_mu_train, fmt='bo--', label='Train', yerr=2*loss_std_train, capsize=4)
-    plt.errorbar(d_all_labels, loss_mu_val, fmt='rx:', label=test_or_val.title(), yerr=2*loss_std_val, capsize=4)
+    plt.errorbar(d_all_labels, loss_mu_train, fmt='bo--', label='Train', yerr=2 * loss_std_train, capsize=4)
+    plt.errorbar(d_all_labels, loss_mu_val, fmt='rx:', label=test_or_val.title(), yerr=2 * loss_std_val, capsize=4)
 
     plt.xlabel('True Distance (cm)')
     plt.ylabel('Loss')
