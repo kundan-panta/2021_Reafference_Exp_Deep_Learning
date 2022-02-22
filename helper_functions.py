@@ -9,10 +9,11 @@ from tensorflow import keras
 from pandas import DataFrame
 
 
-def divide_file_names(sets_train, d_train, d_train_labels,
-                      sets_val, d_val, d_val_labels,
-                      baseline_d,
-                      Ro, A_star):
+def divide_file_names(
+    Ro, A_star,
+    sets_train, d_train, d_train_labels,
+    sets_val, d_val, d_val_labels,
+):
 
     # test that the sets and distances are assigned correctly
     assert len(sets_train) == len(d_train)
@@ -46,35 +47,26 @@ def divide_file_names(sets_train, d_train, d_train_labels,
     file_labels = file_labels_train + file_labels_val
     file_sets = file_sets_train + file_sets_val
 
-    # baseline file names for each set
-    baseline_file_names_train = []
-    baseline_file_names_val = []
-    baseline_file_names = []
+    # baseline file names
+    # baseline_file_names_train = []
 
-    if baseline_d is not None:
-        for s_index, s in enumerate(sets_train):
-            for d_index, d in enumerate(d_train[s_index]):
-                baseline_file_names_train.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
-
-        for s_index, s in enumerate(sets_val):
-            for d_index, d in enumerate(d_val[s_index]):
-                baseline_file_names_val.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
-
-        baseline_file_names = baseline_file_names_train + baseline_file_names_val
-        assert len(baseline_file_names) == len(file_names)
+    # if baseline_d is not None:
+    #     for s_index, s in enumerate(sets_train):
+    #         baseline_file_names_train.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
 
     return file_names, file_labels, file_sets,\
         file_names_train, file_labels_train, file_sets_train,\
-        file_names_val, file_labels_val, file_sets_val,\
-        baseline_file_names_train, baseline_file_names_val, baseline_file_names
+        file_names_val, file_labels_val, file_sets_val
 
 
-def data_get_info(data_folder,
-                  file_names, file_labels,
-                  file_names_train, file_names_val,
-                  train_val_split, separate_val_files,
-                  N_cycles_example, N_cycles_step, N_cycles_to_use,
-                  inputs_ft, inputs_ang):
+def data_get_info(
+    data_folder,
+    file_names, file_labels,
+    file_names_train, file_names_val,
+    train_val_split, separate_val_files,
+    inputs_ft, inputs_ang,
+    N_cycles_example, N_cycles_step, N_cycles_to_use,
+):
 
     # %%
     N_files_train = len(file_names_train)
@@ -107,7 +99,7 @@ def data_get_info(data_folder,
     N_per_step = round(N_cycles_step * t_cycle / t_s)
 
     # set the phase of each example
-    # find indices where stroke angle is 0 exactly or it changes signs
+    # find indices where stroke angle is 0 exactly or goes from - to +
     # https://stackoverflow.com/questions/61233411/find-indices-where-a-python-array-becomes-positive-but-not-negative
     zero_ind = np.where(ang_meas[:-1, 0] * ang_meas[1:, 0] <= 0)[0]
     zero_ind = zero_ind[ang_meas[zero_ind, 0] <= 0]
@@ -121,7 +113,7 @@ def data_get_info(data_folder,
         zero_ind = zero_ind[:-1]  # remove last index if not enough data points
     print("Available cycles:", len(zero_ind))
 
-    # update number of examples
+    # update number of cycles to use
     if N_cycles_to_use == 0:
         N_cycles_to_use = len(zero_ind)
     else:
@@ -159,46 +151,23 @@ def data_get_info(data_folder,
         N_inputs, N_inputs_ft, N_inputs_ang
 
 
-def data_load(data_folder,
-              file_names, file_labels,
-              baseline_d, baseline_file_names,
-              inputs_ft, inputs_ang,
-              separate_val_files, shuffle_examples, shuffle_seed,
-              save_model, save_results, save_folder, save_filename,
-              N_files_all, N_files_train,
-              N_examples, N_examples_train, N_examples_val,
-              N_cycles_step, N_per_example, N_total, zero_ind,
-              N_inputs, N_inputs_ft, N_inputs_ang,
-              data_min, data_max):
+def data_load(
+    data_folder,
+    file_names, file_labels,
+    inputs_ft, inputs_ang,
+    N_files_all, N_examples,
+    N_cycles_step, N_per_example, N_total, zero_ind,
+    N_inputs, N_inputs_ft, N_inputs_ang
+):
 
-    # %%
+    # %% read all files
     data = np.zeros((N_files_all, N_total, N_inputs))  # all input data
-    # labels = np.zeros((N_files_all * N_examples))  # , dtype=int)  # all labels
 
     for k in range(N_files_all):
         # get data
-        t = np.around(np.loadtxt(data_folder + file_names[k] + '/' + 't.csv', delimiter=','), decimals=3)  # round to ms
-        ft_meas = np.loadtxt(data_folder + file_names[k] + '/' + 'ft_meas.csv', delimiter=',')
+        data[k, :, :N_inputs_ft] = np.loadtxt(data_folder + file_names[k] + '/ft_meas.csv', delimiter=',')[:, inputs_ft]
         if N_inputs_ang > 0:
-            ang_meas = np.loadtxt(data_folder + file_names[k] + '/' + 'ang_meas.csv', delimiter=',')
-
-        if baseline_d is not None:  # subtract pred from meas?
-            baseline_ft_meas = np.loadtxt(data_folder + baseline_file_names[k] + '/' + 'ft_meas.csv', delimiter=',')
-            ft_meas -= baseline_ft_meas
-
-        # for i in range(N_examples):
-        #     data[((k * N_examples + i) * N_per_example):((k * N_examples + i + 1) * N_per_example), :N_inputs_ft] = \
-        #         ft_meas[inputs_ft, (i * N_per_step):(i * N_per_step + N_per_example)].T  # measured FT
-        #     if N_inputs_ang > 0:
-        #         data[((k * N_examples + i) * N_per_example):((k * N_examples + i + 1) * N_per_example), N_inputs_ft:] = \
-        #             ang_meas[inputs_ang, (i * N_per_step):(i * N_per_step + N_per_example)].T  # stroke angle
-        #     labels[k * N_examples + i] = file_labels[k]
-        #     # sanity checks for data: looked at 1st row of 1st file, last row of 1st file, first row of 2nd file,
-        #     # last row of last file, to make sure all the data I needed was at the right place
-
-        data[k, :, :N_inputs_ft] = ft_meas[:, inputs_ft]
-        if N_inputs_ang > 0:
-            data[k, :, N_inputs_ft:] = ang_meas[:, inputs_ang]
+            data[k, :, N_inputs_ft:] = np.loadtxt(data_folder + file_names[k] + '/ang_meas.csv', delimiter=',')[:, inputs_ang]
 
     # %% convert the data into examples
     # make a new array with examples as the 1st dim
@@ -209,29 +178,22 @@ def data_load(data_folder,
         for i in range(N_examples):
             X_all[k * N_examples + i] = data[k, zero_ind[i * N_cycles_step]: zero_ind[i * N_cycles_step] + N_per_example, :]
         y_all[k * N_examples: (k + 1) * N_examples] = file_labels[k]
+    # y_all = np.eye(N_classes)[y_all]  # one-hot labels
 
-    # %%
-    if (data_min is None) or (data_max is None):
-        data_min = np.min(data, axis=(0, 1))
-        data_max = np.max(data, axis=(0, 1))
+    return X_all, y_all
 
-    # save the min and max values used for normalization of the data
-    if save_model or save_results:
-        Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
-    if save_model:
-        np.savetxt(save_folder + save_filename + '/data_min.txt', data_min)
-        np.savetxt(save_folder + save_filename + '/data_max.txt', data_max)
 
-    # normalize
-    data_min_reshaped = np.reshape(data_min, (1, 1, -1))
-    data_max_reshaped = np.reshape(data_max, (1, 1, -1))
-    X_all = (X_all - data_min_reshaped) / (data_max_reshaped - data_min_reshaped)
+def data_process(
+    X_all, y_all,
+    separate_val_files, shuffle_examples, shuffle_seed,
+    save_model, save_results, save_folder, save_filename,
+    X_min, X_max, y_min, y_max, baseline_d, X_baseline, average_window,
+    N_files_all, N_files_train, N_examples, N_examples_train, N_examples_val,
+    N_inputs, N_inputs_ft, N_inputs_ang, N_per_example
+):
 
-    # data = (data - data_min) / (data_max - data_min)  # normalize
-    # data = data.reshape(N_files_all * N_examples, N_per_example, N_inputs)  # example -> all data points of that example -> FT components
-    # data = data.transpose(0, 2, 1)  # feature major
-
-    if shuffle_examples:  # randomize order of data to be split into train and test sets
+    # %% randomize order of data to be split into train and test sets
+    if shuffle_examples:
         if not(separate_val_files):
             # shuffle every N_examples examples
             # then pick the first N_examples_train examples and put it to training set
@@ -247,20 +209,17 @@ def data_load(data_folder,
         X_all = X_all[permutation]
         y_all = y_all[permutation]
 
+    if save_model or save_results:
+        Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
     if (save_model or save_results) and shuffle_examples:
         np.savetxt(save_folder + save_filename + '/shuffle_seed.txt', [shuffle_seed], fmt='%i')
-    # labels = np.eye(N_classes)[labels]  # one-hot labels
 
-    # split data into training and testing sets
+    # %% split data into training and testing sets
     X_train = X_all[:N_files_train * N_examples_train]
     y_train = y_all[:N_files_train * N_examples_train]
     X_val = X_all[N_files_train * N_examples_train:]
     y_val = y_all[N_files_train * N_examples_train:]
 
-    return X_train, y_train, X_val, y_val, data_min, data_max
-
-
-def data_shorten_sequence(X_train, X_val, N_per_example, average_window):
     # %% reduce sequence length
     N_per_example = N_per_example // average_window  # update sequence length
 
@@ -275,11 +234,55 @@ def data_shorten_sequence(X_train, X_val, N_per_example, average_window):
 
     print('Data points in an example after averaging:', N_per_example)
 
-    return X_train, X_val, N_per_example
+    # %% subtract baseline if specified
+    if baseline_d is not None:
+        if X_baseline is None:  # get X_baseline if not given
+            X_baseline = X_train[y_train == baseline_d]
+            X_baseline = np.mean(X_baseline, axis=0, keepdims=True)
+
+            if N_inputs_ang > 0:
+                X_baseline[:, :, N_inputs_ft:] = 0  # don't subtract angles
+
+            # save the newly calculated baseline
+            if save_model:
+                np.savetxt(save_folder + save_filename + '/X_baseline.txt', np.squeeze(X_baseline))
+
+        X_baseline = np.reshape(X_baseline, (1, N_per_example, N_inputs))
+
+        X_train -= X_baseline
+        if X_val.size > 0:  # in case X_val is empty
+            X_val -= X_baseline
+
+    # %% normalize
+    if X_min is None or X_max is None or y_min is None or y_max is None:  # if not given, find it
+        X_min = np.min(X_train, axis=(0, 1), keepdims=True)
+        X_max = np.max(X_train, axis=(0, 1), keepdims=True)
+        y_min = np.min(y_train)
+        y_max = np.max(y_train)
+    # reshape to make sure shape is correct
+    X_min = np.reshape(X_min, (1, 1, -1))
+    X_max = np.reshape(X_max, (1, 1, -1))
+
+    # save the min and max values used for normalization of the data
+    if save_model:
+        np.savetxt(save_folder + save_filename + '/X_min.txt', np.squeeze(X_min))
+        np.savetxt(save_folder + save_filename + '/X_max.txt', np.squeeze(X_max))
+        np.savetxt(save_folder + save_filename + '/y_min.txt', [y_min])
+        np.savetxt(save_folder + save_filename + '/y_max.txt', [y_max])
+
+    # put in range [0, 1]
+    X_train = (X_train - X_min) / (X_max - X_min)
+    X_val = (X_val - X_min) / (X_max - X_min)
+    y_train = (y_train - y_min) / (y_max - y_min)
+    y_val = (y_val - y_min) / (y_max - y_min)
+
+    return X_train, y_train, X_val, y_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example
 
 
-def model_lstm_tf(lstm_layers, dense_hidden_layers, N_units,
-                  dropout, recurrent_dropout, N_per_example, N_inputs):
+def model_lstm_tf(
+    lstm_layers, dense_hidden_layers, N_units,
+    dropout, recurrent_dropout, N_per_example, N_inputs
+):
 
     model = keras.models.Sequential()  # initialize
 
@@ -328,16 +331,20 @@ def model_lstm_tf(lstm_layers, dense_hidden_layers, N_units,
     return model
 
 
-def model_build_tf(lstm_layers, dense_hidden_layers, N_units,
-                   epochs_patience, lr, dropout, recurrent_dropout,
-                   save_model, model_checkpoint, save_results,
-                   save_folder, save_filename,
-                   N_per_example, N_inputs):
+def model_build_tf(
+    lstm_layers, dense_hidden_layers, N_units,
+    epochs_patience, lr, dropout, recurrent_dropout,
+    save_model, model_checkpoint, save_results,
+    save_folder, save_filename,
+    N_per_example, N_inputs
+):
     # %%
     keras.backend.clear_session()
 
-    model = model_lstm_tf(lstm_layers, dense_hidden_layers, N_units,
-                          dropout, recurrent_dropout, N_per_example, N_inputs)
+    model = model_lstm_tf(
+        lstm_layers, dense_hidden_layers, N_units,
+        dropout, recurrent_dropout, N_per_example, N_inputs
+    )
 
     model.compile(
         loss=keras.losses.LogCosh(),
@@ -390,8 +397,10 @@ def model_build_tf(lstm_layers, dense_hidden_layers, N_units,
     return model, callbacks_list
 
 
-def model_fit_tf(model, callbacks_list, epochs_number,
-                 X_train, y_train, X_val, y_val):
+def model_fit_tf(
+    model, callbacks_list, epochs_number,
+    X_train, y_train, X_val, y_val
+):
 
     history = model.fit(
         X_train, y_train,
@@ -400,16 +409,18 @@ def model_fit_tf(model, callbacks_list, epochs_number,
         verbose=0,
         callbacks=callbacks_list,
         shuffle=True,
-        max_queue_size=100,
-        workers=16,
+        max_queue_size=50,
+        workers=4,
         use_multiprocessing=False
     )
 
     return model, history
 
 
-def model_predict_tf(model, save_model, model_checkpoint, save_folder, save_filename,
-                     X_train, X_val):
+def model_predict_tf(
+    model, save_model, model_checkpoint, save_folder, save_filename,
+    X_train, X_val
+):
 
     # %% predict distance to wall
     if save_model and model_checkpoint:  # load best weights for test accuracy
@@ -428,14 +439,15 @@ def model_predict_tf(model, save_model, model_checkpoint, save_folder, save_file
     return yhat_train, yhat_val
 
 
-def model_evaluate_regression_tf(history,
-                                 y_train, y_val, yhat_train, yhat_val,
-                                 save_results, save_folder, save_filename, test_or_val,
-                                 file_labels):
+def model_evaluate_regression_tf(
+    history,
+    y_train, y_val, yhat_train, yhat_val,
+    save_results, save_folder, save_filename, test_or_val
+):
 
     # %% evaluate performance
     # calculate result metrics
-    d_all_labels = np.unique(file_labels)
+    d_all_labels = np.unique(np.concatenate((y_train, y_val)))
     mu_train = np.zeros_like(d_all_labels, dtype=float)
     std_train = np.zeros_like(d_all_labels, dtype=float)
     loss_mu_train = np.zeros_like(d_all_labels, dtype=float)
@@ -596,14 +608,15 @@ def model_evaluate_regression_tf(history,
     return df, np.mean(loss_val_all)
 
 
-def model_k_fold_tf(X_train, y_train,
-                    lstm_layers, dense_hidden_layers, N_units,
-                    lr, epochs_number, epochs_patience, dropout, recurrent_dropout,
-                    k_fold_splits, shuffle_seed,
-                    save_model, model_checkpoint, save_results,
-                    save_folder, save_filename,
-                    N_per_example, N_inputs, file_labels
-                    ):
+def model_k_fold_tf(
+    X_train, y_train,
+    lstm_layers, dense_hidden_layers, N_units,
+    lr, epochs_number, epochs_patience, dropout, recurrent_dropout,
+    k_fold_splits, shuffle_seed,
+    save_model, model_checkpoint, save_results,
+    save_folder, save_filename,
+    N_per_example, N_inputs, file_labels
+):
     # https://medium.com/the-owl/k-fold-cross-validation-in-keras-3ec4a3a00538
 
     from sklearn.model_selection import KFold
@@ -669,15 +682,17 @@ def model_k_fold_tf(X_train, y_train,
     return models[fold_best], histories[fold_best]
 
 
-def early_stopping_custom_tf(monitor='val_loss',
-                             mode='auto',
-                             min_delta=0,
-                             patience=0,
-                             baseline=None,
-                             restore_best_weights=True,
-                             verbose=0,
-                             save_info=False,
-                             save_filename=None):
+def early_stopping_custom_tf(
+    monitor='val_loss',
+    mode='auto',
+    min_delta=0,
+    patience=0,
+    baseline=None,
+    restore_best_weights=True,
+    verbose=0,
+    save_info=False,
+    save_filename=None
+):
     # Modified to restore best weights at the end of training, even if early stopping was not triggered
     # Base code from https://github.com/keras-team/keras/blob/v2.7.0/keras/callbacks.py
     # Latest commit 9088756 on Sep 17, 2021
@@ -853,61 +868,73 @@ def early_stopping_custom_tf(monitor='val_loss',
     )
 
 
-def data_full_process(sets_train, d_train, d_train_labels,
-                      sets_val, d_val, d_val_labels,
-                      baseline_d,
-                      Ro, A_star,
-                      inputs_ft, inputs_ang,
-                      data_min, data_max,
-                      N_cycles_example, N_cycles_step, N_cycles_to_use, average_window,
-                      train_val_split, separate_val_files, shuffle_examples, shuffle_seed,
-                      data_folder, save_model, save_results, save_folder, save_filename):
+def data_full_process(
+    data_folder, Ro, A_star,
+    sets_train, d_train, d_train_labels,
+    sets_val, d_val, d_val_labels,
+    inputs_ft, inputs_ang,
+    N_cycles_example, N_cycles_step, N_cycles_to_use,
+    train_val_split, separate_val_files, shuffle_examples, shuffle_seed,
+    save_model, save_results, save_folder, save_filename,
+    X_min, X_max, y_min, y_max, baseline_d, X_baseline, average_window
+):
 
     # %% get the file names to load data from
     file_names, file_labels, file_sets,\
         file_names_train, file_labels_train, file_sets_train,\
-        file_names_val, file_labels_val, file_sets_val,\
-        baseline_file_names_train, baseline_file_names_val, baseline_file_names = \
-        divide_file_names(sets_train, d_train, d_train_labels,
-                          sets_val, d_val, d_val_labels,
-                          baseline_d,
-                          Ro, A_star)
+        file_names_val, file_labels_val, file_sets_val = \
+        divide_file_names(
+            Ro, A_star,
+            sets_train, d_train, d_train_labels,
+            sets_val, d_val, d_val_labels,
+        )
 
     # %% get info about the data
     N_files_all, N_files_train, N_files_val,\
         N_examples, N_examples_train, N_examples_val,\
         N_per_example, N_per_step, N_total, zero_ind,\
         N_inputs, N_inputs_ft, N_inputs_ang = \
-        data_get_info(data_folder,
-                      file_names, file_labels,
-                      file_names_train, file_names_val,
-                      train_val_split, separate_val_files,
-                      N_cycles_example, N_cycles_step, N_cycles_to_use,
-                      inputs_ft, inputs_ang)
+        data_get_info(
+            data_folder,
+            file_names, file_labels,
+            file_names_train, file_names_val,
+            train_val_split, separate_val_files,
+            inputs_ft, inputs_ang,
+            N_cycles_example, N_cycles_step, N_cycles_to_use,
+        )
 
     # %% get training and validation datasets
-    X_train, y_train, X_val, y_val, data_min, data_max = \
-        data_load(data_folder,
-                  file_names, file_labels,
-                  baseline_d, baseline_file_names,
-                  inputs_ft, inputs_ang,
-                  separate_val_files, shuffle_examples, shuffle_seed,
-                  save_model, save_results, save_folder, save_filename,
-                  N_files_all, N_files_train,
-                  N_examples, N_examples_train, N_examples_val,
-                  N_cycles_step, N_per_example, N_total, zero_ind,
-                  N_inputs, N_inputs_ft, N_inputs_ang,
-                  data_min, data_max)
+    X_all, y_all = \
+        data_load(
+            data_folder,
+            file_names, file_labels,
+            inputs_ft, inputs_ang,
+            N_files_all, N_examples,
+            N_cycles_step, N_per_example, N_total, zero_ind,
+            N_inputs, N_inputs_ft, N_inputs_ang
+        )
 
-    # %% reduce sequence length
-    X_train, X_val, N_per_example = \
-        data_shorten_sequence(X_train, X_val, N_per_example, average_window)
+    X_train, y_train, X_val, y_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example = \
+        data_process(
+            X_all, y_all,
+            separate_val_files, shuffle_examples, shuffle_seed,
+            save_model, save_results, save_folder, save_filename,
+            X_min, X_max, y_min, y_max, baseline_d, X_baseline, average_window,
+            N_files_all, N_files_train, N_examples, N_examples_train, N_examples_val,
+            N_inputs, N_inputs_ft, N_inputs_ang, N_per_example
+        )
 
-    return X_train, y_train, X_val, y_val, N_per_example, N_inputs, file_labels, data_min, data_max
+    return X_train, y_train, X_val, y_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example, N_inputs
+
+
+def y_norm_reverse(y, y_min, y_max):
+    return y * (y_max - y_min) + y_min
 
 
 # Transformer stuff
-def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
+def transformer_encoder(
+    inputs, head_size, num_heads, ff_dim, dropout=0
+):
     from tensorflow.keras import layers
 
     # Normalization and Attention
@@ -951,9 +978,11 @@ def transformer_return_model(
     return keras.Model(inputs, outputs)
 
 
-def model_build_transformer_tf(lstm_layers, N_units, epochs_patience, lr,
-                               save_model, model_checkpoint, save_folder, save_filename,
-                               N_per_example, N_inputs):
+def model_build_transformer_tf(
+    lstm_layers, N_units, epochs_patience, lr,
+    save_model, model_checkpoint, save_folder, save_filename,
+    N_per_example, N_inputs
+):
     input_shape = (N_per_example, N_inputs)
 
     model = transformer_return_model(
