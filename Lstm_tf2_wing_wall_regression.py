@@ -9,7 +9,7 @@ def experiment(parameters):
 
     # %%
     # from helper_functions import divide_file_names, data_get_info, data_load, data_shorten_sequence
-    from helper_functions import data_full_process
+    from helper_functions import data_full_process, y_norm_reverse
     # from helper_functions import model_k_fold_tf
     from helper_functions import model_build_tf, model_fit_tf
     from helper_functions import model_predict_tf, model_evaluate_regression_tf
@@ -27,8 +27,8 @@ def experiment(parameters):
 
     # all sets except the ones given in sets_val
     sets_train = [1, 2, 3, 4, 5]
-    [sets_train.remove(set_val) for set_val in sets_val]
-    [sets_train.remove(set_test) for set_test in sets_test]
+    [sets_train.remove(set_val) for set_val in sets_val if set_val in sets_train]
+    [sets_train.remove(set_test) for set_test in sets_test if set_test in sets_train]
 
     # sets_train = [1, 2, 3, 4]
     d_train = [list(range(1, Ro_d_last[Ro] + 1, 3))] * len(sets_train)  # list of all distances from wall for each set
@@ -63,7 +63,7 @@ def experiment(parameters):
     inputs_ang = [0]
     # average_window = 10
 
-    baseline_d = None  # set to None for no baseline
+    baseline_d = 40  # set to None for no baseline
 
     # lstm_layers = 2
     # dense_hidden_layers = 1
@@ -78,7 +78,7 @@ def experiment(parameters):
     save_model = True  # save model file, save last model if model_checkpoint == False
     model_checkpoint = False  # doesn't do anything if save_model == False
     save_results = True
-    save_folder = root_folder + 'plots/2022.02.14_avg_win/'  # include trailing slash
+    save_folder = root_folder + 'plots/2022.02.22_refactor/'  # include trailing slash
     save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_in={}_bl={}_Ne={}_Ns={}_win={}_{}L{}D{}_lr={}_dr={}'.format(
         Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_val),
         ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft),
@@ -86,78 +86,97 @@ def experiment(parameters):
         lstm_layers, dense_hidden_layers, N_units, lr, dropout, recurrent_dropout)
 
     # %% load the data
-    X_train, y_train, X_val, y_val, N_per_example, N_inputs, file_labels, data_min, data_max = \
-        data_full_process(sets_train, d_train, d_train_labels,
-                          sets_val, d_val, d_val_labels,
-                          baseline_d,
-                          Ro, A_star,
-                          inputs_ft, inputs_ang,
-                          None, None,  # no info on min and max data for normalizaton
-                          N_cycles_example, N_cycles_step, N_cycles_to_use, average_window,
-                          train_val_split, separate_val_files, shuffle_examples, shuffle_seed,
-                          data_folder, save_model, save_results, save_folder, save_filename)
+    X_train, y_train, X_val, y_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example, N_inputs = \
+        data_full_process(
+            data_folder, Ro, A_star,
+            sets_train, d_train, d_train_labels,
+            sets_val, d_val, d_val_labels,
+            inputs_ft, inputs_ang,
+            N_cycles_example, N_cycles_step, N_cycles_to_use,
+            train_val_split, separate_val_files, shuffle_examples, shuffle_seed,
+            save_model, save_results, save_folder, save_filename,
+            None, None, None, None, baseline_d, None, average_window
+        )
 
     # %% initialize the model
     model, callbacks_list = \
-        model_build_tf(lstm_layers, dense_hidden_layers, N_units,
-                       epochs_patience, lr, dropout, recurrent_dropout,
-                       save_model, model_checkpoint, save_results,
-                       save_folder, save_filename,
-                       N_per_example, N_inputs)
+        model_build_tf(
+            lstm_layers, dense_hidden_layers, N_units,
+            epochs_patience, lr, dropout, recurrent_dropout,
+            save_model, model_checkpoint, save_results,
+            save_folder, save_filename,
+            N_per_example, N_inputs
+        )
 
     # %% train the model
     model, history = \
-        model_fit_tf(model, callbacks_list, epochs_number,
-                     X_train, y_train, X_val, y_val)
+        model_fit_tf(
+            model, callbacks_list, epochs_number,
+            X_train, y_train, X_val, y_val
+        )
 
     # %% train the model using k-fold CV
     # model, history = \
-    #     model_k_fold_tf(X_train, y_train,
-    #                     lstm_layers, dense_hidden_layers, N_units,
-    #                     lr, epochs_number, epochs_patience, dropout, recurrent_dropout,
-    #                     k_fold_splits, shuffle_seed,
-    #                     save_model, model_checkpoint, save_results,
-    #                     save_folder, save_filename,
-    #                     N_per_example, N_inputs, file_labels)
+    #     model_k_fold_tf(
+    #         X_train, y_train,
+    #         lstm_layers, dense_hidden_layers, N_units,
+    #         lr, epochs_number, epochs_patience, dropout, recurrent_dropout,
+    #         k_fold_splits, shuffle_seed,
+    #         save_model, model_checkpoint, save_results,
+    #         save_folder, save_filename,
+    #         N_per_example, N_inputs, file_labels
+    #     )
 
     # %% load actual test data
-    X_test, y_test, _, _, _, _, _, _, _ = \
-        data_full_process(sets_test, d_test, d_test_labels,
-                          [], [], [],
-                          baseline_d,
-                          Ro, A_star,
-                          inputs_ft, inputs_ang,
-                          data_min, data_max,
-                          N_cycles_example, N_cycles_step, N_cycles_to_use, average_window,
-                          1, True, False, None,
-                          data_folder, False, False, '', '')
+    X_test, y_test, _, _, _, _, _, _, _, _, _ = \
+        data_full_process(
+            data_folder, Ro, A_star,
+            sets_test, d_test, d_test_labels,
+            [], [], [],
+            inputs_ft, inputs_ang,
+            N_cycles_example, N_cycles_step, N_cycles_to_use,
+            1, True, False, None,
+            False, False, False, False,
+            X_min, X_max, y_min, y_max, baseline_d, X_baseline, average_window
+        )
 
     # %% predict on training and testing data using trained model
     yhat_train, yhat_val = \
-        model_predict_tf(model,
-                         save_model, model_checkpoint,
-                         save_folder, save_filename,
-                         X_train, X_val)
-
-    # %% evaluate performance
-    df_val, loss_val_all = \
-        model_evaluate_regression_tf(history,
-                                     y_train, y_val, yhat_train, yhat_val,
-                                     save_results, save_folder, save_filename, 'val',
-                                     file_labels)
+        model_predict_tf(
+            model, save_model, model_checkpoint, save_folder, save_filename,
+            X_train, X_val
+        )
 
     # %% predict on training and testing data using trained model
     yhat_train, yhat_test = \
-        model_predict_tf(model,
-                         False, model_checkpoint,
-                         save_folder, save_filename,
-                         X_train, X_test)
+        model_predict_tf(
+            model, False, model_checkpoint, save_folder, save_filename,
+            X_train, X_test
+        )
+
+    # %% un-normalize y
+    y_train = y_norm_reverse(y_train, y_min, y_max)
+    y_val = y_norm_reverse(y_val, y_min, y_max)
+    y_test = y_norm_reverse(y_test, y_min, y_max)
+
+    yhat_train = y_norm_reverse(yhat_train, y_min, y_max)
+    yhat_val = y_norm_reverse(yhat_val, y_min, y_max)
+    yhat_test = y_norm_reverse(yhat_test, y_min, y_max)
+
+    # %% evaluate performance
+    df_val, loss_val_all = \
+        model_evaluate_regression_tf(
+            history,
+            y_train, y_val, yhat_train, yhat_val,
+            save_results, save_folder, save_filename, 'val'
+        )
 
     # %% evaluate performance
     df_test, loss_test_all = \
-        model_evaluate_regression_tf(history,
-                                     y_train, y_test, yhat_train, yhat_test,
-                                     save_results, save_folder, save_filename, 'test',
-                                     file_labels)
+        model_evaluate_regression_tf(
+            history,
+            y_train, y_test, yhat_train, yhat_test,
+            save_results, save_folder, save_filename, 'test'
+        )
 
 # %%
