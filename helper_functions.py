@@ -288,7 +288,7 @@ def model_lstm_tf(
     lstm_layers, dense_hidden_layers, N_units,
     dropout, recurrent_dropout, N_per_example, N_inputs
 ):
-    activation = 'elu'
+    activation = 'relu'
     model = keras.models.Sequential()  # initialize
 
     # LSTM layers
@@ -297,11 +297,11 @@ def model_lstm_tf(
     else:
         # first LSTM layer
         model.add(keras.layers.LSTM(N_units, input_shape=(N_per_example, N_inputs), recurrent_dropout=recurrent_dropout, return_sequences=True))
-        # model.add(keras.layers.Dense(N_units, activation=activation))
+        model.add(keras.layers.Dense(N_units, activation=activation))
         # middle LSTM layers
         for _ in range(lstm_layers - 2):
             model.add(keras.layers.LSTM(N_units, recurrent_dropout=recurrent_dropout, dropout=dropout, return_sequences=True))
-            # model.add(keras.layers.Dense(N_units, activation=activation))
+            model.add(keras.layers.Dense(N_units, activation=activation))
         # final LSTM layer
         model.add(keras.layers.LSTM(N_units, recurrent_dropout=recurrent_dropout, dropout=dropout))
 

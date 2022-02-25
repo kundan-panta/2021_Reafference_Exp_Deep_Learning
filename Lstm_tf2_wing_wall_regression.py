@@ -23,7 +23,7 @@ def experiment(parameters):
     data_folder = root_folder + 'data/2021.07.28/raw/'  # include trailing slash
     # Ro = 3.5
     # A_star = 2
-    Ro_d_last = {2: 46, 3.5: 43, 5: 40}  # furthest distance from wall for each wing shape
+    Ro_d_last = {2: 40, 3.5: 40, 5: 40}  # furthest distance from wall for each wing shape
 
     # all sets except the ones given in sets_val
     sets_train = [1, 2, 3, 4, 5]
@@ -48,9 +48,9 @@ def experiment(parameters):
         shuffle_examples = False
         shuffle_seed = None
     else:
-        train_val_split = 0.75
+        train_val_split = 0.8
         shuffle_examples = True
-        shuffle_seed = np.random.default_rng().integers(0, high=100)
+        shuffle_seed = np.random.default_rng().integers(0, high=1000)
         # shuffle_seed = 5  # seed to split data in reproducible way
 
     N_cycles_example = 1  # use this number of stroke cycles as 1 example
@@ -63,7 +63,7 @@ def experiment(parameters):
     inputs_ang = [0]
     # average_window = 10
 
-    baseline_d = 40  # set to None for no baseline
+    baseline_d = None  # set to None for no baseline
 
     # lstm_layers = 2
     # dense_hidden_layers = 1
@@ -71,14 +71,14 @@ def experiment(parameters):
     # lr = 0.0002  # learning rate
     # dropout = 0.2
     recurrent_dropout = 0.0
-    epochs_number = 10000  # number of epochs
+    epochs_number = 5000  # number of epochs
     epochs_patience = 10000  # for early stopping, set <0 to disable
     # k_fold_splits = len(sets_train)
 
     save_model = True  # save model file, save last model if model_checkpoint == False
     model_checkpoint = False  # doesn't do anything if save_model == False
     save_results = True
-    save_folder = root_folder + 'plots/2022.02.22_refactor/'  # include trailing slash
+    save_folder = root_folder + 'plots/2022.02.25_dense_mae_relu/'  # include trailing slash
     save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_in={}_bl={}_Ne={}_Ns={}_win={}_{}L{}D{}_lr={}_dr={}'.format(
         Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_val),
         ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft),
@@ -86,7 +86,7 @@ def experiment(parameters):
         lstm_layers, dense_hidden_layers, N_units, lr, dropout, recurrent_dropout)
 
     # %% load the data
-    X_train, y_train, X_val, y_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example, N_inputs = \
+    X_train, y_train, s_train, X_val, y_val, s_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example, N_inputs = \
         data_full_process(
             data_folder, Ro, A_star,
             sets_train, d_train, d_train_labels,
@@ -128,7 +128,7 @@ def experiment(parameters):
     #     )
 
     # %% load actual test data
-    X_test, y_test, _, _, _, _, _, _, _, _, _ = \
+    X_test, y_test, s_test, _, _, _, _, _, _, _, _, _, _ = \
         data_full_process(
             data_folder, Ro, A_star,
             sets_test, d_test, d_test_labels,
@@ -155,9 +155,9 @@ def experiment(parameters):
         )
 
     # %% un-normalize y
-    y_train = y_norm_reverse(y_train, y_min, y_max)
-    y_val = y_norm_reverse(y_val, y_min, y_max)
-    y_test = y_norm_reverse(y_test, y_min, y_max)
+    y_train = np.round(y_norm_reverse(y_train, y_min, y_max))
+    y_val = np.round(y_norm_reverse(y_val, y_min, y_max))
+    y_test = np.round(y_norm_reverse(y_test, y_min, y_max))
 
     yhat_train = y_norm_reverse(yhat_train, y_min, y_max)
     yhat_val = y_norm_reverse(yhat_val, y_min, y_max)
