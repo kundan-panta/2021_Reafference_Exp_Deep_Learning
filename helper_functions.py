@@ -153,7 +153,7 @@ def data_get_info(
 
 def data_load(
     data_folder,
-    file_names, file_labels,
+    file_names, file_labels, file_sets,
     inputs_ft, inputs_ang,
     N_files_all, N_examples,
     N_cycles_step, N_per_example, N_total, zero_ind,
@@ -173,18 +173,20 @@ def data_load(
     # make a new array with examples as the 1st dim
     X_all = np.zeros((N_files_all * N_examples, N_per_example, N_inputs))
     y_all = np.zeros((N_files_all * N_examples))  # , dtype=int)  # all labels
+    s_all = np.zeros((N_files_all * N_examples), dtype=int)  # set of each example
 
     for k in range(N_files_all):
         for i in range(N_examples):
             X_all[k * N_examples + i] = data[k, zero_ind[i * N_cycles_step]: zero_ind[i * N_cycles_step] + N_per_example, :]
         y_all[k * N_examples: (k + 1) * N_examples] = file_labels[k]
+        s_all[k * N_examples: (k + 1) * N_examples] = file_sets[k]
     # y_all = np.eye(N_classes)[y_all]  # one-hot labels
 
-    return X_all, y_all
+    return X_all, y_all, s_all
 
 
 def data_process(
-    X_all, y_all,
+    X_all, y_all, s_all,
     separate_val_files, shuffle_examples, shuffle_seed,
     save_model, save_results, save_folder, save_filename,
     X_min, X_max, y_min, y_max, baseline_d, X_baseline, average_window,
@@ -208,6 +210,7 @@ def data_process(
             permutation = list(np.random.RandomState(seed=shuffle_seed).permutation(N_files_all * N_examples))
         X_all = X_all[permutation]
         y_all = y_all[permutation]
+        s_all = s_all[permutation]
 
     if save_model or save_results:
         Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
@@ -217,8 +220,10 @@ def data_process(
     # %% split data into training and testing sets
     X_train = X_all[:N_files_train * N_examples_train]
     y_train = y_all[:N_files_train * N_examples_train]
+    s_train = s_all[:N_files_train * N_examples_train]
     X_val = X_all[N_files_train * N_examples_train:]
     y_val = y_all[N_files_train * N_examples_train:]
+    s_val = s_all[:N_files_train * N_examples_train]
 
     # %% reduce sequence length
     N_per_example = N_per_example // average_window  # update sequence length
@@ -276,14 +281,14 @@ def data_process(
     y_train = (y_train - y_min) / (y_max - y_min)
     y_val = (y_val - y_min) / (y_max - y_min)
 
-    return X_train, y_train, X_val, y_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example
+    return X_train, y_train, s_train, X_val, y_val, s_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example
 
 
 def model_lstm_tf(
     lstm_layers, dense_hidden_layers, N_units,
     dropout, recurrent_dropout, N_per_example, N_inputs
 ):
-
+    activation = 'elu'
     model = keras.models.Sequential()  # initialize
 
     # LSTM layers
@@ -292,9 +297,11 @@ def model_lstm_tf(
     else:
         # first LSTM layer
         model.add(keras.layers.LSTM(N_units, input_shape=(N_per_example, N_inputs), recurrent_dropout=recurrent_dropout, return_sequences=True))
+        # model.add(keras.layers.Dense(N_units, activation=activation))
         # middle LSTM layers
         for _ in range(lstm_layers - 2):
             model.add(keras.layers.LSTM(N_units, recurrent_dropout=recurrent_dropout, dropout=dropout, return_sequences=True))
+            # model.add(keras.layers.Dense(N_units, activation=activation))
         # final LSTM layer
         model.add(keras.layers.LSTM(N_units, recurrent_dropout=recurrent_dropout, dropout=dropout))
 
@@ -302,7 +309,7 @@ def model_lstm_tf(
     for _ in range(dense_hidden_layers):
         if dropout > 0:
             model.add(keras.layers.Dropout(dropout))
-        model.add(keras.layers.Dense(N_units, activation='elu'))
+        model.add(keras.layers.Dense(N_units, activation=activation))
 
     # Output layer
     if dropout > 0:
@@ -347,7 +354,7 @@ def model_build_tf(
     )
 
     model.compile(
-        loss=keras.losses.LogCosh(),
+        loss=keras.losses.MeanAbsoluteError(),
         optimizer="adam",
         # metrics=["accuracy"],
         # steps_per_execution=100
@@ -460,7 +467,7 @@ def model_evaluate_regression_tf(
     def loss_fn(y, yhat):
         # return loss per sample
         # NOTE: input arrays need to be reshaped into 2D
-        loss_fn_all = keras.losses.LogCosh(reduction='none')
+        loss_fn_all = keras.losses.MeanAbsoluteError(reduction='none')
         return loss_fn_all(np.reshape(y, (-1, 1)), np.reshape(yhat, (-1, 1))).numpy()
 
     for d_index, d in enumerate(d_all_labels):
@@ -904,19 +911,19 @@ def data_full_process(
         )
 
     # %% get training and validation datasets
-    X_all, y_all = \
+    X_all, y_all, s_all = \
         data_load(
             data_folder,
-            file_names, file_labels,
+            file_names, file_labels, file_sets,
             inputs_ft, inputs_ang,
             N_files_all, N_examples,
             N_cycles_step, N_per_example, N_total, zero_ind,
             N_inputs, N_inputs_ft, N_inputs_ang
         )
 
-    X_train, y_train, X_val, y_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example = \
+    X_train, y_train, s_train, X_val, y_val, s_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example = \
         data_process(
-            X_all, y_all,
+            X_all, y_all, s_all,
             separate_val_files, shuffle_examples, shuffle_seed,
             save_model, save_results, save_folder, save_filename,
             X_min, X_max, y_min, y_max, baseline_d, X_baseline, average_window,
@@ -924,7 +931,7 @@ def data_full_process(
             N_inputs, N_inputs_ft, N_inputs_ang, N_per_example
         )
 
-    return X_train, y_train, X_val, y_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example, N_inputs
+    return X_train, y_train, s_train, X_val, y_val, s_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example, N_inputs
 
 
 def y_norm_reverse(y, y_min, y_max):
