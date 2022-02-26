@@ -13,6 +13,7 @@ def divide_file_names(
     Ro, A_star,
     sets_train, d_train, d_train_labels,
     sets_val, d_val, d_val_labels,
+    sets_test, d_test, d_test_labels,
 ):
 
     # test that the sets and distances are assigned correctly
@@ -23,6 +24,10 @@ def divide_file_names(
     assert len(sets_val) == len(d_val)
     for i in range(len(sets_val)):
         assert len(d_val[i]) == len(d_val_labels[i])
+
+    assert len(sets_test) == len(d_test)
+    for i in range(len(sets_test)):
+        assert len(d_test[i]) == len(d_test_labels[i])
 
     # get the file names and labels
     file_names_train = []
@@ -43,39 +48,44 @@ def divide_file_names(
             file_labels_val.append(d_val_labels[s_index][d_index])
             file_sets_val.append(s)
 
-    file_names = file_names_train + file_names_val
-    file_labels = file_labels_train + file_labels_val
-    file_sets = file_sets_train + file_sets_val
+    file_names_test = []
+    file_labels_test = []
+    file_sets_test = []
+    for s_index, s in enumerate(sets_test):
+        for d_index, d in enumerate(d_test[s_index]):
+            file_names_test.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, d))
+            file_labels_test.append(d_test_labels[s_index][d_index])
+            file_sets_test.append(s)
 
-    # baseline file names
-    # baseline_file_names_train = []
-
-    # if baseline_d is not None:
-    #     for s_index, s in enumerate(sets_train):
-    #         baseline_file_names_train.append('Ro={}/A={}/Set={}/d={}'.format(str(Ro), str(A_star), s, baseline_d))
+    file_names = file_names_train + file_names_val + file_names_test
+    file_labels = file_labels_train + file_labels_val + file_labels_test
+    file_sets = file_sets_train + file_sets_val + file_sets_test
 
     return file_names, file_labels, file_sets,\
         file_names_train, file_labels_train, file_sets_train,\
-        file_names_val, file_labels_val, file_sets_val
+        file_names_val, file_labels_val, file_sets_val,\
+        file_names_test, file_labels_test, file_sets_test
 
 
 def data_get_info(
     data_folder,
     file_names, file_labels,
-    file_names_train, file_names_val,
+    # file_names_train, file_names_val,
     train_val_split, separate_val_files,
+    train_test_split, separate_test_files,
     inputs_ft, inputs_ang,
     N_cycles_example, N_cycles_step, N_cycles_to_use,
 ):
 
     # %%
-    N_files_train = len(file_names_train)
-    N_files_val = len(file_names_val)
-    if not(separate_val_files):  # if separate test files are not provided, then we use all the files for both training and testing
-        N_files_val = N_files_train
-    N_files_all = len(file_names)
+    # N_files_train = len(file_names_train)
+    # N_files_val = len(file_names_val)
+    # if not(separate_val_files):  # if separate test files are not provided, then we use all the files for both training and testing
+    #     N_files_val = N_files_train
+    # N_files_all = len(file_names)
 
-    assert len(file_labels) == N_files_all  # makes sure labels are there for all files
+    # assert len(file_labels) == N_files_all  # makes sure labels are there for all files
+    assert len(file_names) == len(file_labels)  # makes sure labels are there for all files
 
     # get stroke cycle period information from one of the files
     t = np.around(np.loadtxt(data_folder + file_names[0] + '/' + 't.csv', delimiter=','), decimals=3)  # round to ms
@@ -123,15 +133,40 @@ def data_get_info(
     assert N_total - zero_ind[0] >= (N_examples - 1) * N_per_step + N_per_example  # last data point used must not exceed total number of data points
 
     # number of training and testing stroke cycles
-    N_examples_train = round(train_val_split * N_examples)
-    if separate_val_files:
+    # N_examples_train = round(train_val_split * N_examples)
+    # if separate_val_files:
+    #     N_examples_val = N_examples
+    # else:
+    #     N_examples_val = N_examples - N_examples_train
+
+    if separate_val_files and separate_test_files:
+        # all sets have their own datasets
+        N_examples_train = N_examples
+        N_examples_test = N_examples
         N_examples_val = N_examples
-    else:
+    elif separate_val_files and not(separate_test_files):
+        N_examples_val = N_examples
+        # split into train and test sets
+        N_examples_train = round(train_test_split * N_examples)
+        N_examples_test = N_examples - N_examples_train
+    elif not(separate_val_files) and separate_test_files:
+        N_examples_test = N_examples
+        # split into train and val sets
+        N_examples_train = round(train_val_split * N_examples)
         N_examples_val = N_examples - N_examples_train
+    elif not(separate_val_files) and not(separate_test_files):
+        # split into train and test sets
+        N_examples_train = round(train_test_split * N_examples)
+        N_examples_test = N_examples - N_examples_train
+        # split further into train and val sets
+        N_examples_train = round(train_val_split * N_examples_train)
+        N_examples_val = N_examples - N_examples_train - N_examples_test
+
+    assert N_examples_train + N_examples_val + N_examples_test == N_examples  # make sure they add up
 
     N_inputs_ft = len(inputs_ft)
     N_inputs_ang = len(inputs_ang)
-    N_inputs = N_inputs_ft + N_inputs_ang  # ft_meas + other inputs
+    N_inputs = N_inputs_ft + N_inputs_ang
 
     # N_classes = len(np.unique(file_labels))
     # assert np.max(file_labels) == N_classes - 1  # check for missing labels in between
@@ -145,25 +180,26 @@ def data_get_info(
     print('Inputs:', N_inputs)
     # print('Clases:', N_classes)
 
-    return N_files_all, N_files_train, N_files_val,\
-        N_examples, N_examples_train, N_examples_val,\
+    # return N_files_all, N_files_train, N_files_val,\
+    return N_examples, N_examples_train, N_examples_val, N_examples_test,\
         N_per_example, N_per_step, N_total, zero_ind,\
-        N_inputs, N_inputs_ft, N_inputs_ang
+        N_inputs, N_inputs_ft, N_inputs_ang, t_s, t_cycle
 
 
 def data_load(
     data_folder,
     file_names, file_labels, file_sets,
     inputs_ft, inputs_ang,
-    N_files_all, N_examples,
-    N_cycles_step, N_per_example, N_total, zero_ind,
+    N_examples, N_cycles_step, N_per_example, N_total, zero_ind,
     N_inputs, N_inputs_ft, N_inputs_ang
 ):
 
-    # %% read all files
-    data = np.zeros((N_files_all, N_total, N_inputs))  # all input data
+    N_files = len(file_names)
 
-    for k in range(N_files_all):
+    # %% read all files
+    data = np.zeros((N_files, N_total, N_inputs))  # all input data
+
+    for k in range(N_files):
         # get data
         data[k, :, :N_inputs_ft] = np.loadtxt(data_folder + file_names[k] + '/ft_meas.csv', delimiter=',')[:, inputs_ft]
         if N_inputs_ang > 0:
@@ -171,11 +207,11 @@ def data_load(
 
     # %% convert the data into examples
     # make a new array with examples as the 1st dim
-    X_all = np.zeros((N_files_all * N_examples, N_per_example, N_inputs))
-    y_all = np.zeros((N_files_all * N_examples))  # , dtype=int)  # all labels
-    s_all = np.zeros((N_files_all * N_examples), dtype=int)  # set of each example
+    X_all = np.zeros((N_files * N_examples, N_per_example, N_inputs))
+    y_all = np.zeros((N_files * N_examples))  # , dtype=int)  # all labels
+    s_all = np.zeros((N_files * N_examples), dtype=int)  # set of each example
 
-    for k in range(N_files_all):
+    for k in range(N_files):
         for i in range(N_examples):
             X_all[k * N_examples + i] = data[k, zero_ind[i * N_cycles_step]: zero_ind[i * N_cycles_step] + N_per_example, :]
         y_all[k * N_examples: (k + 1) * N_examples] = file_labels[k]
@@ -879,9 +915,11 @@ def data_full_process(
     data_folder, Ro, A_star,
     sets_train, d_train, d_train_labels,
     sets_val, d_val, d_val_labels,
+    sets_test, d_test, d_test_labels,
     inputs_ft, inputs_ang,
     N_cycles_example, N_cycles_step, N_cycles_to_use,
-    train_val_split, separate_val_files, shuffle_examples, shuffle_seed,
+    separate_val_files, train_val_split, shuffle_examples, shuffle_seed,
+    separate_test_files, train_test_split,
     save_model, save_results, save_folder, save_filename,
     X_min, X_max, y_min, y_max, baseline_d, X_baseline, average_window
 ):
@@ -889,11 +927,13 @@ def data_full_process(
     # %% get the file names to load data from
     file_names, file_labels, file_sets,\
         file_names_train, file_labels_train, file_sets_train,\
-        file_names_val, file_labels_val, file_sets_val = \
+        file_names_val, file_labels_val, file_sets_val,\
+        file_names_test, file_labels_test, file_sets_test = \
         divide_file_names(
             Ro, A_star,
             sets_train, d_train, d_train_labels,
             sets_val, d_val, d_val_labels,
+            sets_test, d_test, d_test_labels,
         )
 
     # %% get info about the data
@@ -911,31 +951,90 @@ def data_full_process(
         )
 
     # %% get training and validation datasets
-    X_all, y_all, s_all = \
-        data_load(
-            data_folder,
-            file_names, file_labels, file_sets,
-            inputs_ft, inputs_ang,
-            N_files_all, N_examples,
-            N_cycles_step, N_per_example, N_total, zero_ind,
-            N_inputs, N_inputs_ft, N_inputs_ang
-        )
+    # X_all, y_all, s_all = \
+    #     data_load(
+    #         data_folder,
+    #         file_names, file_labels, file_sets,
+    #         inputs_ft, inputs_ang,
+    #         N_files_all, N_examples,
+    #         N_cycles_step, N_per_example, N_total, zero_ind,
+    #         N_inputs, N_inputs_ft, N_inputs_ang
+    #     )
 
-    X_train, y_train, s_train, X_val, y_val, s_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example = \
-        data_process(
-            X_all, y_all, s_all,
-            separate_val_files, shuffle_examples, shuffle_seed,
-            save_model, save_results, save_folder, save_filename,
-            X_min, X_max, y_min, y_max, baseline_d, X_baseline, average_window,
-            N_files_all, N_files_train, N_examples, N_examples_train, N_examples_val,
-            N_inputs, N_inputs_ft, N_inputs_ang, N_per_example
-        )
+    # X_train, y_train, s_train, X_val, y_val, s_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example = \
+    #     data_process(
+    #         X_all, y_all, s_all,
+    #         separate_val_files, shuffle_examples, shuffle_seed,
+    #         save_model, save_results, save_folder, save_filename,
+    #         X_min, X_max, y_min, y_max, baseline_d, X_baseline, average_window,
+    #         N_files_all, N_files_train, N_examples, N_examples_train, N_examples_val,
+    #         N_inputs, N_inputs_ft, N_inputs_ang, N_per_example
+    #     )
+
+    # %% get training, validation, test sets
+    if separate_test_files:
+        X_test, y_test, s_test = \
+            data_load(
+                data_folder,
+                file_names_test, file_labels_test, file_sets_test,
+                inputs_ft, inputs_ang,
+                N_examples, N_cycles_step, N_per_example, N_total, zero_ind,
+                N_inputs, N_inputs_ft, N_inputs_ang
+            )
 
     return X_train, y_train, s_train, X_val, y_val, s_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example, N_inputs
 
 
 def y_norm_reverse(y, y_min, y_max):
     return y * (y_max - y_min) + y_min
+
+
+def data_split(
+    X_all, y_all, s_all,
+    separate_val_files, train_val_split, shuffle_examples, shuffle_seed,
+    N_files_all, N_files_train, N_examples
+):
+    # if separate val or test files not provided, split data into 2 parts
+
+    # number of training and testing stroke cycles
+    N_examples_train = round(train_val_split * N_examples)
+    if separate_val_files:
+        N_examples_val = N_examples
+    else:
+        N_examples_val = N_examples - N_examples_train
+
+    # %% randomize order of data to be split into train and test sets
+    if shuffle_examples:
+        if not(separate_val_files):
+            # shuffle every N_examples examples
+            # then pick the first N_examples_train examples and put it to training set
+            # and the remaining (N_examples_val) examples into the testing set
+            N_examples_train_all = N_files_train * N_examples_train
+            permutation = np.zeros(N_files_all * N_examples, dtype=int)
+            for k in range(N_files_all):  # each file has N_example examples, and everything is in order
+                shuffled = np.array(np.random.RandomState(seed=shuffle_seed + k).permutation(N_examples), dtype=int)
+                permutation[k * N_examples_train:(k + 1) * N_examples_train] = k * N_examples + shuffled[:N_examples_train]
+                permutation[N_examples_train_all + k * N_examples_val:N_examples_train_all + (k + 1) * N_examples_val] = k * N_examples + shuffled[N_examples_train:]
+        else:
+            permutation = list(np.random.RandomState(seed=shuffle_seed).permutation(N_files_all * N_examples))
+        X_all = X_all[permutation]
+        y_all = y_all[permutation]
+        s_all = s_all[permutation]
+
+    if save_model or save_results:
+        Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
+    if (save_model or save_results) and shuffle_examples:
+        np.savetxt(save_folder + save_filename + '/shuffle_seed.txt', [shuffle_seed], fmt='%i')
+
+    # %% split data into training and testing sets
+    X_train = X_all[:N_files_train * N_examples_train]
+    y_train = y_all[:N_files_train * N_examples_train]
+    s_train = s_all[:N_files_train * N_examples_train]
+    X_val = X_all[N_files_train * N_examples_train:]
+    y_val = y_all[N_files_train * N_examples_train:]
+    s_val = s_all[:N_files_train * N_examples_train]
+
+    return X_train, y_train, s_train, X_val, y_val, s_val
 
 
 # Transformer stuff
