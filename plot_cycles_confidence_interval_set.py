@@ -19,7 +19,7 @@ import numpy as np
 # %% design parameters
 root_folder = ''  # include trailing slash
 data_folder = root_folder + 'data/2021.07.28/raw/'  # include trailing slash
-Ro = 3.5
+Ro = 2
 A_star = 2
 Ro_d_last = {2: 46, 3.5: 43, 5: 40}  # furthest distance from wall for each wing shape
 
@@ -61,7 +61,7 @@ inputs_ft = [0, 1, 2, 3, 4, 5]
 inputs_ang = [0]
 average_window = 10
 
-baseline_d = 40  # set to None for no baseline
+baseline_d = None  # set to None for no baseline
 
 lstm_layers = 2
 dense_hidden_layers = 1
@@ -82,18 +82,6 @@ save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_in={}_bl={}_Ne={}_Ns={}_win={}_{}
     ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft),
     baseline_d, N_cycles_example, N_cycles_step, average_window,
     lstm_layers, dense_hidden_layers, N_units, lr, dropout, recurrent_dropout)
-
-# %% For 1 set at a time sets together
-# sets_train = [1, 2, 3, 4, 5]
-# d_train = [list(range(1, 43 + 1, 3))] * 5  # list of all distances from wall for each set
-sets_train_colors = ['rgba(255,0,0,1)', 'rgba(0,255,0,1)', 'rgba(0,0,255,1)', 'rgba(0,255,255,1)', 'rgba(255,255,0,1)', 'rgba(255,0,255,1)']
-sets_train_colors_ci = ['rgba(255,0,0,0.2)', 'rgba(0,255,0,0.2)', 'rgba(0,0,255,0.2)', 'rgba(0,255,255,0.2)', 'rgba(255,255,0,0.2)', 'rgba(255,0,255,0.2)']
-
-layout = go.Layout(
-    # width = 1280,
-    # height = 720
-)
-figs = [go.Figure(layout=layout) for j in range(len(inputs_ft + inputs_ang))]
 
 # %% load the data
 X_train, y_train, s_train, X_val, y_val, s_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example, N_inputs = \
@@ -118,6 +106,18 @@ y_val = np.round(y_norm_reverse(y_val, y_min, y_max))
 t_s = 0.005  # s
 t_s = round(t_s * average_window, 3)  # sample time
 t = np.arange(0, t_s * N_per_example, t_s)
+
+# %% For 1 set at a time sets together
+# sets_train = [1, 2, 3, 4, 5]
+# d_train = [list(range(1, 43 + 1, 3))] * 5  # list of all distances from wall for each set
+sets_train_colors = ['rgba(255,0,0,1)', 'rgba(0,255,0,1)', 'rgba(0,0,255,1)', 'rgba(0,255,255,1)', 'rgba(255,255,0,1)', 'rgba(255,0,255,1)']
+sets_train_colors_ci = ['rgba(255,0,0,0.2)', 'rgba(0,255,0,0.2)', 'rgba(0,0,255,0.2)', 'rgba(0,255,255,0.2)', 'rgba(255,255,0,0.2)', 'rgba(255,0,255,0.2)']
+
+layout = go.Layout(
+    # width = 1280,
+    # height = 720
+)
+figs = [go.Figure(layout=layout) for j in range(len(inputs_ft + inputs_ang))]
 
 # %% Find the average time-series for all examples at a distance
 d_all_labels = np.unique(np.concatenate((y_train, y_val)))  # array of all distances to wall
