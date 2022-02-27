@@ -45,12 +45,23 @@ def experiment(parameters):
     separate_val_files = len(sets_val) > 0
     if separate_val_files:
         train_val_split = 1
-        shuffle_examples = False
+        # shuffle_examples = False
         shuffle_seed = None
     else:
         train_val_split = 0.8
-        shuffle_examples = True
+        # shuffle_examples = True
         shuffle_seed = np.random.default_rng().integers(0, high=1000)
+        # shuffle_seed = 5  # seed to split data in reproducible way
+
+    separate_test_files = len(sets_test) > 0
+    if separate_test_files:
+        train_test_split = 1
+        # shuffle_examples = False
+        # shuffle_seed = None
+    else:
+        train_test_split = 0.8
+        # shuffle_examples = True
+        # shuffle_seed = np.random.default_rng().integers(0, high=1000)
         # shuffle_seed = 5  # seed to split data in reproducible way
 
     N_cycles_example = 1  # use this number of stroke cycles as 1 example
@@ -61,9 +72,11 @@ def experiment(parameters):
 
     inputs_ft = [0, 1, 2, 3, 4, 5]
     inputs_ang = [0]
-    # average_window = 10
 
-    baseline_d = None  # set to None for no baseline
+    norm_X = True
+    norm_Y = True
+    # average_window = 10
+    baseline_d = 40  # set to None for no baseline
 
     # lstm_layers = 2
     # dense_hidden_layers = 1
@@ -78,7 +91,7 @@ def experiment(parameters):
     save_model = True  # save model file, save last model if model_checkpoint == False
     model_checkpoint = False  # doesn't do anything if save_model == False
     save_results = True
-    save_folder = root_folder + 'plots/2022.02.25_dense_mae_relu/'  # include trailing slash
+    save_folder = root_folder + 'plots/2022.02.25_refactor_again/'  # include trailing slash
     save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_in={}_bl={}_Ne={}_Ns={}_win={}_{}L{}D{}_lr={}_dr={}'.format(
         Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_val),
         ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft),
@@ -86,16 +99,22 @@ def experiment(parameters):
         lstm_layers, dense_hidden_layers, N_units, lr, dropout, recurrent_dropout)
 
     # %% load the data
-    X_train, y_train, s_train, X_val, y_val, s_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example, N_inputs = \
+    [X_min, X_max, y_min, y_max, X_baseline] = [None, None, None, None, None]  # initialize
+
+    X_train, y_train, s_train, X_val, y_val, s_val, X_test, y_test, s_test,\
+        X_min, X_max, y_min, y_max, X_baseline, N_per_example, N_inputs, t_s, t_cycle = \
         data_full_process(
             data_folder, Ro, A_star,
             sets_train, d_train, d_train_labels,
             sets_val, d_val, d_val_labels,
+            sets_test, d_test, d_test_labels,
             inputs_ft, inputs_ang,
             N_cycles_example, N_cycles_step, N_cycles_to_use,
-            train_val_split, separate_val_files, shuffle_examples, shuffle_seed,
-            save_model, save_results, save_folder, save_filename,
-            None, None, None, None, baseline_d, None, average_window
+            separate_val_files, train_val_split, shuffle_seed,
+            separate_test_files, train_test_split,
+            save_model, save_folder, save_filename,
+            norm_X, norm_Y, X_min, X_max, y_min, y_max,
+            baseline_d, X_baseline, average_window
         )
 
     # %% initialize the model
@@ -126,19 +145,6 @@ def experiment(parameters):
     #         save_folder, save_filename,
     #         N_per_example, N_inputs, file_labels
     #     )
-
-    # %% load actual test data
-    X_test, y_test, s_test, _, _, _, _, _, _, _, _, _, _ = \
-        data_full_process(
-            data_folder, Ro, A_star,
-            sets_test, d_test, d_test_labels,
-            [], [], [],
-            inputs_ft, inputs_ang,
-            N_cycles_example, N_cycles_step, N_cycles_to_use,
-            1, True, False, None,
-            False, False, False, False,
-            X_min, X_max, y_min, y_max, baseline_d, X_baseline, average_window
-        )
 
     # %% predict on training and testing data using trained model
     yhat_train, yhat_val = \
