@@ -950,7 +950,7 @@ def data_full_process(
             baseline_d, X_baseline, average_window,
             N_inputs, N_inputs_ft, N_inputs_ang, N_per_example_orig
         )
-    X_val, y_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example_new = \
+    X_val, y_val, _, _, _, _, _, _ = \
         data_process(
             X_val, y_val,
             save_model, save_folder, save_filename,
@@ -958,7 +958,7 @@ def data_full_process(
             baseline_d, X_baseline, average_window,
             N_inputs, N_inputs_ft, N_inputs_ang, N_per_example_orig
         )
-    X_test, y_test, X_min, X_max, y_min, y_max, X_baseline, N_per_example_new = \
+    X_test, y_test, _, _, _, _, _, _ = \
         data_process(
             X_test, y_test,
             save_model, save_folder, save_filename,
@@ -1158,7 +1158,7 @@ def data_train_val_test(
 
     print('Training examples per file:', N_examples_train)
     print('Validation examples per file:', N_examples_val)
-    print('Validation examples per file:', N_examples_test)
+    print('Testing examples per file:', N_examples_test)
 
     return X_train, y_train, s_train, X_val, y_val, s_val, X_test, y_test, s_test
 

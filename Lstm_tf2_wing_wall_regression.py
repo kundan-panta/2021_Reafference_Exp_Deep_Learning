@@ -76,7 +76,7 @@ def experiment(parameters):
     norm_X = True
     norm_Y = True
     # average_window = 10
-    baseline_d = 40  # set to None for no baseline
+    baseline_d = None  # set to None for no baseline
 
     # lstm_layers = 2
     # dense_hidden_layers = 1

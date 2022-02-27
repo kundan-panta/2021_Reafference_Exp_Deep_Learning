@@ -74,7 +74,7 @@ inputs_ang = [0]
 norm_X = True
 norm_Y = True
 average_window = 10
-baseline_d = 40  # set to None for no baseline
+baseline_d = None  # set to None for no baseline
 
 lstm_layers = 2
 dense_hidden_layers = 1
@@ -89,7 +89,7 @@ epochs_patience = 10000  # for early stopping, set <0 to disable
 save_model = True  # save model file, save last model if model_checkpoint == False
 model_checkpoint = False  # doesn't do anything if save_model == False
 save_results = True
-save_folder = root_folder + 'plots/2022.02.24_data_plot/'  # include trailing slash
+save_folder = root_folder + 'plots/2022.02.26_data_plot/'  # include trailing slash
 save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_in={}_bl={}_Ne={}_Ns={}_win={}_{}L{}D{}_lr={}_dr={}'.format(
     Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_val),
     ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft),
@@ -142,7 +142,7 @@ layout = go.Layout(
 figs = [go.Figure(layout=layout) for j in range(len(inputs_ft + inputs_ang))]
 
 # %% Find the average time-series for all examples at a distance
-d_all_labels = np.unique(np.concatenate((y_train, y_val)))  # array of all distances to wall
+d_all_labels = np.unique(np.concatenate((y_train, y_val, y_test)))  # array of all distances to wall
 
 for s_index in range(len(sets_train)):
     X_train_set = X_train[s_train == sets_train[s_index]]
