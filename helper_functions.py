@@ -722,11 +722,9 @@ def early_stopping_custom_tf(
     # Base code from https://github.com/keras-team/keras/blob/v2.7.0/keras/callbacks.py
     # Latest commit 9088756 on Sep 17, 2021
 
-    # import numpy as np
-    from tensorflow.keras.callbacks import Callback
     from tensorflow.python.platform import tf_logging as logging
 
-    class EarlyStoppingCustom(Callback):
+    class EarlyStoppingCustom(keras.callbacks.Callback):
         """Stop training when a monitored metric has stopped improving.
 
         Assuming the goal of a training is to minimize the loss. With this, the
