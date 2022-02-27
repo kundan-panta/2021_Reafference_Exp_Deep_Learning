@@ -57,12 +57,11 @@ def divide_file_names(
             file_labels_test.append(d_test_labels[s_index][d_index])
             file_sets_test.append(s)
 
-    file_names = file_names_train + file_names_val + file_names_test
-    file_labels = file_labels_train + file_labels_val + file_labels_test
-    file_sets = file_sets_train + file_sets_val + file_sets_test
+    # file_names = file_names_train + file_names_val + file_names_test
+    # file_labels = file_labels_train + file_labels_val + file_labels_test
+    # file_sets = file_sets_train + file_sets_val + file_sets_test
 
-    return file_names, file_labels, file_sets,\
-        file_names_train, file_labels_train, file_sets_train,\
+    return file_names_train, file_labels_train, file_sets_train,\
         file_names_val, file_labels_val, file_sets_val,\
         file_names_test, file_labels_test, file_sets_test
 
@@ -70,9 +69,6 @@ def divide_file_names(
 def data_get_info(
     data_folder,
     file_names, file_labels,
-    # file_names_train, file_names_val,
-    train_val_split, separate_val_files,
-    train_test_split, separate_test_files,
     inputs_ft, inputs_ang,
     N_cycles_example, N_cycles_step, N_cycles_to_use,
 ):
@@ -139,30 +135,30 @@ def data_get_info(
     # else:
     #     N_examples_val = N_examples - N_examples_train
 
-    if separate_val_files and separate_test_files:
-        # all sets have their own datasets
-        N_examples_train = N_examples
-        N_examples_test = N_examples
-        N_examples_val = N_examples
-    elif separate_val_files and not(separate_test_files):
-        N_examples_val = N_examples
-        # split into train and test sets
-        N_examples_train = round(train_test_split * N_examples)
-        N_examples_test = N_examples - N_examples_train
-    elif not(separate_val_files) and separate_test_files:
-        N_examples_test = N_examples
-        # split into train and val sets
-        N_examples_train = round(train_val_split * N_examples)
-        N_examples_val = N_examples - N_examples_train
-    elif not(separate_val_files) and not(separate_test_files):
-        # split into train and test sets
-        N_examples_train = round(train_test_split * N_examples)
-        N_examples_test = N_examples - N_examples_train
-        # split further into train and val sets
-        N_examples_train = round(train_val_split * N_examples_train)
-        N_examples_val = N_examples - N_examples_train - N_examples_test
+    # if separate_val_files and separate_test_files:
+    #     # all sets have their own datasets
+    #     N_examples_train = N_examples
+    #     N_examples_test = N_examples
+    #     N_examples_val = N_examples
+    # elif separate_val_files and not(separate_test_files):
+    #     N_examples_val = N_examples
+    #     # split into train and test sets
+    #     N_examples_train = round(train_test_split * N_examples)
+    #     N_examples_test = N_examples - N_examples_train
+    # elif not(separate_val_files) and separate_test_files:
+    #     N_examples_test = N_examples
+    #     # split into train and val sets
+    #     N_examples_train = round(train_val_split * N_examples)
+    #     N_examples_val = N_examples - N_examples_train
+    # elif not(separate_val_files) and not(separate_test_files):
+    #     # split into train and test sets
+    #     N_examples_train = round(train_test_split * N_examples)
+    #     N_examples_test = N_examples - N_examples_train
+    #     # split further into train and val sets
+    #     N_examples_train = round(train_val_split * N_examples_train)
+    #     N_examples_val = N_examples - N_examples_train - N_examples_test
 
-    assert N_examples_train + N_examples_val + N_examples_test == N_examples  # make sure they add up
+    # assert N_examples_train + N_examples_val + N_examples_test == N_examples  # make sure they add up
 
     N_inputs_ft = len(inputs_ft)
     N_inputs_ang = len(inputs_ang)
@@ -175,14 +171,14 @@ def data_get_info(
     print('Data points in an example:', N_per_example)
     # print('Unused data points:', N_total - ((N_examples - 1) * N_per_step + N_per_example))  # print number of unused data points
     print('Total examples per file:', N_examples)
-    print('Training examples per file:', N_examples_train)
-    print('Validation examples per file:', N_examples_val)
+    # print('Training examples per file:', N_examples_train)
+    # print('Validation examples per file:', N_examples_val)
     print('Inputs:', N_inputs)
     # print('Clases:', N_classes)
 
     # return N_files_all, N_files_train, N_files_val,\
-    return N_examples, N_examples_train, N_examples_val, N_examples_test,\
-        N_per_example, N_per_step, N_total, zero_ind,\
+    # return N_examples, N_examples_train, N_examples_val, N_examples_test,\
+    return N_examples, N_per_example, N_per_step, N_total, zero_ind,\
         N_inputs, N_inputs_ft, N_inputs_ang, t_s, t_cycle
 
 
@@ -207,78 +203,45 @@ def data_load(
 
     # %% convert the data into examples
     # make a new array with examples as the 1st dim
-    X_all = np.zeros((N_files * N_examples, N_per_example, N_inputs))
-    y_all = np.zeros((N_files * N_examples))  # , dtype=int)  # all labels
-    s_all = np.zeros((N_files * N_examples), dtype=int)  # set of each example
+    X = np.zeros((N_files * N_examples, N_per_example, N_inputs))
+    y = np.zeros((N_files * N_examples))  # , dtype=int)  # all labels
+    s = np.zeros((N_files * N_examples), dtype=int)  # set of each example
 
     for k in range(N_files):
         for i in range(N_examples):
-            X_all[k * N_examples + i] = data[k, zero_ind[i * N_cycles_step]: zero_ind[i * N_cycles_step] + N_per_example, :]
-        y_all[k * N_examples: (k + 1) * N_examples] = file_labels[k]
-        s_all[k * N_examples: (k + 1) * N_examples] = file_sets[k]
-    # y_all = np.eye(N_classes)[y_all]  # one-hot labels
+            X[k * N_examples + i] = data[k, zero_ind[i * N_cycles_step]: zero_ind[i * N_cycles_step] + N_per_example, :]
+        y[k * N_examples: (k + 1) * N_examples] = file_labels[k]
+        s[k * N_examples: (k + 1) * N_examples] = file_sets[k]
+    # y = np.eye(N_classes)[y]  # one-hot labels
 
-    return X_all, y_all, s_all
+    return X, y, s
 
 
 def data_process(
-    X_all, y_all, s_all,
-    separate_val_files, shuffle_examples, shuffle_seed,
-    save_model, save_results, save_folder, save_filename,
-    X_min, X_max, y_min, y_max, baseline_d, X_baseline, average_window,
-    N_files_all, N_files_train, N_examples, N_examples_train, N_examples_val,
+    X, y,
+    save_model, save_folder, save_filename,
+    norm_X, norm_Y, X_min, X_max, y_min, y_max,
+    baseline_d, X_baseline, average_window,
     N_inputs, N_inputs_ft, N_inputs_ang, N_per_example
 ):
-
-    # %% randomize order of data to be split into train and test sets
-    if shuffle_examples:
-        if not(separate_val_files):
-            # shuffle every N_examples examples
-            # then pick the first N_examples_train examples and put it to training set
-            # and the remaining (N_examples_val) examples into the testing set
-            N_examples_train_all = N_files_train * N_examples_train
-            permutation = np.zeros(N_files_all * N_examples, dtype=int)
-            for k in range(N_files_all):  # each file has N_example examples, and everything is in order
-                shuffled = np.array(np.random.RandomState(seed=shuffle_seed + k).permutation(N_examples), dtype=int)
-                permutation[k * N_examples_train:(k + 1) * N_examples_train] = k * N_examples + shuffled[:N_examples_train]
-                permutation[N_examples_train_all + k * N_examples_val:N_examples_train_all + (k + 1) * N_examples_val] = k * N_examples + shuffled[N_examples_train:]
-        else:
-            permutation = list(np.random.RandomState(seed=shuffle_seed).permutation(N_files_all * N_examples))
-        X_all = X_all[permutation]
-        y_all = y_all[permutation]
-        s_all = s_all[permutation]
-
-    if save_model or save_results:
-        Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
-    if (save_model or save_results) and shuffle_examples:
-        np.savetxt(save_folder + save_filename + '/shuffle_seed.txt', [shuffle_seed], fmt='%i')
-
-    # %% split data into training and testing sets
-    X_train = X_all[:N_files_train * N_examples_train]
-    y_train = y_all[:N_files_train * N_examples_train]
-    s_train = s_all[:N_files_train * N_examples_train]
-    X_val = X_all[N_files_train * N_examples_train:]
-    y_val = y_all[N_files_train * N_examples_train:]
-    s_val = s_all[:N_files_train * N_examples_train]
+    if X.size <= 0:
+        return X, y, X_min, X_max, y_min, y_max, X_baseline, N_per_example
 
     # %% reduce sequence length
     N_per_example = N_per_example // average_window  # update sequence length
 
     # cut out last data points so the number of data points is divisible by average_window
-    X_train = X_train[:, 0:N_per_example * average_window, :]
-    X_val = X_val[:, 0:N_per_example * average_window, :]
+    X = X[:, 0:N_per_example * average_window, :]
 
     # reshape the time series so mean can be taken for consecutive average_window time steps
-    X_train = X_train.reshape(X_train.shape[0], -1, average_window, X_train.shape[2]).mean(axis=2)
-    if X_val.size > 0:
-        X_val = X_val.reshape(X_val.shape[0], -1, average_window, X_val.shape[2]).mean(axis=2)
+    X = X.reshape(X.shape[0], -1, average_window, X.shape[2]).mean(axis=2)
 
     print('Data points in an example after averaging:', N_per_example)
 
     # %% subtract baseline if specified
     if baseline_d is not None:
         if X_baseline is None:  # get X_baseline if not given
-            X_baseline = X_train[y_train == baseline_d]
+            X_baseline = X[y == baseline_d]
             X_baseline = np.mean(X_baseline, axis=0, keepdims=True)
 
             if N_inputs_ang > 0:
@@ -286,38 +249,46 @@ def data_process(
 
             # save the newly calculated baseline
             if save_model:
+                Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
                 np.savetxt(save_folder + save_filename + '/X_baseline.txt', np.squeeze(X_baseline))
 
         X_baseline = np.reshape(X_baseline, (1, N_per_example, N_inputs))
 
-        X_train -= X_baseline
-        if X_val.size > 0:  # in case X_val is empty
-            X_val -= X_baseline
+        X -= X_baseline
 
     # %% normalize
-    if X_min is None or X_max is None or y_min is None or y_max is None:  # if not given, find it
-        X_min = np.min(X_train, axis=(0, 1), keepdims=True)
-        X_max = np.max(X_train, axis=(0, 1), keepdims=True)
-        y_min = np.min(y_train)
-        y_max = np.max(y_train)
-    # reshape to make sure shape is correct
-    X_min = np.reshape(X_min, (1, 1, -1))
-    X_max = np.reshape(X_max, (1, 1, -1))
+    if norm_X:
+        if X_min is None or X_max is None:  # if not given, find it
+            X_min = np.min(X, axis=(0, 1), keepdims=True)
+            X_max = np.max(X, axis=(0, 1), keepdims=True)
+        # reshape to make sure shape is correct
+        X_min = np.reshape(X_min, (1, 1, -1))
+        X_max = np.reshape(X_max, (1, 1, -1))
 
-    # save the min and max values used for normalization of the data
-    if save_model:
-        np.savetxt(save_folder + save_filename + '/X_min.txt', np.squeeze(X_min))
-        np.savetxt(save_folder + save_filename + '/X_max.txt', np.squeeze(X_max))
-        np.savetxt(save_folder + save_filename + '/y_min.txt', [y_min])
-        np.savetxt(save_folder + save_filename + '/y_max.txt', [y_max])
+        # save the min and max values used for normalization of the data
+        if save_model:
+            Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
+            np.savetxt(save_folder + save_filename + '/X_min.txt', np.squeeze(X_min))
+            np.savetxt(save_folder + save_filename + '/X_max.txt', np.squeeze(X_max))
 
-    # put in range [0, 1]
-    X_train = (X_train - X_min) / (X_max - X_min)
-    X_val = (X_val - X_min) / (X_max - X_min)
-    y_train = (y_train - y_min) / (y_max - y_min)
-    y_val = (y_val - y_min) / (y_max - y_min)
+        # put in range [0, 1]
+        X = (X - X_min) / (X_max - X_min)
 
-    return X_train, y_train, s_train, X_val, y_val, s_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example
+    if norm_Y:
+        if y_min is None or y_max is None:  # if not given, find it
+            y_min = np.min(y)
+            y_max = np.max(y)
+
+        # save the min and max values used for normalization of the data
+        if save_model:
+            Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
+            np.savetxt(save_folder + save_filename + '/y_min.txt', [y_min])
+            np.savetxt(save_folder + save_filename + '/y_max.txt', [y_max])
+
+        # put in range [0, 1]
+        y = (y - y_min) / (y_max - y_min)
+
+    return X, y, X_min, X_max, y_min, y_max, X_baseline, N_per_example
 
 
 def model_lstm_tf(
@@ -388,6 +359,17 @@ def model_build_tf(
         lstm_layers, dense_hidden_layers, N_units,
         dropout, recurrent_dropout, N_per_example, N_inputs
     )
+
+    # model = model_transformer_tf(
+    #     input_shape=(N_per_example, N_inputs),
+    #     head_size=4,
+    #     num_heads=4,
+    #     ff_dim=4,  # PROBABLY CHANGE THIS TO 1 OR GET RID OF THE CONV1D LAYER
+    #     num_transformer_blocks=lstm_layers,
+    #     mlp_units=[N_units],
+    #     mlp_dropout=0,
+    #     dropout=0,
+    # )
 
     model.compile(
         loss=keras.losses.MeanAbsoluteError(),
@@ -611,7 +593,7 @@ def model_evaluate_regression_tf(
 
     plt.xlim(0, 50)
 
-    # loss over time
+    # loss over training
     fig_loss_training = plt.figure()
     plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])
@@ -918,15 +900,15 @@ def data_full_process(
     sets_test, d_test, d_test_labels,
     inputs_ft, inputs_ang,
     N_cycles_example, N_cycles_step, N_cycles_to_use,
-    separate_val_files, train_val_split, shuffle_examples, shuffle_seed,
+    separate_val_files, train_val_split, shuffle_seed,
     separate_test_files, train_test_split,
-    save_model, save_results, save_folder, save_filename,
-    X_min, X_max, y_min, y_max, baseline_d, X_baseline, average_window
+    save_model, save_folder, save_filename,
+    norm_X, norm_Y, X_min, X_max, y_min, y_max,
+    baseline_d, X_baseline, average_window
 ):
 
     # %% get the file names to load data from
-    file_names, file_labels, file_sets,\
-        file_names_train, file_labels_train, file_sets_train,\
+    file_names_train, file_labels_train, file_sets_train,\
         file_names_val, file_labels_val, file_sets_val,\
         file_names_test, file_labels_test, file_sets_test = \
         divide_file_names(
@@ -937,42 +919,181 @@ def data_full_process(
         )
 
     # %% get info about the data
-    N_files_all, N_files_train, N_files_val,\
-        N_examples, N_examples_train, N_examples_val,\
-        N_per_example, N_per_step, N_total, zero_ind,\
-        N_inputs, N_inputs_ft, N_inputs_ang = \
+    N_examples, N_per_example_orig, N_per_step, N_total, zero_ind,\
+        N_inputs, N_inputs_ft, N_inputs_ang, t_s, t_cycle = \
         data_get_info(
             data_folder,
-            file_names, file_labels,
-            file_names_train, file_names_val,
-            train_val_split, separate_val_files,
+            file_names_train, file_labels_train,
             inputs_ft, inputs_ang,
             N_cycles_example, N_cycles_step, N_cycles_to_use,
         )
 
     # %% get training and validation datasets
-    # X_all, y_all, s_all = \
-    #     data_load(
-    #         data_folder,
-    #         file_names, file_labels, file_sets,
-    #         inputs_ft, inputs_ang,
-    #         N_files_all, N_examples,
-    #         N_cycles_step, N_per_example, N_total, zero_ind,
-    #         N_inputs, N_inputs_ft, N_inputs_ang
-    #     )
+    X_train, y_train, s_train, X_val, y_val, s_val, X_test, y_test, s_test = \
+        data_train_val_test(
+            data_folder,
+            file_names_train, file_labels_train, file_sets_train,
+            file_names_val, file_labels_val, file_sets_val,
+            file_names_test, file_labels_test, file_sets_test,
+            inputs_ft, inputs_ang,
+            N_examples, N_cycles_step, N_per_example_orig, N_total, zero_ind,
+            N_inputs, N_inputs_ft, N_inputs_ang,
+            separate_val_files, train_val_split,
+            separate_test_files, train_test_split,
+            shuffle_seed, save_model, save_folder, save_filename
+        )
 
-    # X_train, y_train, s_train, X_val, y_val, s_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example = \
-    #     data_process(
-    #         X_all, y_all, s_all,
-    #         separate_val_files, shuffle_examples, shuffle_seed,
-    #         save_model, save_results, save_folder, save_filename,
-    #         X_min, X_max, y_min, y_max, baseline_d, X_baseline, average_window,
-    #         N_files_all, N_files_train, N_examples, N_examples_train, N_examples_val,
-    #         N_inputs, N_inputs_ft, N_inputs_ang, N_per_example
-    #     )
+    # %% pre-processing
+    X_train, y_train, X_min, X_max, y_min, y_max, X_baseline, N_per_example_new = \
+        data_process(
+            X_train, y_train,
+            save_model, save_folder, save_filename,
+            norm_X, norm_Y, X_min, X_max, y_min, y_max,
+            baseline_d, X_baseline, average_window,
+            N_inputs, N_inputs_ft, N_inputs_ang, N_per_example_orig
+        )
+    X_val, y_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example_new = \
+        data_process(
+            X_val, y_val,
+            save_model, save_folder, save_filename,
+            norm_X, norm_Y, X_min, X_max, y_min, y_max,
+            baseline_d, X_baseline, average_window,
+            N_inputs, N_inputs_ft, N_inputs_ang, N_per_example_orig
+        )
+    X_test, y_test, X_min, X_max, y_min, y_max, X_baseline, N_per_example_new = \
+        data_process(
+            X_test, y_test,
+            save_model, save_folder, save_filename,
+            norm_X, norm_Y, X_min, X_max, y_min, y_max,
+            baseline_d, X_baseline, average_window,
+            N_inputs, N_inputs_ft, N_inputs_ang, N_per_example_orig
+        )
 
-    # %% get training, validation, test sets
-    if separate_test_files:
+    return X_train, y_train, s_train, X_val, y_val, s_val, X_test, y_test, s_test,\
+        X_min, X_max, y_min, y_max, X_baseline, N_per_example_new, N_inputs, t_s, t_cycle
+
+
+def y_norm_reverse(y, y_min, y_max):
+    return y * (y_max - y_min) + y_min
+
+
+def data_split(
+    X_all, y_all, s_all,
+    train_val_split, shuffle_seed, N_files, N_examples,
+    save_model, save_folder, save_filename
+):
+    # if separate val or test files not provided, split data into 2 parts
+    assert shuffle_seed is not None
+
+    N_examples_train = round(train_val_split * N_examples)
+    N_examples_val = N_examples - N_examples_train
+
+    # %% randomize order of data to be split into train and test sets
+    # shuffle every N_examples examples
+    # then pick the first N_examples_train examples and put it to training set
+    # and the remaining (N_examples_val) examples into the testing set
+    N_examples_all = N_files * N_examples_train
+    permutation = np.zeros(N_files * N_examples, dtype=int)
+    for k in range(N_files):  # each file has N_example examples, and everything is in order
+        shuffled = np.array(np.random.RandomState(seed=shuffle_seed + k).permutation(N_examples), dtype=int)
+        permutation[k * N_examples_train:(k + 1) * N_examples_train] = k * N_examples + shuffled[:N_examples_train]
+        permutation[N_examples_all + k * N_examples_val:N_examples_all + (k + 1) * N_examples_val] = k * N_examples + shuffled[N_examples_train:]
+
+    X_all = X_all[permutation]
+    y_all = y_all[permutation]
+    s_all = s_all[permutation]
+
+    # %% split data into training and testing sets
+    X_train = X_all[:N_files * N_examples_train]
+    y_train = y_all[:N_files * N_examples_train]
+    s_train = s_all[:N_files * N_examples_train]
+    X_val = X_all[N_files * N_examples_train:]
+    y_val = y_all[N_files * N_examples_train:]
+    s_val = s_all[N_files * N_examples_train:]
+
+    if save_model:
+        Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
+        np.savetxt(save_folder + save_filename + '/shuffle_seed.txt', [shuffle_seed], fmt='%i')
+
+    return X_train, y_train, s_train, N_examples_train, X_val, y_val, s_val, N_examples_val
+
+
+def data_train_val_test(
+    data_folder,
+    file_names_train, file_labels_train, file_sets_train,
+    file_names_val, file_labels_val, file_sets_val,
+    file_names_test, file_labels_test, file_sets_test,
+    inputs_ft, inputs_ang,
+    N_examples, N_cycles_step, N_per_example, N_total, zero_ind,
+    N_inputs, N_inputs_ft, N_inputs_ang,
+    separate_val_files, train_val_split,
+    separate_test_files, train_test_split,
+    shuffle_seed, save_model, save_folder, save_filename
+):
+    # %% get training, validation, test sets for 4 different cases:
+    if separate_val_files and separate_test_files:
+        # all sets have their own datasets
+        X_train, y_train, s_train = \
+            data_load(
+                data_folder,
+                file_names_train, file_labels_train, file_sets_train,
+                inputs_ft, inputs_ang,
+                N_examples, N_cycles_step, N_per_example, N_total, zero_ind,
+                N_inputs, N_inputs_ft, N_inputs_ang
+            )
+        X_val, y_val, s_val = \
+            data_load(
+                data_folder,
+                file_names_val, file_labels_val, file_sets_val,
+                inputs_ft, inputs_ang,
+                N_examples, N_cycles_step, N_per_example, N_total, zero_ind,
+                N_inputs, N_inputs_ft, N_inputs_ang
+            )
+        X_test, y_test, s_test = \
+            data_load(
+                data_folder,
+                file_names_test, file_labels_test, file_sets_test,
+                inputs_ft, inputs_ang,
+                N_examples, N_cycles_step, N_per_example, N_total, zero_ind,
+                N_inputs, N_inputs_ft, N_inputs_ang
+            )
+        [N_examples_train, N_examples_val, N_examples_test] = [N_examples] * 3
+
+    elif separate_val_files and not(separate_test_files):
+        X_val, y_val, s_val = \
+            data_load(
+                data_folder,
+                file_names_val, file_labels_val, file_sets_val,
+                inputs_ft, inputs_ang,
+                N_examples, N_cycles_step, N_per_example, N_total, zero_ind,
+                N_inputs, N_inputs_ft, N_inputs_ang
+            )
+
+        N_examples_val = N_examples
+
+        # split into train and test sets
+        file_names = file_names_train + file_names_test
+        file_labels = file_labels_train + file_labels_test
+        file_sets = file_sets_train + file_sets_test
+        N_files = len(file_names)
+
+        X_all, y_all, s_all = \
+            data_load(
+                data_folder,
+                file_names, file_labels, file_sets,
+                inputs_ft, inputs_ang,
+                N_examples, N_cycles_step, N_per_example, N_total, zero_ind,
+                N_inputs, N_inputs_ft, N_inputs_ang
+            )
+
+        X_train, y_train, s_train, N_examples_train, X_test, y_test, s_test, N_examples_test = \
+            data_split(
+                X_all, y_all, s_all,
+                train_test_split, shuffle_seed, N_files, N_examples,
+                save_model, save_folder, save_filename
+            )
+
+    elif not(separate_val_files) and separate_test_files:
         X_test, y_test, s_test = \
             data_load(
                 data_folder,
@@ -982,84 +1103,91 @@ def data_full_process(
                 N_inputs, N_inputs_ft, N_inputs_ang
             )
 
-    return X_train, y_train, s_train, X_val, y_val, s_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example, N_inputs
+        N_examples_test = N_examples
 
+        # split into train and val sets
+        file_names = file_names_train + file_names_val
+        file_labels = file_labels_train + file_labels_val
+        file_sets = file_sets_train + file_sets_val
+        N_files = len(file_names)
 
-def y_norm_reverse(y, y_min, y_max):
-    return y * (y_max - y_min) + y_min
+        X_all, y_all, s_all = \
+            data_load(
+                data_folder,
+                file_names, file_labels, file_sets,
+                inputs_ft, inputs_ang,
+                N_examples, N_cycles_step, N_per_example, N_total, zero_ind,
+                N_inputs, N_inputs_ft, N_inputs_ang
+            )
 
+        X_train, y_train, s_train, N_examples_train, X_val, y_val, s_val, N_examples_val = \
+            data_split(
+                X_all, y_all, s_all,
+                train_val_split, shuffle_seed, N_files, N_examples,
+                save_model, save_folder, save_filename
+            )
 
-def data_split(
-    X_all, y_all, s_all,
-    separate_val_files, train_val_split, shuffle_examples, shuffle_seed,
-    N_files_all, N_files_train, N_examples
-):
-    # if separate val or test files not provided, split data into 2 parts
+    elif not(separate_val_files) and not(separate_test_files):
+        file_names = file_names_train + file_names_val + file_names_test
+        file_labels = file_labels_train + file_labels_val + file_labels_test
+        file_sets = file_sets_train + file_sets_val + file_sets_test
+        N_files = len(file_names)
 
-    # number of training and testing stroke cycles
-    N_examples_train = round(train_val_split * N_examples)
-    if separate_val_files:
-        N_examples_val = N_examples
-    else:
-        N_examples_val = N_examples - N_examples_train
+        X_all, y_all, s_all = \
+            data_load(
+                data_folder,
+                file_names, file_labels, file_sets,
+                inputs_ft, inputs_ang,
+                N_examples, N_cycles_step, N_per_example, N_total, zero_ind,
+                N_inputs, N_inputs_ft, N_inputs_ang
+            )
 
-    # %% randomize order of data to be split into train and test sets
-    if shuffle_examples:
-        if not(separate_val_files):
-            # shuffle every N_examples examples
-            # then pick the first N_examples_train examples and put it to training set
-            # and the remaining (N_examples_val) examples into the testing set
-            N_examples_train_all = N_files_train * N_examples_train
-            permutation = np.zeros(N_files_all * N_examples, dtype=int)
-            for k in range(N_files_all):  # each file has N_example examples, and everything is in order
-                shuffled = np.array(np.random.RandomState(seed=shuffle_seed + k).permutation(N_examples), dtype=int)
-                permutation[k * N_examples_train:(k + 1) * N_examples_train] = k * N_examples + shuffled[:N_examples_train]
-                permutation[N_examples_train_all + k * N_examples_val:N_examples_train_all + (k + 1) * N_examples_val] = k * N_examples + shuffled[N_examples_train:]
-        else:
-            permutation = list(np.random.RandomState(seed=shuffle_seed).permutation(N_files_all * N_examples))
-        X_all = X_all[permutation]
-        y_all = y_all[permutation]
-        s_all = s_all[permutation]
+        # split into train and test sets
+        X_train, y_train, s_train, N_examples_train, X_test, y_test, s_test, N_examples_test = \
+            data_split(
+                X_all, y_all, s_all,
+                train_test_split, shuffle_seed, N_files, N_examples,
+                save_model, save_folder, save_filename
+            )
 
-    if save_model or save_results:
-        Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
-    if (save_model or save_results) and shuffle_examples:
-        np.savetxt(save_folder + save_filename + '/shuffle_seed.txt', [shuffle_seed], fmt='%i')
+        # split further into train and val sets
+        X_train, y_train, s_train, N_examples_train, X_val, y_val, s_val, N_examples_val = \
+            data_split(
+                X_train, y_train, s_train,
+                train_val_split, shuffle_seed, N_files, N_examples_train,
+                save_model, save_folder, save_filename
+            )
 
-    # %% split data into training and testing sets
-    X_train = X_all[:N_files_train * N_examples_train]
-    y_train = y_all[:N_files_train * N_examples_train]
-    s_train = s_all[:N_files_train * N_examples_train]
-    X_val = X_all[N_files_train * N_examples_train:]
-    y_val = y_all[N_files_train * N_examples_train:]
-    s_val = s_all[:N_files_train * N_examples_train]
+    print('Training examples per file:', N_examples_train)
+    print('Validation examples per file:', N_examples_val)
+    print('Validation examples per file:', N_examples_test)
 
-    return X_train, y_train, s_train, X_val, y_val, s_val
+    return X_train, y_train, s_train, X_val, y_val, s_val, X_test, y_test, s_test
 
 
 # Transformer stuff
 def transformer_encoder(
     inputs, head_size, num_heads, ff_dim, dropout=0
 ):
-    from tensorflow.keras import layers
+    # from tensorflow.keras import layers
 
     # Normalization and Attention
-    x = layers.LayerNormalization(epsilon=1e-6)(inputs)
-    x = layers.MultiHeadAttention(
+    x = keras.layers.LayerNormalization(epsilon=1e-6)(inputs)
+    x = keras.layers.MultiHeadAttention(
         key_dim=head_size, num_heads=num_heads, dropout=dropout
     )(x, x)
-    x = layers.Dropout(dropout)(x)
+    x = keras.layers.Dropout(dropout)(x)
     res = x + inputs
 
     # Feed Forward Part
-    x = layers.LayerNormalization(epsilon=1e-6)(res)
-    x = layers.Conv1D(filters=ff_dim, kernel_size=1, activation="relu")(x)
-    x = layers.Dropout(dropout)(x)
-    x = layers.Conv1D(filters=inputs.shape[-1], kernel_size=1)(x)
+    x = keras.layers.LayerNormalization(epsilon=1e-6)(res)
+    x = keras.layers.Conv1D(filters=ff_dim, kernel_size=1, activation="relu")(x)
+    x = keras.layers.Dropout(dropout)(x)
+    x = keras.layers.Conv1D(filters=inputs.shape[-1], kernel_size=1)(x)
     return x + res
 
 
-def transformer_return_model(
+def model_transformer_tf(
     input_shape,
     head_size,
     num_heads,
@@ -1069,18 +1197,18 @@ def transformer_return_model(
     dropout=0,
     mlp_dropout=0,
 ):
-    from tensorflow.keras import layers
+    # from tensorflow.keras import layers
 
     inputs = keras.Input(shape=input_shape)
     x = inputs
     for _ in range(num_transformer_blocks):
         x = transformer_encoder(x, head_size, num_heads, ff_dim, dropout)
 
-    x = layers.GlobalAveragePooling1D(data_format="channels_last")(x)
+    x = keras.layers.GlobalAveragePooling1D(data_format="channels_last")(x)
     for dim in mlp_units:
-        x = layers.Dense(dim, activation="relu")(x)
-        x = layers.Dropout(mlp_dropout)(x)
-    outputs = layers.Dense(1)(x)
+        x = keras.layers.Dense(dim, activation="relu")(x)
+        x = keras.layers.Dropout(mlp_dropout)(x)
+    outputs = keras.layers.Dense(1)(x)
     return keras.Model(inputs, outputs)
 
 
@@ -1091,7 +1219,7 @@ def model_build_transformer_tf(
 ):
     input_shape = (N_per_example, N_inputs)
 
-    model = transformer_return_model(
+    model = model_transformer_tf(
         input_shape,
         head_size=4,
         num_heads=4,
