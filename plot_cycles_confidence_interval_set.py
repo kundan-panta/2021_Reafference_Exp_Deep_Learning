@@ -43,12 +43,23 @@ d_test_labels = d_test
 separate_val_files = len(sets_val) > 0
 if separate_val_files:
     train_val_split = 1
-    shuffle_examples = False
+    # shuffle_examples = False
     shuffle_seed = None
 else:
-    train_val_split = 1
-    shuffle_examples = False
-    shuffle_seed = None
+    train_val_split = 0.8
+    # shuffle_examples = True
+    shuffle_seed = np.random.default_rng().integers(0, high=1000)
+    # shuffle_seed = 5  # seed to split data in reproducible way
+
+separate_test_files = len(sets_test) > 0
+if separate_test_files:
+    train_test_split = 1
+    # shuffle_examples = False
+    # shuffle_seed = None
+else:
+    train_test_split = 0.8
+    # shuffle_examples = True
+    # shuffle_seed = np.random.default_rng().integers(0, high=1000)
     # shuffle_seed = 5  # seed to split data in reproducible way
 
 N_cycles_example = 1  # use this number of stroke cycles as 1 example
@@ -59,9 +70,11 @@ N_cycles_to_use = 14
 
 inputs_ft = [0, 1, 2, 3, 4, 5]
 inputs_ang = [0]
-average_window = 10
 
-baseline_d = None  # set to None for no baseline
+norm_X = True
+norm_Y = True
+average_window = 10
+baseline_d = 40  # set to None for no baseline
 
 lstm_layers = 2
 dense_hidden_layers = 1
@@ -69,7 +82,7 @@ N_units = 16  # number of lstm cells of each lstm layer
 lr = 0.0002  # learning rate
 dropout = 0.2
 recurrent_dropout = 0.0
-epochs_number = 10000  # number of epochs
+epochs_number = 5000  # number of epochs
 epochs_patience = 10000  # for early stopping, set <0 to disable
 # k_fold_splits = len(sets_train)
 
@@ -84,26 +97,35 @@ save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_in={}_bl={}_Ne={}_Ns={}_win={}_{}
     lstm_layers, dense_hidden_layers, N_units, lr, dropout, recurrent_dropout)
 
 # %% load the data
-X_train, y_train, s_train, X_val, y_val, s_val, X_min, X_max, y_min, y_max, X_baseline, N_per_example, N_inputs = \
+train_val_split = 1
+train_test_split = 1
+[X_min, X_max, y_min, y_max, X_baseline] = [None, None, None, None, None]  # initialize
+
+X_train, y_train, s_train, X_val, y_val, s_val, X_test, y_test, s_test,\
+    X_min, X_max, y_min, y_max, X_baseline, N_per_example, N_inputs, t_s, t_cycle = \
     data_full_process(
         data_folder, Ro, A_star,
         sets_train, d_train, d_train_labels,
         sets_val, d_val, d_val_labels,
+        sets_test, d_test, d_test_labels,
         inputs_ft, inputs_ang,
         N_cycles_example, N_cycles_step, N_cycles_to_use,
-        train_val_split, separate_val_files, shuffle_examples, shuffle_seed,
-        save_model, save_results, save_folder, save_filename,
-        None, None, None, None, baseline_d, None, average_window
+        separate_val_files, train_val_split, shuffle_seed,
+        separate_test_files, train_test_split,
+        save_model, save_folder, save_filename,
+        norm_X, norm_Y, X_min, X_max, y_min, y_max,
+        baseline_d, X_baseline, average_window
     )
 
 # %% un-normalize y
 y_train = np.round(y_norm_reverse(y_train, y_min, y_max))
 y_val = np.round(y_norm_reverse(y_val, y_min, y_max))
+y_test = np.round(y_norm_reverse(y_test, y_min, y_max))
 
 # %% fix time length
 # t = np.around(np.loadtxt(data_folder + file_names[0] + '/t.csv', delimiter=','), decimals=3)  # round to ms
 # t_s = round(t[1] - t[0], 3)  # sample time
-t_s = 0.005  # s
+# t_s = 0.005  # s
 t_s = round(t_s * average_window, 3)  # sample time
 t = np.arange(0, t_s * N_per_example, t_s)
 
