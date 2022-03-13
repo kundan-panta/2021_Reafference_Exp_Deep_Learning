@@ -220,12 +220,12 @@ def data_load(
 def data_process(
     X, y,
     save_model, save_folder, save_filename,
-    norm_X, norm_y, X_min, X_max, y_mean, y_std,
+    norm_X, norm_y, X_mean, X_std, y_mean, y_std,
     baseline_d, X_baseline, average_window,
     N_inputs, N_inputs_ft, N_inputs_ang, N_per_example
 ):
     if X.size <= 0:
-        return X, y, X_min, X_max, y_mean, y_std, X_baseline, N_per_example
+        return X, y, X_mean, X_std, y_mean, y_std, X_baseline, N_per_example
 
     # %% reduce sequence length
     N_per_example = N_per_example // average_window  # update sequence length
@@ -258,22 +258,22 @@ def data_process(
 
     # %% normalize
     if norm_X:
-        if X_min is None or X_max is None:  # if not given, find it
-            X_min = np.mean(X, axis=(0, 1), keepdims=True)
-            X_max = np.std(X, axis=(0, 1), keepdims=True)
+        if X_mean is None or X_std is None:  # if not given, find it
+            X_mean = np.mean(X, axis=(0, 1), keepdims=True)
+            X_std = np.std(X, axis=(0, 1), keepdims=True)
         # reshape to make sure shape is correct
-        X_min = np.reshape(X_min, (1, 1, -1))
-        X_max = np.reshape(X_max, (1, 1, -1))
+        X_mean = np.reshape(X_mean, (1, 1, -1))
+        X_std = np.reshape(X_std, (1, 1, -1))
 
         # save the min and max values used for normalization of the data
         if save_model:
             Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
-            np.savetxt(save_folder + save_filename + '/X_min.txt', np.squeeze(X_min))
-            np.savetxt(save_folder + save_filename + '/X_max.txt', np.squeeze(X_max))
+            np.savetxt(save_folder + save_filename + '/X_mean.txt', np.squeeze(X_mean))
+            np.savetxt(save_folder + save_filename + '/X_std.txt', np.squeeze(X_std))
 
         # put in range [0, 1]
-        # X = (X - X_min) / (X_max - X_min)
-        X = (X - X_min) / X_max
+        # X = (X - X_mean) / (X_std - X_mean)
+        X = (X - X_mean) / X_std
 
     if norm_y:
         if y_mean is None or y_std is None:  # if not given, find it
@@ -290,7 +290,7 @@ def data_process(
         # y = (y - y_mean) / (y_std - y_mean)
         y = (y - y_mean) / y_std
 
-    return X, y, X_min, X_max, y_mean, y_std, X_baseline, N_per_example
+    return X, y, X_mean, X_std, y_mean, y_std, X_baseline, N_per_example
 
 
 def model_lstm_tf(
@@ -375,7 +375,7 @@ def model_build_tf(
         # metrics=["accuracy"],
         # steps_per_execution=100
     )
-    print("Learning rate:", model.optimizer.learning_rate.numpy())
+    # print("Learning rate:", model.optimizer.learning_rate.numpy())
 
     def print_summary(info):
         # function to print and save model info
@@ -898,7 +898,7 @@ def data_full_process(
     separate_val_files, train_val_split, shuffle_seed,
     separate_test_files, train_test_split,
     save_model, save_folder, save_filename,
-    norm_X, norm_y, X_min, X_max, y_mean, y_std,
+    norm_X, norm_y, X_mean, X_std, y_mean, y_std,
     baseline_d, X_baseline, average_window
 ):
 
@@ -939,11 +939,11 @@ def data_full_process(
         )
 
     # %% pre-processing
-    X_train, y_train, X_min, X_max, y_mean, y_std, X_baseline, N_per_example_new = \
+    X_train, y_train, X_mean, X_std, y_mean, y_std, X_baseline, N_per_example_new = \
         data_process(
             X_train, y_train,
             save_model, save_folder, save_filename,
-            norm_X, norm_y, X_min, X_max, y_mean, y_std,
+            norm_X, norm_y, X_mean, X_std, y_mean, y_std,
             baseline_d, X_baseline, average_window,
             N_inputs, N_inputs_ft, N_inputs_ang, N_per_example_orig
         )
@@ -951,7 +951,7 @@ def data_full_process(
         data_process(
             X_val, y_val,
             save_model, save_folder, save_filename,
-            norm_X, norm_y, X_min, X_max, y_mean, y_std,
+            norm_X, norm_y, X_mean, X_std, y_mean, y_std,
             baseline_d, X_baseline, average_window,
             N_inputs, N_inputs_ft, N_inputs_ang, N_per_example_orig
         )
@@ -959,13 +959,13 @@ def data_full_process(
         data_process(
             X_test, y_test,
             save_model, save_folder, save_filename,
-            norm_X, norm_y, X_min, X_max, y_mean, y_std,
+            norm_X, norm_y, X_mean, X_std, y_mean, y_std,
             baseline_d, X_baseline, average_window,
             N_inputs, N_inputs_ft, N_inputs_ang, N_per_example_orig
         )
 
     return X_train, y_train, s_train, X_val, y_val, s_val, X_test, y_test, s_test,\
-        X_min, X_max, y_mean, y_std, X_baseline, N_per_example_new, N_inputs, t_s, t_cycle
+        X_mean, X_std, y_mean, y_std, X_baseline, N_per_example_new, N_inputs, t_s, t_cycle
 
 
 def y_norm_reverse(y, y_mean, y_std):
