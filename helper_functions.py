@@ -220,7 +220,7 @@ def data_load(
 def data_process(
     X, y,
     save_model, save_folder, save_filename,
-    norm_X, norm_Y, X_min, X_max, y_min, y_max,
+    norm_X, norm_y, X_min, X_max, y_min, y_max,
     baseline_d, X_baseline, average_window,
     N_inputs, N_inputs_ft, N_inputs_ang, N_per_example
 ):
@@ -274,7 +274,7 @@ def data_process(
         # put in range [0, 1]
         X = (X - X_min) / (X_max - X_min)
 
-    if norm_Y:
+    if norm_y:
         if y_min is None or y_max is None:  # if not given, find it
             y_min = np.min(y)
             y_max = np.max(y)
@@ -295,7 +295,7 @@ def model_lstm_tf(
     lstm_layers, dense_hidden_layers, N_units,
     dropout, recurrent_dropout, N_per_example, N_inputs
 ):
-    activation = 'relu'
+    activation = 'elu'
     model = keras.models.Sequential()  # initialize
 
     # LSTM layers
@@ -364,9 +364,9 @@ def model_build_tf(
     #     input_shape=(N_per_example, N_inputs),
     #     head_size=4,
     #     num_heads=4,
-    #     ff_dim=4,  # PROBABLY CHANGE THIS TO 1 OR GET RID OF THE CONV1D LAYER
+    #     ff_dim=1,  # PROBABLY CHANGE THIS TO 1 OR GET RID OF THE CONV1D LAYER
     #     num_transformer_blocks=lstm_layers,
-    #     mlp_units=[N_units],
+    #     mlp_units=[N_units]*dense_hidden_layers,
     #     mlp_dropout=0,
     #     dropout=0,
     # )
@@ -901,7 +901,7 @@ def data_full_process(
     separate_val_files, train_val_split, shuffle_seed,
     separate_test_files, train_test_split,
     save_model, save_folder, save_filename,
-    norm_X, norm_Y, X_min, X_max, y_min, y_max,
+    norm_X, norm_y, X_min, X_max, y_min, y_max,
     baseline_d, X_baseline, average_window
 ):
 
@@ -946,7 +946,7 @@ def data_full_process(
         data_process(
             X_train, y_train,
             save_model, save_folder, save_filename,
-            norm_X, norm_Y, X_min, X_max, y_min, y_max,
+            norm_X, norm_y, X_min, X_max, y_min, y_max,
             baseline_d, X_baseline, average_window,
             N_inputs, N_inputs_ft, N_inputs_ang, N_per_example_orig
         )
@@ -954,7 +954,7 @@ def data_full_process(
         data_process(
             X_val, y_val,
             save_model, save_folder, save_filename,
-            norm_X, norm_Y, X_min, X_max, y_min, y_max,
+            norm_X, norm_y, X_min, X_max, y_min, y_max,
             baseline_d, X_baseline, average_window,
             N_inputs, N_inputs_ft, N_inputs_ang, N_per_example_orig
         )
@@ -962,7 +962,7 @@ def data_full_process(
         data_process(
             X_test, y_test,
             save_model, save_folder, save_filename,
-            norm_X, norm_Y, X_min, X_max, y_min, y_max,
+            norm_X, norm_y, X_min, X_max, y_min, y_max,
             baseline_d, X_baseline, average_window,
             N_inputs, N_inputs_ft, N_inputs_ang, N_per_example_orig
         )
