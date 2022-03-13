@@ -313,6 +313,9 @@ def model_lstm_tf(
         # middle LSTM layers
         for _ in range(lstm_layers - 2):
             model.add(keras.layers.LSTM(N_units, recurrent_dropout=recurrent_dropout, dropout=dropout, return_sequences=True))
+            # dense layer between LSTM layers
+            if dropout > 0:
+                model.add(keras.layers.Dropout(dropout))
             model.add(keras.layers.Dense(N_units, activation=activation))
         # final LSTM layer
         model.add(keras.layers.LSTM(N_units, recurrent_dropout=recurrent_dropout, dropout=dropout))
