@@ -220,12 +220,12 @@ def data_load(
 def data_process(
     X, y,
     save_model, save_folder, save_filename,
-    norm_X, norm_y, X_min, X_max, y_min, y_max,
+    norm_X, norm_y, X_min, X_max, y_mean, y_std,
     baseline_d, X_baseline, average_window,
     N_inputs, N_inputs_ft, N_inputs_ang, N_per_example
 ):
     if X.size <= 0:
-        return X, y, X_min, X_max, y_min, y_max, X_baseline, N_per_example
+        return X, y, X_min, X_max, y_mean, y_std, X_baseline, N_per_example
 
     # %% reduce sequence length
     N_per_example = N_per_example // average_window  # update sequence length
@@ -259,8 +259,8 @@ def data_process(
     # %% normalize
     if norm_X:
         if X_min is None or X_max is None:  # if not given, find it
-            X_min = np.min(X, axis=(0, 1), keepdims=True)
-            X_max = np.max(X, axis=(0, 1), keepdims=True)
+            X_min = np.mean(X, axis=(0, 1), keepdims=True)
+            X_max = np.std(X, axis=(0, 1), keepdims=True)
         # reshape to make sure shape is correct
         X_min = np.reshape(X_min, (1, 1, -1))
         X_max = np.reshape(X_max, (1, 1, -1))
@@ -272,23 +272,25 @@ def data_process(
             np.savetxt(save_folder + save_filename + '/X_max.txt', np.squeeze(X_max))
 
         # put in range [0, 1]
-        X = (X - X_min) / (X_max - X_min)
+        # X = (X - X_min) / (X_max - X_min)
+        X = (X - X_min) / X_max
 
     if norm_y:
-        if y_min is None or y_max is None:  # if not given, find it
-            y_min = np.min(y)
-            y_max = np.max(y)
+        if y_mean is None or y_std is None:  # if not given, find it
+            y_mean = np.mean(y)
+            y_std = np.std(y)
 
         # save the min and max values used for normalization of the data
         if save_model:
             Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
-            np.savetxt(save_folder + save_filename + '/y_min.txt', [y_min])
-            np.savetxt(save_folder + save_filename + '/y_max.txt', [y_max])
+            np.savetxt(save_folder + save_filename + '/y_mean.txt', [y_mean])
+            np.savetxt(save_folder + save_filename + '/y_std.txt', [y_std])
 
         # put in range [0, 1]
-        y = (y - y_min) / (y_max - y_min)
+        # y = (y - y_mean) / (y_std - y_mean)
+        y = (y - y_mean) / y_std
 
-    return X, y, X_min, X_max, y_min, y_max, X_baseline, N_per_example
+    return X, y, X_min, X_max, y_mean, y_std, X_baseline, N_per_example
 
 
 def model_lstm_tf(
@@ -304,6 +306,9 @@ def model_lstm_tf(
     else:
         # first LSTM layer
         model.add(keras.layers.LSTM(N_units, input_shape=(N_per_example, N_inputs), recurrent_dropout=recurrent_dropout, return_sequences=True))
+        # dense layer between LSTM layers
+        if dropout > 0:
+            model.add(keras.layers.Dropout(dropout))
         model.add(keras.layers.Dense(N_units, activation=activation))
         # middle LSTM layers
         for _ in range(lstm_layers - 2):
@@ -323,31 +328,13 @@ def model_lstm_tf(
         model.add(keras.layers.Dropout(dropout))
     model.add(keras.layers.Dense(1))
 
-    # model = keras.models.Sequential(
-    #     [
-    #         # keras.layers.Conv1D(conv_filters, conv_kernel_size, activation='relu', input_shape=(N_per_example, N_inputs)),
-    #         # keras.layers.Conv1D(N_inputs, 3, activation='relu'),
-    #         keras.layers.LSTM(N_units, return_sequences=True, input_shape=(N_per_example, N_inputs), recurrent_dropout=recurrent_dropout),
-    #         keras.layers.LSTM(N_units, recurrent_dropout=recurrent_dropout, dropout=dropout),
-    #         # keras.layers.GRU(N_units, return_sequences=True, input_shape=(N_per_example, N_inputs)),
-    #         # keras.layers.GRU(N_units),
-    #         # keras.layers.RNN(keras.layers.LSTMCell(N_units), return_sequences=True, input_shape=(N_per_example, N_inputs)),
-    #         # keras.layers.RNN(keras.layers.LSTMCell(N_units)),
-    #         # keras.layers.SimpleRNN(N_units, return_sequences=True, input_shape=(N_per_example, N_inputs), unroll=True),
-    #         # keras.layers.SimpleRNN(N_units),
-    #         keras.layers.Dropout(dropout),
-    #         keras.layers.Dense(N_units, activation='elu'),
-    #         keras.layers.Dropout(dropout),
-    #         keras.layers.Dense(1)  # , activation='relu')  # , activation='exponential')
-    #     ]
-    # )
-
     return model
 
 
 def model_build_tf(
     lstm_layers, dense_hidden_layers, N_units,
-    epochs_patience, lr, dropout, recurrent_dropout,
+    epochs_patience, lr, lr_decay_rate, lr_decay_steps,
+    dropout, recurrent_dropout,
     save_model, model_checkpoint, save_results,
     save_folder, save_filename,
     N_per_example, N_inputs
@@ -371,13 +358,23 @@ def model_build_tf(
     #     dropout=0,
     # )
 
+    if lr_decay_rate is None:
+        opt = keras.optimizers.Adam(learning_rate=lr)
+    else:
+        lr_schedule = keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate=lr,
+            decay_rate=lr_decay_rate,
+            decay_steps=lr_decay_steps,
+            staircase=False
+        )
+        opt = keras.optimizers.Adam(learning_rate=lr_schedule)
+
     model.compile(
         loss=keras.losses.MeanAbsoluteError(),
-        optimizer="adam",
+        optimizer=opt,
         # metrics=["accuracy"],
         # steps_per_execution=100
     )
-    keras.backend.set_value(model.optimizer.learning_rate, lr)
     print("Learning rate:", model.optimizer.learning_rate.numpy())
 
     def print_summary(info):
@@ -434,7 +431,7 @@ def model_fit_tf(
         verbose=0,
         callbacks=callbacks_list,
         shuffle=True,
-        max_queue_size=50,
+        max_queue_size=100,
         workers=4,
         use_multiprocessing=False
     )
@@ -901,7 +898,7 @@ def data_full_process(
     separate_val_files, train_val_split, shuffle_seed,
     separate_test_files, train_test_split,
     save_model, save_folder, save_filename,
-    norm_X, norm_y, X_min, X_max, y_min, y_max,
+    norm_X, norm_y, X_min, X_max, y_mean, y_std,
     baseline_d, X_baseline, average_window
 ):
 
@@ -942,11 +939,11 @@ def data_full_process(
         )
 
     # %% pre-processing
-    X_train, y_train, X_min, X_max, y_min, y_max, X_baseline, N_per_example_new = \
+    X_train, y_train, X_min, X_max, y_mean, y_std, X_baseline, N_per_example_new = \
         data_process(
             X_train, y_train,
             save_model, save_folder, save_filename,
-            norm_X, norm_y, X_min, X_max, y_min, y_max,
+            norm_X, norm_y, X_min, X_max, y_mean, y_std,
             baseline_d, X_baseline, average_window,
             N_inputs, N_inputs_ft, N_inputs_ang, N_per_example_orig
         )
@@ -954,7 +951,7 @@ def data_full_process(
         data_process(
             X_val, y_val,
             save_model, save_folder, save_filename,
-            norm_X, norm_y, X_min, X_max, y_min, y_max,
+            norm_X, norm_y, X_min, X_max, y_mean, y_std,
             baseline_d, X_baseline, average_window,
             N_inputs, N_inputs_ft, N_inputs_ang, N_per_example_orig
         )
@@ -962,17 +959,18 @@ def data_full_process(
         data_process(
             X_test, y_test,
             save_model, save_folder, save_filename,
-            norm_X, norm_y, X_min, X_max, y_min, y_max,
+            norm_X, norm_y, X_min, X_max, y_mean, y_std,
             baseline_d, X_baseline, average_window,
             N_inputs, N_inputs_ft, N_inputs_ang, N_per_example_orig
         )
 
     return X_train, y_train, s_train, X_val, y_val, s_val, X_test, y_test, s_test,\
-        X_min, X_max, y_min, y_max, X_baseline, N_per_example_new, N_inputs, t_s, t_cycle
+        X_min, X_max, y_mean, y_std, X_baseline, N_per_example_new, N_inputs, t_s, t_cycle
 
 
-def y_norm_reverse(y, y_min, y_max):
-    return y * (y_max - y_min) + y_min
+def y_norm_reverse(y, y_mean, y_std):
+    # return y * (y_std - y_mean) + y_mean
+    return y * y_std + y_mean
 
 
 def data_split(
@@ -1012,6 +1010,7 @@ def data_split(
     if save_model:
         Path(save_folder + save_filename).mkdir(parents=True, exist_ok=True)  # make folder
         np.savetxt(save_folder + save_filename + '/shuffle_seed.txt', [shuffle_seed], fmt='%i')
+        np.savetxt(save_folder + save_filename + '/permutation_{}_{}.txt'.format(N_files, N_examples), permutation, fmt='%i')
 
     return X_train, y_train, s_train, N_examples_train, X_val, y_val, s_val, N_examples_val
 
