@@ -431,6 +431,7 @@ def model_fit_tf(
         X_train, y_train,
         validation_data=(X_val, y_val),
         epochs=epochs_number,
+        # batch_size=len(y_train),
         verbose=0,
         callbacks=callbacks_list,
         shuffle=True,

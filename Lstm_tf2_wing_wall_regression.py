@@ -4,8 +4,8 @@
 # numpy == 1.19.3
 
 # %% turn into function
-def experiment(parameters):
-    root_folder, Ro, A_star, sets_val, sets_test, average_window, lstm_layers, dense_hidden_layers, N_units, lr, dropout = parameters
+def experiment(data_folder, save_folder, parameters):
+    Ro, A_star, sets_val, sets_test, average_window, lstm_layers, dense_hidden_layers, N_units, lr, dropout, shuffle_seed = parameters
 
     # %%
     # from helper_functions import divide_file_names, data_get_info, data_load, data_shorten_sequence
@@ -20,7 +20,7 @@ def experiment(parameters):
 
     # %% design parameters
     # root_folder = ''  # include trailing slash
-    data_folder = root_folder + 'data/2021.07.28/raw/'  # include trailing slash
+    # data_folder = root_folder + 'data/2021.07.28/raw/'  # include trailing slash
     # Ro = 3.5
     # A_star = 2
     Ro_d_last = {2: 40, 3.5: 40, 5: 40}  # furthest distance from wall for each wing shape
@@ -46,11 +46,11 @@ def experiment(parameters):
     if separate_val_files:
         train_val_split = 1
         # shuffle_examples = False
-        shuffle_seed = None
+        # shuffle_seed = None
     else:
         train_val_split = 0.8
         # shuffle_examples = True
-        shuffle_seed = np.random.default_rng().integers(0, high=1000)
+        # shuffle_seed = np.random.default_rng().integers(0, high=1000)
         # shuffle_seed = 5  # seed to split data in reproducible way
 
     separate_test_files = len(sets_test) > 0
@@ -74,35 +74,42 @@ def experiment(parameters):
     inputs_ang = [0]
 
     norm_X = True
-    norm_Y = True
+    norm_y = True
     # average_window = 10
     baseline_d = None  # set to None for no baseline
 
     # lstm_layers = 2
     # dense_hidden_layers = 1
     # N_units = 16  # number of lstm cells of each lstm layer
-    # lr = 0.0002  # learning rate
-    # dropout = 0.2
-    recurrent_dropout = 0.0
     epochs_number = 5000  # number of epochs
     epochs_patience = 10000  # for early stopping, set <0 to disable
+    # lr = 0.0002  # learning rate
+    lr_decay_rate = 0.9  # set None for no decay
+    lr_decay_steps = epochs_number
+    # dropout = 0.2
+    recurrent_dropout = 0.0
     # k_fold_splits = len(sets_train)
 
     save_model = True  # save model file, save last model if model_checkpoint == False
     model_checkpoint = False  # doesn't do anything if save_model == False
     save_results = True
-    save_folder = root_folder + 'plots/2022.02.25_refactor_again/'  # include trailing slash
-    save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_in={}_bl={}_Ne={}_Ns={}_win={}_{}L{}D{}_lr={}_dr={}'.format(
+    # save_folder = root_folder + 'plots/2022.03.17_exp_laptop_2/'  # include trailing slash
+    save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_inF={}_inA={}_bl={}_Ne={}_Ns={}_win={}_sh={}_{}L{}D{}_lr={}_dr={}'.format(
         Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_val),
-        ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft),
-        baseline_d, N_cycles_example, N_cycles_step, average_window,
-        lstm_layers, dense_hidden_layers, N_units, lr, dropout, recurrent_dropout)
+        ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft), ','.join(str(temp) for temp in inputs_ang),
+        baseline_d, N_cycles_example, N_cycles_step, average_window, shuffle_seed,
+        lstm_layers, dense_hidden_layers, N_units, lr, dropout)
 
     # %% load the data
-    [X_min, X_max, y_min, y_max, X_baseline] = [None, None, None, None, None]  # initialize
+    # [X_mean, X_std, y_mean, y_std, X_baseline] = [None, None, None, None, None]  # initialize
+    X_mean = np.loadtxt(data_folder + 'Ro={}/A={}/X_mean.txt'.format(Ro, A_star))
+    X_std = np.loadtxt(data_folder + 'Ro={}/A={}/X_std.txt'.format(Ro, A_star))
+    y_mean = np.loadtxt(data_folder + 'Ro={}/A={}/y_mean.txt'.format(Ro, A_star))
+    y_std = np.loadtxt(data_folder + 'Ro={}/A={}/y_std.txt'.format(Ro, A_star))
+    X_baseline = None
 
     X_train, y_train, s_train, X_val, y_val, s_val, X_test, y_test, s_test,\
-        X_min, X_max, y_min, y_max, X_baseline, N_per_example, N_inputs, t_s, t_cycle = \
+        X_mean, X_std, y_mean, y_std, X_baseline, N_per_example, N_inputs, t_s, t_cycle = \
         data_full_process(
             data_folder, Ro, A_star,
             sets_train, d_train, d_train_labels,
@@ -113,7 +120,7 @@ def experiment(parameters):
             separate_val_files, train_val_split, shuffle_seed,
             separate_test_files, train_test_split,
             save_model, save_folder, save_filename,
-            norm_X, norm_Y, X_min, X_max, y_min, y_max,
+            norm_X, norm_y, X_mean, X_std, y_mean, y_std,
             baseline_d, X_baseline, average_window
         )
 
@@ -121,7 +128,8 @@ def experiment(parameters):
     model, callbacks_list = \
         model_build_tf(
             lstm_layers, dense_hidden_layers, N_units,
-            epochs_patience, lr, dropout, recurrent_dropout,
+            epochs_patience, lr, lr_decay_rate, lr_decay_steps,
+            dropout, recurrent_dropout,
             save_model, model_checkpoint, save_results,
             save_folder, save_filename,
             N_per_example, N_inputs
@@ -161,13 +169,13 @@ def experiment(parameters):
         )
 
     # %% un-normalize y
-    y_train = np.round(y_norm_reverse(y_train, y_min, y_max))
-    y_val = np.round(y_norm_reverse(y_val, y_min, y_max))
-    y_test = np.round(y_norm_reverse(y_test, y_min, y_max))
+    y_train = np.round(y_norm_reverse(y_train, y_mean, y_std))
+    y_val = np.round(y_norm_reverse(y_val, y_mean, y_std))
+    y_test = np.round(y_norm_reverse(y_test, y_mean, y_std))
 
-    yhat_train = y_norm_reverse(yhat_train, y_min, y_max)
-    yhat_val = y_norm_reverse(yhat_val, y_min, y_max)
-    yhat_test = y_norm_reverse(yhat_test, y_min, y_max)
+    yhat_train = y_norm_reverse(yhat_train, y_mean, y_std)
+    yhat_val = y_norm_reverse(yhat_val, y_mean, y_std)
+    yhat_test = y_norm_reverse(yhat_test, y_mean, y_std)
 
     # %% evaluate performance
     df_val, loss_val_all = \

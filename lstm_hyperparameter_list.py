@@ -1,22 +1,25 @@
 from itertools import product
 from Lstm_tf2_wing_wall_regression import experiment
 
-root_folder_ = ['']
+root_folder = ''  # include trailing slash
+data_folder = root_folder + 'data/2021.07.28/raw/'  # include trailing slash
+save_folder = root_folder + 'plots/2022.03.17_exp_laptop_2/'  # include trailing slash
 
 Ro_ = [2, 3.5, 5]
 A_star_ = [2, 3, 4]
 
 sets_val_ = [[]]
 sets_test_ = [[]]
-average_window_ = [10]
+average_window_ = [15]
 
 lstm_layers_ = [2]
 dense_hidden_layers_ = [1]
-N_units_ = [16]
-lr_ = [0.0003]
+N_units_ = [192]
+lr_ = [0.0005]
 dropout_ = [0.2]
+shuffle_seed_ = [50]
 
-all_vars = [root_folder_, Ro_, A_star_, sets_val_, sets_test_, average_window_, lstm_layers_, dense_hidden_layers_, N_units_, lr_, dropout_]
+all_vars = [Ro_, A_star_, sets_val_, sets_test_, average_window_, lstm_layers_, dense_hidden_layers_, N_units_, lr_, dropout_, shuffle_seed_]
 all_combinations = list(product(*all_vars))
 
 # if sets_val == sets_test, then delete that combination
@@ -29,4 +32,4 @@ print("Number of hyperparameter combinations:", len(all_combinations))
 
 # try all sets of parameters
 for parameters in all_combinations:
-    experiment(parameters)
+    experiment(data_folder, save_folder, parameters)
