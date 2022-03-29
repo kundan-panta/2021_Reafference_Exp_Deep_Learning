@@ -23,7 +23,7 @@ def experiment(data_folder, save_folder, parameters):
     # data_folder = root_folder + 'data/2021.07.28/raw/'  # include trailing slash
     # Ro = 3.5
     # A_star = 2
-    Ro_d_last = {2: 40, 3.5: 40, 5: 40}  # furthest distance from wall for each wing shape
+    Ro_d = {2: [10, 46], 3.5: [4, 40], 5: [1, 37]}  # bounds for distance from wall for each wing shape
 
     # all sets except the ones given in sets_val
     sets_train = [1, 2, 3, 4, 5]
@@ -31,15 +31,15 @@ def experiment(data_folder, save_folder, parameters):
     [sets_train.remove(set_test) for set_test in sets_test if set_test in sets_train]
 
     # sets_train = [1, 2, 3, 4]
-    d_train = [list(range(1, Ro_d_last[Ro] + 1, 3))] * len(sets_train)  # list of all distances from wall for each set
+    d_train = [list(range(Ro_d[Ro][0], Ro_d[Ro][1] + 1, 3))] * len(sets_train)  # list of all distances from wall for each set
     d_train_labels = d_train
 
     # sets_val = [3]
-    d_val = [list(range(1, Ro_d_last[Ro] + 1, 3))] * len(sets_val)  # list of all distances from wall
+    d_val = [list(range(Ro_d[Ro][0], Ro_d[Ro][1] + 1, 3))] * len(sets_val)  # list of all distances from wall
     d_val_labels = d_val
 
     # sets_test = [5]
-    d_test = [list(range(1, Ro_d_last[Ro] + 1, 3))] * len(sets_test)  # list of all distances from wall
+    d_test = [list(range(Ro_d[Ro][0], Ro_d[Ro][1] + 1, 3))] * len(sets_test)  # list of all distances from wall
     d_test_labels = d_test
 
     separate_val_files = len(sets_val) > 0
