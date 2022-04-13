@@ -12,7 +12,7 @@ losses_std = np.full((len(Ro_all), len(A_star_all)), np.NaN)
 
 # assume there's only 1 folder for each case
 root_folder = ''  # include trailing slash
-save_folder = root_folder + 'plots/2022.03.25_exp_best_sh=5/'  # include trailing slash
+save_folder = root_folder + 'plots/2022.03.25_exp_best_sh=500/'  # include trailing slash
 
 # %% mean and std plots
 
@@ -96,9 +96,9 @@ def loss_mean_std(losses_case):
 # d_rows = [[1, 1], [4, 4], [7, 7], [10, 10], [13, 13], [16, 16], [19, 19], [22, 22], [25, 25], [28, 28], [31, 31], [34, 34], [37, 37], [40, 40]]
 # d_rows = [[1, 4], [7, 10], [13, 16], [19, 22], [25, 28], [31, 34], [37, 40]]
 # d_rows = [[1, 7], [10, 16], [19, 25], [28, 34], [37, 40]]
-d_rows = [[1, 10], [13, 22], [25, 34], [37, 40]]
+# d_rows = [[1, 10], [13, 22], [25, 34], [37, 40]]
 # d_rows = [[1, 13], [16, 28], [31, 40]]
-n_rows = len(d_rows)
+# n_rows = len(d_rows)
 
 # wrt Ro
 # fig, axs = plt.subplots(n_rows, len(A_star_all), sharex=True, sharey=True, figsize=(12, 10))
@@ -121,22 +121,70 @@ n_rows = len(d_rows)
 # plt.ylim([0, 10])
 
 # wrt A*
-fig, axs = plt.subplots(n_rows, len(A_star_all), sharex=True, sharey=True, figsize=(12, 13))
-# fig.supxlabel('Ro')
-# fig.supylabel('Mean Absolute Error (cm)')
+# fig, axs = plt.subplots(n_rows, len(A_star_all), sharex=True, sharey=True, figsize=(12, 13))
+# # fig.supxlabel('Ro')
+# # fig.supylabel('Mean Absolute Error (cm)')
 
-for i_row, d_row in enumerate(d_rows):
-    d_min, d_max = d_row
+# for i_row, d_row in enumerate(d_rows):
+#     d_min, d_max = d_row
+
+#     for Ro_ind, Ro in enumerate(Ro_all):
+#         losses_boxplot = []
+#         for A_star_ind, A_star in enumerate(A_star_all):  # one box for each A* in the same axes
+#             losses_boxplot.append(load_loss(Ro, A_star, d_min, d_max))
+
+#         axs[i_row, Ro_ind].boxplot(losses_boxplot, showfliers=False)
+#         plt.setp(axs[i_row, Ro_ind], xticks=[1, 2, 3], xticklabels=A_star_all)
+
+# plt.ylim([0, 10])
+
+# with distance on x-axis
+d_all = list(range(1, 41, 3))
+
+# put the Ro's close together
+figs_A_star = [0] * len(A_star_all)
+axs_A_star = [0] * len(A_star_all)
+
+for i in range(len(A_star_all)):
+    figs_A_star[i], axs_A_star[i] = plt.subplots(len(Ro_all), 1, sharex=True, sharey=True, figsize=(15, 10))
+
+for A_star_ind, A_star in enumerate(A_star_all):
+    figs_A_star[A_star_ind].suptitle('A* = {}'.format(A_star))
+    figs_A_star[A_star_ind].supxlabel('Distance (cm)')
+    figs_A_star[A_star_ind].supylabel('MAE (cm)')
 
     for Ro_ind, Ro in enumerate(Ro_all):
         losses_boxplot = []
-        for A_star_ind, A_star in enumerate(A_star_all):  # one box for each A* in the same axes
-            losses_boxplot.append(load_loss(Ro, A_star, d_min, d_max))
+        for d_ind, d in enumerate(d_all):  # one boxplot for each distance
+            losses_boxplot.append(load_loss(Ro, A_star, d, d))
 
-        axs[i_row, Ro_ind].boxplot(losses_boxplot, showfliers=False)
-        plt.setp(axs[i_row, Ro_ind], xticks=[1, 2, 3], xticklabels=A_star_all)
+        axs_A_star[A_star_ind][Ro_ind].boxplot(losses_boxplot, showfliers=False)
+        plt.setp(axs_A_star[A_star_ind][Ro_ind], xticks=list(range(1, len(d_all) + 1)), xticklabels=d_all)
+        axs_A_star[A_star_ind][Ro_ind].set_ylim(0, 10)
+        axs_A_star[A_star_ind][Ro_ind].set_ylabel('Ro = {}'.format(Ro))
 
-plt.ylim([0, 10])
+# put the A*'s close together
+figs_Ro = [0] * len(Ro_all)
+axs_Ro = [0] * len(Ro_all)
+ylim_Ro = [1, 10, 10]
+
+for i in range(len(Ro_all)):
+    figs_Ro[i], axs_Ro[i] = plt.subplots(len(Ro_all), 1, sharex=True, sharey=True, figsize=(15, 10))
+
+for Ro_ind, Ro in enumerate(Ro_all):
+    figs_Ro[Ro_ind].suptitle('Ro = {}'.format(Ro))
+    figs_Ro[Ro_ind].supxlabel('Distance (cm)')
+    figs_Ro[Ro_ind].supylabel('MAE (cm)')
+
+    for A_star_ind, A_star in enumerate(A_star_all):
+        losses_boxplot = []
+        for d_ind, d in enumerate(d_all):  # one boxplot for each distance
+            losses_boxplot.append(load_loss(Ro, A_star, d, d))
+
+        axs_Ro[Ro_ind][A_star_ind].boxplot(losses_boxplot, showfliers=False)
+        plt.setp(axs_Ro[Ro_ind][A_star_ind], xticks=list(range(1, len(d_all) + 1)), xticklabels=d_all)
+        axs_Ro[Ro_ind][A_star_ind].set_ylim(0, ylim_Ro[Ro_ind])
+        axs_Ro[Ro_ind][A_star_ind].set_ylabel('A* = {}'.format(A_star))
 
 # %%
 plt.show()
