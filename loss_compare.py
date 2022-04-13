@@ -33,68 +33,110 @@ def loss_mean_std(losses_case):
     return np.mean(losses_case), np.std(losses_case)
 
 
-# distances between which to get losses
-d_min = 0
-d_max = 99
+# # distances between which to get losses
+# d_min = 0
+# d_max = 99
 
-for Ro_ind, Ro in enumerate(Ro_all):
-    for A_star_ind, A_star in enumerate(A_star_all):
-        losses_mean[Ro_ind, A_star_ind], losses_std[Ro_ind, A_star_ind] = loss_mean_std(load_loss(Ro, A_star, d_min, d_max))
+# for Ro_ind, Ro in enumerate(Ro_all):
+#     for A_star_ind, A_star in enumerate(A_star_all):
+#         losses_mean[Ro_ind, A_star_ind], losses_std[Ro_ind, A_star_ind] = loss_mean_std(load_loss(Ro, A_star, d_min, d_max))
 
-# make figures
-line_types = ['ro--', 'g*-.', 'b^:']
+# # make figures
+# line_types = ['ro--', 'g*-.', 'b^:']
 
-fig_Ro_loss = plt.figure()
-for A_star_ind, A_star in enumerate(A_star_all):
-    plt.errorbar(Ro_all, losses_mean[:, A_star_ind], yerr=losses_std[:, A_star_ind], label='A*={}'.format(A_star), fmt=line_types[A_star_ind], capsize=5)
-plt.legend()
-plt.xlabel('Ro')
-plt.ylabel('Test Set Loss')
+# fig_Ro_loss = plt.figure()
+# for A_star_ind, A_star in enumerate(A_star_all):
+#     plt.errorbar(Ro_all, losses_mean[:, A_star_ind], yerr=losses_std[:, A_star_ind], label='A*={}'.format(A_star), fmt=line_types[A_star_ind], capsize=5)
+# plt.legend()
+# plt.xlabel('Ro')
+# plt.ylabel('Test Set Loss')
 
-fig_A_star_loss = plt.figure()
-for Ro_ind, Ro in enumerate(Ro_all):
-    plt.errorbar(A_star_all, losses_mean[Ro_ind, :], yerr=losses_std[Ro_ind, :], label='Ro={}'.format(Ro), fmt=line_types[Ro_ind], capsize=5)
-plt.legend()
-plt.xlabel('A*')
-plt.ylabel('Test Set Loss')
+# fig_A_star_loss = plt.figure()
+# for Ro_ind, Ro in enumerate(Ro_all):
+#     plt.errorbar(A_star_all, losses_mean[Ro_ind, :], yerr=losses_std[Ro_ind, :], label='Ro={}'.format(Ro), fmt=line_types[Ro_ind], capsize=5)
+# plt.legend()
+# plt.xlabel('A*')
+# plt.ylabel('Test Set Loss')
 
 # %% boxplot
-ylim = [0, 8]
-plt.tight_layout()
+# ylim = [0, 8]
+# plt.tight_layout()
 
-fig = plt.figure(figsize=[16, 4])
-fig.supxlabel('Ro')
-fig.supylabel('Mean Absolute Error (cm)')
+# fig = plt.figure(figsize=[16, 4])
+# fig.supxlabel('Ro')
+# fig.supylabel('Mean Absolute Error (cm)')
 
-for A_star_ind, A_star in enumerate(A_star_all):
-    losses_boxplot = []
-    for Ro_ind, Ro in enumerate(Ro_all):
-        losses_boxplot.append(load_loss(Ro, A_star, d_min, d_max))
+# for A_star_ind, A_star in enumerate(A_star_all):
+#     losses_boxplot = []
+#     for Ro_ind, Ro in enumerate(Ro_all):
+#         losses_boxplot.append(load_loss(Ro, A_star, d_min, d_max))
 
-    plt.subplot(1, 3, A_star_ind + 1)
-    plt.boxplot(losses_boxplot, showfliers=False)
-    plt.xticks([1, 2, 3], Ro_all)
-    plt.title('A* = {}'.format(A_star))
-    # plt.ylim(ylim)
+#     plt.subplot(1, 3, A_star_ind + 1)
+#     plt.boxplot(losses_boxplot, showfliers=False)
+#     plt.xticks([1, 2, 3], Ro_all)
+#     plt.title('A* = {}'.format(A_star))
+#     # plt.ylim(ylim)
 
-fig = plt.figure(figsize=[16, 4])
-fig.supxlabel('A*')
-fig.supylabel('Mean Absolute Error (cm)')
+# fig = plt.figure(figsize=[16, 4])
+# fig.supxlabel('A*')
+# fig.supylabel('Mean Absolute Error (cm)')
 
-for Ro_ind, Ro in enumerate(Ro_all):
-    losses_boxplot = []
-    for A_star_ind, A_star in enumerate(A_star_all):
-        losses_boxplot.append(load_loss(Ro, A_star, d_min, d_max))
+# for Ro_ind, Ro in enumerate(Ro_all):
+#     losses_boxplot = []
+#     for A_star_ind, A_star in enumerate(A_star_all):
+#         losses_boxplot.append(load_loss(Ro, A_star, d_min, d_max))
 
-    plt.subplot(1, 3, Ro_ind + 1)
-    plt.boxplot(losses_boxplot, showfliers=False)
-    plt.xticks([1, 2, 3], A_star_all)
-    plt.title('Ro = {}'.format(Ro))
-    # plt.ylim(ylim)
+#     plt.subplot(1, 3, Ro_ind + 1)
+#     plt.boxplot(losses_boxplot, showfliers=False)
+#     plt.xticks([1, 2, 3], A_star_all)
+#     plt.title('Ro = {}'.format(Ro))
+#     # plt.ylim(ylim)
 
 # %% make loss plots with multiple rows for each distance
-d_rows = [[1, 1], [4, 4], [7, 7], [10, 10], [13, 13], [16, 16], [19, 19], [22, 22], [25, 25], [28, 28], [31, 31], [34, 34], [37, 37], [40, 40]]
+# d_rows = [[1, 1], [4, 4], [7, 7], [10, 10], [13, 13], [16, 16], [19, 19], [22, 22], [25, 25], [28, 28], [31, 31], [34, 34], [37, 37], [40, 40]]
+# d_rows = [[1, 4], [7, 10], [13, 16], [19, 22], [25, 28], [31, 34], [37, 40]]
+# d_rows = [[1, 7], [10, 16], [19, 25], [28, 34], [37, 40]]
+d_rows = [[1, 10], [13, 22], [25, 34], [37, 40]]
+# d_rows = [[1, 13], [16, 28], [31, 40]]
+n_rows = len(d_rows)
 
+# wrt Ro
+# fig, axs = plt.subplots(n_rows, len(A_star_all), sharex=True, sharey=True, figsize=(12, 10))
+# # fig.supxlabel('Ro')
+# # fig.supylabel('Mean Absolute Error (cm)')
+
+# for i_row, d_row in enumerate(d_rows):
+#     d_min, d_max = d_row
+
+#     for A_star_ind, A_star in enumerate(A_star_all):
+#         losses_boxplot = []
+#         for Ro_ind, Ro in enumerate(Ro_all):  # one box for each Ro in the same axes
+#             losses_boxplot.append(load_loss(Ro, A_star, d_min, d_max))
+
+#         axs[i_row, A_star_ind].boxplot(losses_boxplot, showfliers=False)
+#         # axs[i_row, A_star_ind].set_xticks([1, 2, 3], Ro_all)
+#         # axs[i_row, A_star_ind].set_title('A* = {}'.format(A_star))
+#         plt.setp(axs[i_row, A_star_ind], xticks=[1, 2, 3], xticklabels=Ro_all)
+
+# plt.ylim([0, 10])
+
+# wrt A*
+fig, axs = plt.subplots(n_rows, len(A_star_all), sharex=True, sharey=True, figsize=(12, 13))
+# fig.supxlabel('Ro')
+# fig.supylabel('Mean Absolute Error (cm)')
+
+for i_row, d_row in enumerate(d_rows):
+    d_min, d_max = d_row
+
+    for Ro_ind, Ro in enumerate(Ro_all):
+        losses_boxplot = []
+        for A_star_ind, A_star in enumerate(A_star_all):  # one box for each A* in the same axes
+            losses_boxplot.append(load_loss(Ro, A_star, d_min, d_max))
+
+        axs[i_row, Ro_ind].boxplot(losses_boxplot, showfliers=False)
+        plt.setp(axs[i_row, Ro_ind], xticks=[1, 2, 3], xticklabels=A_star_all)
+
+plt.ylim([0, 10])
 
 # %%
 plt.show()
