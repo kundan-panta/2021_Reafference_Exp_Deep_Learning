@@ -149,7 +149,15 @@ Path(plot_folder).mkdir(parents=True, exist_ok=True)
 # plt.ylim([0, 10])
 
 # with distance on x-axis
-d_all = list(range(1, 46 + 1, 3))
+d_all = [list(range(1, 40 + 1, 3))] * len(Ro_all)
+# d_all = [list(range(10, 46 + 1, 3)), list(range(4, 40 + 1, 3)), list(range(1, 37 + 1, 3))]  # if using same sensor-to-wall distance
+
+# find distance from opposite wall of tank
+wing_len_Ro = [12.367, 17.059, 20.827]
+tank_len = 81  # tank length (cm)
+d_all_opp = []
+for Ro_ind in range(len(d_all)):
+    d_all_opp.append([tank_len - (wing_len_Ro[Ro_ind] + d) for d in d_all[Ro_ind]])
 
 # put the Ro's close together
 figs_A_star = [0] * len(A_star_all)
@@ -165,16 +173,16 @@ for A_star_ind, A_star in enumerate(A_star_all):
 
     for Ro_ind, Ro in enumerate(Ro_all):
         losses_boxplot = []
-        for d_ind, d in enumerate(d_all):  # one boxplot for each distance
+        for d_ind, d in enumerate(d_all[Ro_ind]):  # one boxplot for each distance
             losses_boxplot.append(load_loss(Ro, A_star, d, d))
 
         axs_A_star[A_star_ind][Ro_ind].boxplot(losses_boxplot, showfliers=False)
-        plt.setp(axs_A_star[A_star_ind][Ro_ind], xticks=list(range(1, len(d_all) + 1)), xticklabels=d_all)
+        plt.setp(axs_A_star[A_star_ind][Ro_ind], xticks=list(range(1, len(d_all[Ro_ind]) + 1)), xticklabels=d_all[Ro_ind])
         axs_A_star[A_star_ind][Ro_ind].set_ylim(0, 10)
         axs_A_star[A_star_ind][Ro_ind].set_ylabel('Ro = {}'.format(Ro))
 
         # line going through median
-        # axs_A_star[A_star_ind][Ro_ind].plot(list(range(1, len(d_all) + 1)), np.median(losses_boxplot, axis=1), 'orange')
+        # axs_A_star[A_star_ind][Ro_ind].plot(list(range(1, len(d_all[Ro_ind]) + 1)), np.median(losses_boxplot, axis=1), 'orange')
 
     # save
     figs_A_star[A_star_ind].savefig(plot_folder + 'A={}.png'.format(A_star))
@@ -184,6 +192,7 @@ for A_star_ind, A_star in enumerate(A_star_all):
 figs_Ro = [0] * len(Ro_all)
 axs_Ro = [0] * len(Ro_all)
 ylim_Ro = [2, 10, 10]
+
 
 for i in range(len(Ro_all)):
     figs_Ro[i], axs_Ro[i] = plt.subplots(len(Ro_all), 1, sharex=True, sharey=True, figsize=(15, 10))
@@ -195,16 +204,16 @@ for Ro_ind, Ro in enumerate(Ro_all):
 
     for A_star_ind, A_star in enumerate(A_star_all):
         losses_boxplot = []
-        for d_ind, d in enumerate(d_all):  # one boxplot for each distance
+        for d_ind, d in enumerate(d_all[Ro_ind]):  # one boxplot for each distance
             losses_boxplot.append(load_loss(Ro, A_star, d, d))
 
         axs_Ro[Ro_ind][A_star_ind].boxplot(losses_boxplot, showfliers=False)
-        plt.setp(axs_Ro[Ro_ind][A_star_ind], xticks=list(range(1, len(d_all) + 1)), xticklabels=d_all)
+        plt.setp(axs_Ro[Ro_ind][A_star_ind], xticks=list(range(1, len(d_all[Ro_ind]) + 1)), xticklabels=d_all[Ro_ind])
         axs_Ro[Ro_ind][A_star_ind].set_ylim(0, ylim_Ro[Ro_ind])
         axs_Ro[Ro_ind][A_star_ind].set_ylabel('A* = {}'.format(A_star))
 
         # line going through median
-        # axs_Ro[Ro_ind][A_star_ind].plot(list(range(1, len(d_all) + 1)), np.median(losses_boxplot, axis=1), 'orange')
+        # axs_Ro[Ro_ind][A_star_ind].plot(list(range(1, len(d_all[Ro_ind]) + 1)), np.median(losses_boxplot, axis=1), 'orange')
 
     # save
     figs_Ro[Ro_ind].savefig(plot_folder + 'Ro={}.png'.format(Ro))
