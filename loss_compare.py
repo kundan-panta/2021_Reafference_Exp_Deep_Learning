@@ -2,6 +2,7 @@
 import numpy as np
 from os import walk
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 Ro_all = [2, 3.5, 5]
 A_star_all = [2, 3, 4]
@@ -12,8 +13,10 @@ losses_std = np.full((len(Ro_all), len(A_star_all)), np.NaN)
 
 # assume there's only 1 folder for each case
 root_folder = ''  # include trailing slash
-save_folders = ['plots/2022.03.25_exp_best_sh=5/', 'plots/2022.03.25_exp_best_sh=50/', 'plots/2022.03.25_exp_best_sh=500/', 'plots/2022.04.14_exp_sh=5000']  # include trailing slash
+# save_folders = ['plots/2022.03.25_exp_best_sh=5/', 'plots/2022.03.25_exp_best_sh=50/', 'plots/2022.03.25_exp_best_sh=500/', 'plots/2022.04.14_exp_sh=5000/']  # include trailing slash
+save_folders = ['plots/2022.03.26_exp_best_same_sensor_loc_sh=500/']  # include trailing slash
 save_folders = [root_folder + save_folder for save_folder in save_folders]
+plot_folder = root_folder + 'plots/2022.04.14_loss_plots/sensor-to-wall/'
 
 # %% mean and std plots
 
@@ -97,6 +100,9 @@ def loss_mean_std(losses_case):
 #     # plt.ylim(ylim)
 
 # %% make loss plots with multiple rows for each distance
+# create folder to save plots to
+Path(plot_folder).mkdir(parents=True, exist_ok=True)
+
 # d_rows = [[1, 1], [4, 4], [7, 7], [10, 10], [13, 13], [16, 16], [19, 19], [22, 22], [25, 25], [28, 28], [31, 31], [34, 34], [37, 37], [40, 40]]
 # d_rows = [[1, 4], [7, 10], [13, 16], [19, 22], [25, 28], [31, 34], [37, 40]]
 # d_rows = [[1, 7], [10, 16], [19, 25], [28, 34], [37, 40]]
@@ -143,7 +149,7 @@ def loss_mean_std(losses_case):
 # plt.ylim([0, 10])
 
 # with distance on x-axis
-d_all = list(range(1, 41, 3))
+d_all = list(range(1, 46 + 1, 3))
 
 # put the Ro's close together
 figs_A_star = [0] * len(A_star_all)
@@ -167,10 +173,17 @@ for A_star_ind, A_star in enumerate(A_star_all):
         axs_A_star[A_star_ind][Ro_ind].set_ylim(0, 10)
         axs_A_star[A_star_ind][Ro_ind].set_ylabel('Ro = {}'.format(Ro))
 
+        # line going through median
+        # axs_A_star[A_star_ind][Ro_ind].plot(list(range(1, len(d_all) + 1)), np.median(losses_boxplot, axis=1), 'orange')
+
+    # save
+    figs_A_star[A_star_ind].savefig(plot_folder + 'A={}.png'.format(A_star))
+
+
 # put the A*'s close together
 figs_Ro = [0] * len(Ro_all)
 axs_Ro = [0] * len(Ro_all)
-ylim_Ro = [1.5, 10, 10]
+ylim_Ro = [2, 10, 10]
 
 for i in range(len(Ro_all)):
     figs_Ro[i], axs_Ro[i] = plt.subplots(len(Ro_all), 1, sharex=True, sharey=True, figsize=(15, 10))
@@ -189,6 +202,12 @@ for Ro_ind, Ro in enumerate(Ro_all):
         plt.setp(axs_Ro[Ro_ind][A_star_ind], xticks=list(range(1, len(d_all) + 1)), xticklabels=d_all)
         axs_Ro[Ro_ind][A_star_ind].set_ylim(0, ylim_Ro[Ro_ind])
         axs_Ro[Ro_ind][A_star_ind].set_ylabel('A* = {}'.format(A_star))
+
+        # line going through median
+        # axs_Ro[Ro_ind][A_star_ind].plot(list(range(1, len(d_all) + 1)), np.median(losses_boxplot, axis=1), 'orange')
+
+    # save
+    figs_Ro[Ro_ind].savefig(plot_folder + 'Ro={}.png'.format(Ro))
 
 # %%
 plt.show()
