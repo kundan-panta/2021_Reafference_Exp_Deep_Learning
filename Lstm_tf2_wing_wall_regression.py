@@ -23,7 +23,10 @@ def experiment(data_folder, save_folder, parameters):
     # data_folder = root_folder + 'data/2021.07.28/raw/'  # include trailing slash
     # Ro = 3.5
     # A_star = 2
-    Ro_d = {2: [10, 46], 3.5: [4, 40], 5: [1, 37]}  # bounds for distance from wall for each wing shape
+
+    # bounds for distance from wall for each wing shape
+    Ro_d = {2: [1, 40], 3.5: [1, 40], 5: [1, 40]}
+    # Ro_d = {2: [10, 46], 3.5: [4, 40], 5: [1, 37]}  # same sensor-to-wall distance
 
     # all sets except the ones given in sets_val
     sets_train = [1, 2, 3, 4, 5]
