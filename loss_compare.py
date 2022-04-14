@@ -12,21 +12,25 @@ losses_std = np.full((len(Ro_all), len(A_star_all)), np.NaN)
 
 # assume there's only 1 folder for each case
 root_folder = ''  # include trailing slash
-save_folder = root_folder + 'plots/2022.03.25_exp_best_sh=500/'  # include trailing slash
+save_folders = ['plots/2022.03.25_exp_best_sh=5/', 'plots/2022.03.25_exp_best_sh=50/', 'plots/2022.03.25_exp_best_sh=500/', 'plots/2022.04.14_exp_sh=5000']  # include trailing slash
+save_folders = [root_folder + save_folder for save_folder in save_folders]
 
 # %% mean and std plots
 
 
 def load_loss(Ro, A_star, d_min, d_max):
     target_string = 'Ro={}_A={}'.format(Ro, A_star)
-    _, folders, _ = next(walk(save_folder), (None, [], None))
-    for folder in folders:
-        if target_string in folder:
-            losses_case = np.loadtxt(save_folder + folder + '/loss_test_all.txt')
-            y_case = np.loadtxt(save_folder + folder + '/y_test.txt')
-            # choose only losses within the desired distance
-            losses_case = losses_case[np.logical_and(y_case >= d_min, y_case <= d_max)]
-            return losses_case
+
+    losses_case_all_folders = []
+    for save_folder in save_folders:
+        _, folders, _ = next(walk(save_folder), (None, [], None))
+        for folder in folders:
+            if target_string in folder:
+                losses_case = np.loadtxt(save_folder + folder + '/loss_test_all.txt')
+                y_case = np.loadtxt(save_folder + folder + '/y_test.txt')
+                # choose only losses within the desired distance
+                losses_case_all_folders.append(losses_case[np.logical_and(y_case >= d_min, y_case <= d_max)])
+    return np.concatenate(losses_case_all_folders)
 
 
 def loss_mean_std(losses_case):
@@ -166,7 +170,7 @@ for A_star_ind, A_star in enumerate(A_star_all):
 # put the A*'s close together
 figs_Ro = [0] * len(Ro_all)
 axs_Ro = [0] * len(Ro_all)
-ylim_Ro = [1, 10, 10]
+ylim_Ro = [1.5, 10, 10]
 
 for i in range(len(Ro_all)):
     figs_Ro[i], axs_Ro[i] = plt.subplots(len(Ro_all), 1, sharex=True, sharey=True, figsize=(15, 10))
