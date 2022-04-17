@@ -17,3 +17,9 @@ plot_regression.py
 *desktop.ini
 *.svg
 *.zip
+Lstm_tf2_wing_wall_regression_correction_prediction.py
+loss_plot.py
+loss_check_dropout.py
+lstm_hyperparameter_list_correct_prediction.py
+Lstm_tf2_wing_wall_regression_copy.py
+start_make_0_phase.py
