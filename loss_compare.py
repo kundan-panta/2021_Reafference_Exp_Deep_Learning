@@ -2,6 +2,7 @@
 import numpy as np
 from os import walk
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FormatStrFormatter
 from pathlib import Path
 
 Ro_all = [2, 3.5, 5]
@@ -13,10 +14,10 @@ losses_std = np.full((len(Ro_all), len(A_star_all)), np.NaN)
 
 # assume there's only 1 folder for each case
 root_folder = ''  # include trailing slash
-# save_folders = ['plots/2022.03.25_exp_best_sh=5/', 'plots/2022.03.25_exp_best_sh=50/', 'plots/2022.03.25_exp_best_sh=500/', 'plots/2022.04.14_exp_sh=5000/']  # include trailing slash
-save_folders = ['plots/2022.03.26_exp_best_same_sensor_loc_sh=500/']  # include trailing slash
+save_folders = ['plots/2022.03.25_exp_best_sh=5/', 'plots/2022.03.25_exp_best_sh=50/', 'plots/2022.03.25_exp_best_sh=500/', 'plots/2022.04.14_exp_sh=5000/']  # include trailing slash
+# save_folders = ['plots/2022.03.26_exp_best_same_sensor_loc_sh=500/']  # include trailing slash
 save_folders = [root_folder + save_folder for save_folder in save_folders]
-plot_folder = root_folder + 'plots/2022.04.14_loss_plots/sensor-to-wall/'
+plot_folder = root_folder + 'plots/2022.04.15_loss_plots/'
 
 # %% mean and std plots
 
@@ -157,11 +158,15 @@ wing_len_Ro = [12.367, 17.059, 20.827]
 tank_len = 81  # tank length (cm)
 d_all_opp = []
 for Ro_ind in range(len(d_all)):
-    d_all_opp.append([tank_len - (wing_len_Ro[Ro_ind] + d) for d in d_all[Ro_ind]])
+    d_all_opp.append([round(tank_len - (wing_len_Ro[Ro_ind] + d), 1) for d in d_all[Ro_ind]])
 
 # put the Ro's close together
 figs_A_star = [0] * len(A_star_all)
 axs_A_star = [0] * len(A_star_all)
+
+# for opposite wall distance
+axs_opp_Ro = [[0] * len(Ro_all)] * len(A_star_all)
+color_opp = 'green'
 
 for i in range(len(A_star_all)):
     figs_A_star[i], axs_A_star[i] = plt.subplots(len(Ro_all), 1, sharex=True, sharey=True, figsize=(15, 10))
@@ -182,7 +187,18 @@ for A_star_ind, A_star in enumerate(A_star_all):
         axs_A_star[A_star_ind][Ro_ind].set_ylabel('Ro = {}'.format(Ro))
 
         # line going through median
-        # axs_A_star[A_star_ind][Ro_ind].plot(list(range(1, len(d_all[Ro_ind]) + 1)), np.median(losses_boxplot, axis=1), 'orange')
+        axs_A_star[A_star_ind][Ro_ind].plot(list(range(1, len(d_all[Ro_ind]) + 1)), np.median(losses_boxplot, axis=1), 'orange')
+
+        # show distance to opposite wall ticks
+        axs_opp_Ro[A_star_ind][Ro_ind] = axs_A_star[A_star_ind][Ro_ind].secondary_xaxis('top')
+        plt.setp(axs_opp_Ro[A_star_ind][Ro_ind], xticks=list(range(1, len(d_all_opp[Ro_ind]) + 1)), xticklabels=d_all_opp[Ro_ind])
+        axs_opp_Ro[A_star_ind][Ro_ind].tick_params(axis='x', colors=color_opp)
+
+    # hide x-axis labels from the subplots below the first one for opposite wall distance
+    # for Ro_ind in range(1, len(Ro_all)):
+    #     axs_opp_Ro[A_star_ind][Ro_ind].set_xticklabels([])
+
+    axs_opp_Ro[A_star_ind][0].set_xlabel('Distance from opposite wall (cm)', color=color_opp)
 
     # save
     figs_A_star[A_star_ind].savefig(plot_folder + 'A={}.png'.format(A_star))
@@ -193,6 +209,9 @@ figs_Ro = [0] * len(Ro_all)
 axs_Ro = [0] * len(Ro_all)
 ylim_Ro = [2, 10, 10]
 
+# for opposite wall distance
+axs_opp_Ro = [[0] * len(Ro_all)] * len(A_star_all)
+color_opp = 'green'
 
 for i in range(len(Ro_all)):
     figs_Ro[i], axs_Ro[i] = plt.subplots(len(Ro_all), 1, sharex=True, sharey=True, figsize=(15, 10))
@@ -213,7 +232,18 @@ for Ro_ind, Ro in enumerate(Ro_all):
         axs_Ro[Ro_ind][A_star_ind].set_ylabel('A* = {}'.format(A_star))
 
         # line going through median
-        # axs_Ro[Ro_ind][A_star_ind].plot(list(range(1, len(d_all[Ro_ind]) + 1)), np.median(losses_boxplot, axis=1), 'orange')
+        axs_Ro[Ro_ind][A_star_ind].plot(list(range(1, len(d_all[Ro_ind]) + 1)), np.median(losses_boxplot, axis=1), 'orange')
+
+        # show distance to opposite wall ticks
+        axs_opp_Ro[Ro_ind][A_star_ind] = axs_Ro[Ro_ind][A_star_ind].secondary_xaxis('top')
+        plt.setp(axs_opp_Ro[Ro_ind][A_star_ind], xticks=list(range(1, len(d_all_opp[Ro_ind]) + 1)), xticklabels=d_all_opp[Ro_ind])
+        axs_opp_Ro[Ro_ind][A_star_ind].tick_params(axis='x', colors=color_opp)
+
+    # hide x-axis labels from the subplots below the first one for opposite wall distance
+    for A_star_ind in range(1, len(A_star_all)):
+        axs_opp_Ro[Ro_ind][A_star_ind].set_xticklabels([])
+
+    axs_opp_Ro[Ro_ind][0].set_xlabel('Distance from opposite wall (cm)', color=color_opp)
 
     # save
     figs_Ro[Ro_ind].savefig(plot_folder + 'Ro={}.png'.format(Ro))
