@@ -8,8 +8,8 @@ Ro_all = [2, 3.5, 5]
 A_star_all = [2, 3, 4]
 
 # initialize NaN array to hold the losses for all cases
-losses_mean = np.full((len(Ro_all), len(A_star_all)), np.NaN)
-losses_std = np.full((len(Ro_all), len(A_star_all)), np.NaN)
+# losses_mean = np.full((len(Ro_all), len(A_star_all)), np.NaN)
+# losses_std = np.full((len(Ro_all), len(A_star_all)), np.NaN)
 
 root_folder = ''  # include trailing slash
 plot_folder = root_folder + 'plots/2022.04.24_loss_plots/'
@@ -120,6 +120,80 @@ for Ro_ind, Ro in enumerate(Ro_all):
     plt.xticks([1, 2, 3], A_star_all)
     plt.title('Ro = {}'.format(Ro))
     plt.ylim(ylim)
+
+# %% prettier box plots
+# distances between which to get losses
+d_min = 0
+d_max = 99
+
+ylim = [0, 8]
+
+fig, ax = plt.subplots(figsize=[6.5, 5])
+# fig.supxlabel('Ro')
+# fig.supylabel('|Prediction Error| (cm)')
+
+losses_boxplot_A = []
+for A_star_ind, A_star in enumerate(A_star_all):
+    losses_boxplot = []
+    for Ro_ind, Ro in enumerate(Ro_all):
+        losses_boxplot.append(load_loss(Ro, A_star, d_min, d_max))
+    losses_boxplot_A.append(losses_boxplot)
+
+# --- Labels for your data:
+labels_list = ['2', '3.5', '5']
+width = 0.3
+xlocations = [x * ((1 + len(losses_boxplot_A)) * width) for x in range(len(losses_boxplot_A[0]))]
+
+symbol = 'r+'
+# ymin = min([val for dg in losses_boxplot_A for data in dg for val in data])
+# ymax = max([val for dg in losses_boxplot_A for data in dg for val in data])
+
+# ax = plt.gca()
+# ax.set_ylim(ymin, ymax)
+ax.set_ylim(ylim[0], ylim[1])
+
+ax.grid(True, linestyle='dotted')
+ax.set_axisbelow(True)
+
+plt.xlabel('Ro')
+plt.ylabel('|Prediction Error| (cm)')
+# plt.title('title')
+
+space = len(losses_boxplot_A) / 2
+offset = len(losses_boxplot_A) / 2
+
+
+# --- Offset the positions per group:
+
+group_positions = []
+for num, dg in enumerate(losses_boxplot_A):
+    _off = (0 - space + (0.5 + num))
+    print(_off)
+    group_positions.append([x + _off * (width + 0.01) for x in xlocations])
+
+for dg, pos in zip(losses_boxplot_A, group_positions):
+    plt.boxplot(dg,
+                sym=symbol,
+                #            labels=['']*len(labels_list),
+                labels=[''] * len(labels_list),
+                positions=pos,
+                widths=width,
+                notch=True,
+                #           vert=True,
+                #           whis=1.5,
+                #           bootstrap=None,
+                #           usermedians=None,
+                #           conf_intervals=None,
+                #           patch_artist=False,
+                showfliers=False
+                )
+
+ax.set_xticks(xlocations)
+ax.set_xticklabels(labels_list, rotation=0)
+
+plt.tight_layout()
+plt.show()
+
 
 # %% make loss plots with multiple rows for each distance
 # d_rows = [[1, 1], [4, 4], [7, 7], [10, 10], [13, 13], [16, 16], [19, 19], [22, 22], [25, 25], [28, 28], [31, 31], [34, 34], [37, 37], [40, 40]]
