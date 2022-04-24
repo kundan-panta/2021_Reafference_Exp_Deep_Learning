@@ -84,51 +84,51 @@ def loss_mean_std(losses_case):
 # plt.ylabel('Test Set Loss')
 
 # %% boxplot
-# distances between which to get losses
-d_min = 0
-d_max = 99
+# # distances between which to get losses
+# d_min = 0
+# d_max = 99
 
-ylim = [0, 8]
-plt.tight_layout()
+# ylim = [0, 8]
+# plt.tight_layout()
 
-fig = plt.figure(figsize=[16, 4])
-fig.supxlabel('Ro')
-fig.supylabel('|Prediction Error| (cm)')
+# fig = plt.figure(figsize=[16, 4])
+# fig.supxlabel('Ro')
+# fig.supylabel('|Prediction Error| (cm)')
 
-for A_star_ind, A_star in enumerate(A_star_all):
-    losses_boxplot = []
-    for Ro_ind, Ro in enumerate(Ro_all):
-        losses_boxplot.append(load_loss(Ro, A_star, d_min, d_max))
+# for A_star_ind, A_star in enumerate(A_star_all):
+#     losses_boxplot = []
+#     for Ro_ind, Ro in enumerate(Ro_all):
+#         losses_boxplot.append(load_loss(Ro, A_star, d_min, d_max))
 
-    plt.subplot(1, 3, A_star_ind + 1)
-    plt.boxplot(losses_boxplot, showfliers=False, notch=True)
-    plt.xticks([1, 2, 3], Ro_all)
-    plt.title('A* = {}'.format(A_star))
-    plt.ylim(ylim)
+#     plt.subplot(1, 3, A_star_ind + 1)
+#     plt.boxplot(losses_boxplot, showfliers=False, notch=True)
+#     plt.xticks([1, 2, 3], Ro_all)
+#     plt.title('A* = {}'.format(A_star))
+#     plt.ylim(ylim)
 
-fig = plt.figure(figsize=[16, 4])
-fig.supxlabel('A*')
-fig.supylabel('|Prediction Error| (cm)')
+# fig = plt.figure(figsize=[16, 4])
+# fig.supxlabel('A*')
+# fig.supylabel('|Prediction Error| (cm)')
 
-for Ro_ind, Ro in enumerate(Ro_all):
-    losses_boxplot = []
-    for A_star_ind, A_star in enumerate(A_star_all):
-        losses_boxplot.append(load_loss(Ro, A_star, d_min, d_max))
+# for Ro_ind, Ro in enumerate(Ro_all):
+#     losses_boxplot = []
+#     for A_star_ind, A_star in enumerate(A_star_all):
+#         losses_boxplot.append(load_loss(Ro, A_star, d_min, d_max))
 
-    plt.subplot(1, 3, Ro_ind + 1)
-    plt.boxplot(losses_boxplot, showfliers=False, notch=True)
-    plt.xticks([1, 2, 3], A_star_all)
-    plt.title('Ro = {}'.format(Ro))
-    plt.ylim(ylim)
+#     plt.subplot(1, 3, Ro_ind + 1)
+#     plt.boxplot(losses_boxplot, showfliers=False, notch=True)
+#     plt.xticks([1, 2, 3], A_star_all)
+#     plt.title('Ro = {}'.format(Ro))
+#     plt.ylim(ylim)
 
 # %% prettier box plots
 # distances between which to get losses
 d_min = 0
 d_max = 99
 
-ylim = [0, 8]
+ylim = [-0.02, 8]
 
-fig, ax = plt.subplots(figsize=[6.5, 5])
+fig, ax = plt.subplots(figsize=[6.5, 4])
 # fig.supxlabel('Ro')
 # fig.supylabel('|Prediction Error| (cm)')
 
@@ -152,7 +152,7 @@ symbol = 'r+'
 # ax.set_ylim(ymin, ymax)
 ax.set_ylim(ylim[0], ylim[1])
 
-ax.grid(True, linestyle='dotted')
+ax.grid(True, linestyle=':', axis='y')
 ax.set_axisbelow(True)
 
 plt.xlabel('Ro')
@@ -171,29 +171,58 @@ for num, dg in enumerate(losses_boxplot_A):
     print(_off)
     group_positions.append([x + _off * (width + 0.01) for x in xlocations])
 
-for dg, pos in zip(losses_boxplot_A, group_positions):
-    plt.boxplot(dg,
-                sym=symbol,
-                #            labels=['']*len(labels_list),
-                labels=[''] * len(labels_list),
-                positions=pos,
-                widths=width,
-                notch=True,
-                #           vert=True,
-                #           whis=1.5,
-                #           bootstrap=None,
-                #           usermedians=None,
-                #           conf_intervals=None,
-                #           patch_artist=False,
-                showfliers=False
-                )
+boxplots = [0] * len(A_star_all)
+colors_bp = ['pink', 'lightblue', 'lightgreen']
+for i, (dg, pos) in enumerate(zip(losses_boxplot_A, group_positions)):
+    boxplots[i] = ax.boxplot(dg,
+                             sym=symbol,
+                             labels=[''] * len(labels_list),
+                             positions=pos,
+                             widths=width,
+                             notch=False,
+                             #   vert=True,
+                             #   whis=1.5,
+                             #   bootstrap=None,
+                             #   usermedians=None,
+                             #   conf_intervals=None,
+                             patch_artist=True,
+                             boxprops=dict(facecolor=colors_bp[i]),
+                             showfliers=False
+                             )
 
+# color the boxplots
+
+
+def color_box(bp, color):
+    # Define the elements to color. You can also add medians, fliers and means
+    elements = ['boxes']
+    # elements = []
+
+    # Iterate over each of the elements changing the color
+    for elem in elements:
+        [plt.setp(bp[elem][idx], color=color) for idx in range(len(bp[elem]))]
+
+    # Common colors for all boxplots
+    [plt.setp(bp['medians'][idx], color='black') for idx in range(len(bp['medians']))]
+
+
+for i, bp in enumerate(boxplots):
+    color_box(bp, colors_bp[i])
+
+# formatting stuff
 ax.set_xticks(xlocations)
 ax.set_xticklabels(labels_list, rotation=0)
+ax.tick_params(axis='both', width=0)
+plt.box(False)
+
+# add legend
+labels_legend = ['A*=2', 'A*=3', 'A*=4']
+ax.legend([bp["boxes"][0] for bp in boxplots], labels_legend, loc='best')
 
 plt.tight_layout()
+Path(plot_folder).mkdir(parents=True, exist_ok=True)
+plt.savefig(plot_folder + 'summary.svg')
 plt.show()
-
 
 # %% make loss plots with multiple rows for each distance
 # d_rows = [[1, 1], [4, 4], [7, 7], [10, 10], [13, 13], [16, 16], [19, 19], [22, 22], [25, 25], [28, 28], [31, 31], [34, 34], [37, 37], [40, 40]]
