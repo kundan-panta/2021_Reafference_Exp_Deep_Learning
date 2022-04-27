@@ -12,7 +12,7 @@ A_star_all = [2, 3, 4]
 # losses_std = np.full((len(Ro_all), len(A_star_all)), np.NaN)
 
 root_folder = ''  # include trailing slash
-plot_folder = root_folder + 'plots/2022.04.24_loss_plots/'
+plot_folder = root_folder + 'plots/2022.04.27_loss_plots/'
 
 # choose between wingtip-to-wall or sensor-to-wall models
 w2w = True
@@ -30,7 +30,8 @@ else:
         'plots/2022.03.26_exp_best_same_sensor_loc_sh=500/',
         'plots/2022.04.17_exp_best_same_sensor_loc_sh=5/',
         'plots/2022.04.19_exp_best_same_sensor_loc_sh=50/',
-        'plots/2022.04.19_exp_best_same_sensor_loc_sh=5000/'
+        'plots/2022.04.19_exp_best_same_sensor_loc_sh=5000/',
+        'plots/2022.04.25_exp_best_same_sensor_loc_sh=50000/'
     ]  # include trailing slash
     plot_folder += 's2w/'
 
@@ -196,7 +197,7 @@ for i, (dg, pos) in enumerate(zip(losses_boxplot_A, group_positions)):
 def color_box(bp, color):
     # Define the elements to color. You can also add medians, fliers and means
     elements = ['boxes']
-    # elements = []
+    elements = []
 
     # Iterate over each of the elements changing the color
     for elem in elements:
@@ -347,7 +348,7 @@ for A_star_ind, A_star in enumerate(A_star_all):
 # put the A*'s close together
 figs_Ro = [0] * len(Ro_all)
 axs_Ro = [0] * len(Ro_all)
-ylim_Ro = [10, 10, 10]
+ylim_Ro = [16, 16, 16]
 
 # for opposite wall distance
 axs_opp_Ro = [[0] * len(Ro_all)] * len(A_star_all)
@@ -387,6 +388,108 @@ for Ro_ind, Ro in enumerate(Ro_all):
 
     # save
     figs_Ro[Ro_ind].savefig(plot_folder + 'Ro={}.png'.format(Ro))
+
+# %% with distance, but prettier, only lines, no boxplots
+# create folder to save plots to
+Path(plot_folder).mkdir(parents=True, exist_ok=True)
+
+if w2w:
+    d_all = [list(range(1, 40 + 1, 3))] * len(Ro_all)
+else:
+    d_all = [list(range(10, 46 + 1, 3)), list(range(4, 40 + 1, 3)), list(range(1, 37 + 1, 3))]
+
+# find wingroot-to-wall distance from opposite wall of tank
+wing_len_Ro = [12.367, 17.059, 20.827]
+tank_len = 81  # tank length (cm)
+d_all_opp = []
+for Ro_ind in range(len(d_all)):
+    d_all_opp.append([round(tank_len - (wing_len_Ro[Ro_ind] + d), 1) for d in d_all[Ro_ind]])
+
+# use wingroot-to-wall instead of wingtip-to-wall in the plot
+sensor_to_wall_distance = False
+
+if sensor_to_wall_distance:
+    # calculate the wingroot-to-wall distance
+    d_all_label = []
+    for Ro_ind in range(len(d_all)):
+        d_all_label.append([round(wing_len_Ro[Ro_ind] + d, 1) for d in d_all[Ro_ind]])
+    # don't share the x-axis when comparing different Ro b/c the wingroot-to-wall distances will be different
+    sharex = False
+else:
+    d_all_label = d_all
+    sharex = True
+
+# put the A*'s close together
+figs_Ro = [0] * len(Ro_all)
+axs_Ro = [0] * len(Ro_all)
+ylim_Ro = [[0.00001, 16], [0.00001, 16], [0.00001, 16]]
+# ylim_Ro = [[-3, 1.2], [-3, 1.2], [-3, 1.2]]
+xlim_Ro = [81, 81, 81]
+
+# for opposite wall distance
+axs_opp_Ro = [[0] * len(Ro_all)] * len(A_star_all)
+color_opp = 'green'
+
+for i in range(len(Ro_all)):
+    figs_Ro[i], axs_Ro[i] = plt.subplots(len(Ro_all), 1, sharex=True, sharey=True, figsize=(7.5, 5))
+
+for Ro_ind, Ro in enumerate(Ro_all):
+    figs_Ro[Ro_ind].suptitle('Ro = {}'.format(Ro))
+    figs_Ro[Ro_ind].supxlabel('Distance (cm)')
+    figs_Ro[Ro_ind].supylabel('|Prediction Error| (cm)')
+
+    for A_star_ind, A_star in enumerate(A_star_all):
+        losses_case = []
+        for d_ind, d in enumerate(d_all[Ro_ind]):  # one boxplot for each distance
+            losses_case.append(load_loss(Ro, A_star, d, d))
+
+        # make boxplot
+        # axs_Ro[Ro_ind][A_star_ind].boxplot(losses_case, showfliers=False, notch=True)
+        # line going through median
+        # axs_Ro[Ro_ind][A_star_ind].plot(list(range(1, len(d_all[Ro_ind]) + 1)), np.median(losses_case, axis=1), 'orange')
+
+        # axis formatting
+        # plt.setp(axs_Ro[Ro_ind][A_star_ind], xticks=list(range(1, len(d_all[Ro_ind]) + 1)), xticklabels=d_all_label[Ro_ind])
+        axs_Ro[Ro_ind][A_star_ind].set_yscale('log')
+        axs_Ro[Ro_ind][A_star_ind].set_ylim(ylim_Ro[Ro_ind])
+        axs_Ro[Ro_ind][A_star_ind].set_ylabel('A* = {}'.format(A_star))
+        axs_Ro[Ro_ind][A_star_ind].set_xlim(0, xlim_Ro[Ro_ind])
+        axs_Ro[Ro_ind][A_star_ind].tick_params(left=False, bottom=False)
+        # gridlines
+        axs_Ro[Ro_ind][A_star_ind].grid(True, linestyle=':', axis='both')
+        # hide frame
+        axs_Ro[Ro_ind][A_star_ind].spines['top'].set_visible(False)
+        axs_Ro[Ro_ind][A_star_ind].spines['right'].set_visible(False)
+        # axs_Ro[Ro_ind][A_star_ind].spines['bottom'].set_visible(False)
+        # axs_Ro[Ro_ind][A_star_ind].spines['left'].set_visible(False)
+
+        # make lineplots instead of boxplots
+        # get the whisker values of boxplots
+        iqr = np.percentile(losses_case, 75, axis=1) - np.percentile(losses_case, 25, axis=1)
+        upper = np.percentile(losses_case, 75, axis=1) + 1.5 * iqr
+        upper = np.minimum(upper, np.max(losses_case, axis=1))
+        lower = np.percentile(losses_case, 25, axis=1) - 1.5 * iqr
+        lower = np.maximum(lower, np.min(losses_case, axis=1))
+        # make the lineplots
+        axs_Ro[Ro_ind][A_star_ind].plot(d_all_label[Ro_ind], np.median(losses_case, axis=1), color='red', linestyle='-', marker='o')
+        axs_Ro[Ro_ind][A_star_ind].plot(d_all_label[Ro_ind], upper, color='blue', linestyle='-', marker='+', linewidth=0.5)
+        axs_Ro[Ro_ind][A_star_ind].plot(d_all_label[Ro_ind], lower, color='blue', linestyle='-', marker='+', linewidth=0.5)
+
+        # show distance to opposite wall ticks
+        # axs_opp_Ro[Ro_ind][A_star_ind] = axs_Ro[Ro_ind][A_star_ind].secondary_xaxis('top')
+        # plt.setp(axs_opp_Ro[Ro_ind][A_star_ind], xticks=list(range(1, len(d_all_opp[Ro_ind]) + 1)), xticklabels=d_all_opp[Ro_ind])
+        # axs_opp_Ro[Ro_ind][A_star_ind].tick_params(axis='x', colors=color_opp)
+
+    # hide x-axis labels from the subplots below the first one for opposite wall distance
+    # for A_star_ind in range(1, len(A_star_all)):
+    #     axs_opp_Ro[Ro_ind][A_star_ind].set_xticklabels([])
+    # axs_opp_Ro[Ro_ind][0].set_xlabel('Distance from opposite wall (cm)', color=color_opp)
+
+    # save
+    figs_Ro[Ro_ind].tight_layout()
+    figs_Ro[Ro_ind].savefig(plot_folder + 'Ro={}.png'.format(Ro))
+
+# %% with distance, boxplots, but pretty
 
 # %%
 plt.show()
