@@ -14,10 +14,10 @@ A_star_all = [2, 3, 4]
 # losses_std = np.full((len(Ro_all), len(A_star_all)), np.NaN)
 
 root_folder = ''  # include trailing slash
-plot_folder = root_folder + 'plots/2022.05.10_loss_plots/'
+plot_folder = root_folder + 'plots/2022.05.17_loss_plots/'
 
 # choose between wingtip-to-wall or sensor-to-wall models
-w2w = True
+w2w = False
 if w2w:
     save_folders = [
         'plots/2022.03.25_exp_best_sh=5/',
@@ -26,6 +26,13 @@ if w2w:
         'plots/2022.04.14_exp_best_sh=5000/',
         'plots/2022.04.16_exp_best_sh=50000/'
     ]  # include trailing slash
+    # save_folders = [
+    #     'plots/2022.05.03_noshuffle_Te=1_sh=5/',
+    #     'plots/2022.05.07_noshuffle_Te=2_sh=5/',
+    #     'plots/2022.05.07_noshuffle_Te=3_sh=5/',
+    #     'plots/2022.05.07_noshuffle_Te=4_sh=5/',
+    #     'plots/2022.05.10_noshuffle_Te=5_sh=5/'
+    # ]  # include trailing slash
     suffix = 'w2w'
 
 else:
@@ -174,9 +181,10 @@ plt.xlim(np.min(group_positions) - width, np.max(group_positions) + width)
 labels_legend = ['A*=2', 'A*=3', 'A*=4']
 ax.legend([bp["boxes"][0] for bp in boxplots], labels_legend, loc='best')
 
-plt.tight_layout()
+fig.tight_layout()
 Path(plot_folder).mkdir(parents=True, exist_ok=True)
 plt.savefig(plot_folder + 'Ro_A_summary_' + suffix + '.eps')
+plt.savefig(plot_folder + 'Ro_A_summary_' + suffix + '.pdf')
 # plt.show()
 
 # %% with distance, boxplots, but pretty
@@ -264,25 +272,26 @@ for Ro_i, Ro in enumerate(Ro_all):
         [plt.setp(bplot['medians'][idx], color='white', linewidth=1) for idx in range(len(bplot['medians']))]
 
         # axis formatting
+        if Ro == Ro_all[-1]:
+            axs[A_star_i][Ro_i].yaxis.set_label_position("right")
+            axs[A_star_i][Ro_i].set_ylabel('A*={}'.format(A_star))  # , rotation=270, va='bottom')
+        axs[A_star_i][Ro_i].set_xlim(xlim_Ro[Ro_i])
+        axs[A_star_i][Ro_i].set_ylim(ylim_Ro[Ro_i])
+
+        # customize ticks
+        axs[A_star_i][Ro_i].set_xticks(d_all_ticks[Ro_i])
+        # axs[A_star_i][Ro_i].set_xticklabels(d_all_ticklabels[Ro_i])
+        axs[A_star_i][Ro_i].set_xticklabels([])
+        axs[A_star_i][Ro_i].tick_params(left=False, bottom=False)
+
         # hide frame
         axs[A_star_i][Ro_i].spines['top'].set_visible(False)
         axs[A_star_i][Ro_i].spines['right'].set_visible(False)
         axs[A_star_i][Ro_i].spines['bottom'].set_visible(False)
         axs[A_star_i][Ro_i].spines['left'].set_visible(False)
-
-        # customize ticks
-        # plt.setp(axs[A_star_i][Ro_i], xticks=list(range(1, len(d_all[Ro_i]) + 1)), xticklabels=d_all_label[Ro_i])
-        axs[A_star_i][Ro_i].set_xticks(d_all_ticks[Ro_i])
-        # axs[A_star_i][Ro_i].set_xticklabels(d_all_ticklabels[Ro_i])
-        axs[A_star_i][Ro_i].set_xticklabels([])
-        axs[A_star_i][Ro_i].tick_params(left=False, bottom=False)
-        axs[A_star_i][Ro_i].set_xlim(xlim_Ro[Ro_i])
-        axs[A_star_i][Ro_i].set_ylim(ylim_Ro[Ro_i])
-        if Ro == Ro_all[-1]:
-            axs[A_star_i][Ro_i].yaxis.set_label_position("right")
-            axs[A_star_i][Ro_i].set_ylabel('A*={}'.format(A_star))  # , rotation=270, va='bottom')
         if Ro == Ro_all[0]:
             axs[A_star_i][Ro_i].spines['left'].set_visible(True)
+            axs[A_star_i][Ro_i].tick_params(left=True)
 
         # gridlines
         axs[A_star_i][Ro_i].grid(True, linestyle=':', axis='both')
@@ -299,6 +308,15 @@ for Ro_i, Ro in enumerate(Ro_all):
         # axs_opp[A_star_i][Ro_i].spines['bottom'].set_visible(False)
         # axs_opp[A_star_i][Ro_i].spines['left'].set_visible(False)
 
+    # custom formatting for some axes
+    axs[0][Ro_i].set_title('Ro={}'.format(Ro), y=1.35)
+    # axs[0][Ro_i].spines['top'].set_visible(True)
+    axs[-1][Ro_i].spines['bottom'].set_visible(True)
+    axs[-1][Ro_i].tick_params(bottom=True)
+    axs[-1][Ro_i].set_xticks(d_all_ticks[Ro_i])
+    axs[-1][Ro_i].set_xticklabels(d_all_ticklabels[Ro_i])
+    axs[-1][Ro_i].xaxis.set_minor_locator(FixedLocator(np.arange(len(d_all[Ro_i])) + 1))
+
     # show distance to opposite wall ticks
     axs_opp[0][Ro_i] = axs[0][Ro_i].secondary_xaxis('top')
     # plt.setp(axs_opp[A_star_i][Ro_i], xticks=list(range(1, len(d_all_opp[Ro_i]) + 1)), xticklabels=d_all_opp[Ro_i])
@@ -312,38 +330,26 @@ for Ro_i, Ro in enumerate(Ro_all):
     axs_opp[0][Ro_i].spines['bottom'].set_visible(False)
     axs_opp[0][Ro_i].spines['left'].set_visible(False)
 
-    # hide x-axis labels from the subplots below the first one for opposite wall distance
-    # axs_opp[0][0]._shared_x_axes.remove()
-    # axs_opp[0][0].set_xticklabels(d_all_opp[Ro_i])
-    # axs_opp[0][1].set_xlabel('Distance from opposite wall (cm)', color=color_opp)
+# set axis labels
+axs[1][0].set_ylabel('|Prediction Error| (cm)')
+# fig.supylabel('|Prediction Error| (cm)', fontsize=10)
 
-    # custom formatting for some axes
-    axs[0][Ro_i].set_title('Ro={}'.format(Ro))
-    # axs[0][Ro_i].spines['top'].set_visible(True)
-    axs[-1][Ro_i].spines['bottom'].set_visible(True)
-    axs[-1][Ro_i].tick_params(left=False, bottom=True)
-    axs[-1][Ro_i].set_xticks(d_all_ticks[Ro_i])
-    axs[-1][Ro_i].set_xticklabels(d_all_ticklabels[Ro_i])
-    axs[-1][Ro_i].xaxis.set_minor_locator(FixedLocator(np.arange(len(d_all[Ro_i])) + 1))
-
-# more custom formatting
-
-fig.supylabel('|Prediction Error| (cm)', fontsize=10)
 if w2w:
-    fig.supxlabel('Wingtip-to-wall distance (cm)', fontsize=10)
-    # axs[-1][1].set_xlabel('Wingtip-to-wall distance (cm)')
-    # axs_opp[0][1].set_xlabel('Distance from opposite wall (cm)', color=color_opp)
-    fig.suptitle('Distance from opposite wall (cm)', fontsize=10, color=color_opp)
+    axs[-1][1].set_xlabel('Wingtip-to-wall distance (cm)')
+    fig.tight_layout()
+    axs_opp[0][1].set_xlabel('Distance from opposite wall (cm)', color=color_opp)
+    # fig.supxlabel('Wingtip-to-wall distance (cm)', fontsize=10)
+    # fig.suptitle('Distance from opposite wall (cm)', fontsize=10, color=color_opp)
 else:
-    fig.supxlabel('Sensor-to-wall distance (cm)', fontsize=10)
-    # axs[-1][1].set_xlabel('Sensor-to-wall distance (cm)')
-    # axs_opp[0][1].set_xlabel('Distance from opposite wall (cm)', color=color_opp)
-    fig.suptitle('Distance from opposite wall (cm)', fontsize=10, color=color_opp)
-
-fig.tight_layout()
+    axs[-1][1].set_xlabel('Sensor-to-wall distance (cm)')
+    fig.tight_layout()
+    axs_opp[0][1].set_xlabel('Distance from opposite wall (cm)', color=color_opp)
+    # fig.supxlabel('Sensor-to-wall distance (cm)', fontsize=10)
+    # fig.suptitle('Distance from opposite wall (cm)', fontsize=10, color=color_opp)
 
 # %% save
 fig.savefig(plot_folder + 'losses_distance_' + suffix + '.eps')
+fig.savefig(plot_folder + 'losses_distance_' + suffix + '.pdf')
 
 # %% with distance, boxplots, but pretty
 # # create folder to save plots to

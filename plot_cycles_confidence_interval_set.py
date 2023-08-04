@@ -19,7 +19,7 @@ import numpy as np
 # %% design parameters
 root_folder = ''  # include trailing slash
 data_folder = root_folder + 'data/2021.07.28/raw/'  # include trailing slash
-Ro = 2
+Ro = 3.5
 A_star = 2
 Ro_d_last = {2: 46, 3.5: 43, 5: 40}  # furthest distance from wall for each wing shape
 
@@ -28,8 +28,8 @@ Ro_d_last = {2: 46, 3.5: 43, 5: 40}  # furthest distance from wall for each wing
 # [sets_train.remove(set_val) for set_val in sets_val if set_val in sets_train]
 # [sets_train.remove(set_test) for set_test in sets_test if set_test in sets_train]
 
-sets_train = [1, 2, 3, 4, 5]
-d_train = [list(range(1, Ro_d_last[Ro] + 1, 3))] * len(sets_train)  # list of all distances from wall for each set
+sets_train = [1, 2, 3, 4, 5, 1000]
+d_train = [list(range(1, Ro_d_last[Ro] + 1, 3))] * (len(sets_train)-1) + [[1, 4, 19]]  # list of all distances from wall for each set
 d_train_labels = d_train
 
 sets_val = []
@@ -48,8 +48,8 @@ if separate_val_files:
 else:
     train_val_split = 0.8
     # shuffle_examples = True
-    shuffle_seed = np.random.default_rng().integers(0, high=1000)
-    # shuffle_seed = 5  # seed to split data in reproducible way
+    # shuffle_seed = np.random.default_rng().integers(0, high=1000)
+    shuffle_seed = 5  # seed to split data in reproducible way
 
 separate_test_files = len(sets_test) > 0
 if separate_test_files:
@@ -71,8 +71,8 @@ N_cycles_to_use = 14
 inputs_ft = [0, 1, 2, 3, 4, 5]
 inputs_ang = [0]
 
-norm_X = True
-norm_Y = True
+norm_X = False
+norm_y = False
 average_window = 10
 baseline_d = None  # set to None for no baseline
 
@@ -89,7 +89,7 @@ epochs_patience = 10000  # for early stopping, set <0 to disable
 save_model = True  # save model file, save last model if model_checkpoint == False
 model_checkpoint = False  # doesn't do anything if save_model == False
 save_results = True
-save_folder = root_folder + 'plots/2022.02.26_data_plot/'  # include trailing slash
+save_folder = root_folder + 'plots/2022.03.09_data_plot_new/'  # include trailing slash
 save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_in={}_bl={}_Ne={}_Ns={}_win={}_{}L{}D{}_lr={}_dr={}'.format(
     Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_val),
     ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft),
@@ -113,14 +113,15 @@ X_train, y_train, s_train, X_val, y_val, s_val, X_test, y_test, s_test,\
         separate_val_files, train_val_split, shuffle_seed,
         separate_test_files, train_test_split,
         save_model, save_folder, save_filename,
-        norm_X, norm_Y, X_min, X_max, y_min, y_max,
+        norm_X, norm_y, X_min, X_max, y_min, y_max,
         baseline_d, X_baseline, average_window
     )
 
 # %% un-normalize y
-y_train = np.round(y_norm_reverse(y_train, y_min, y_max))
-y_val = np.round(y_norm_reverse(y_val, y_min, y_max))
-y_test = np.round(y_norm_reverse(y_test, y_min, y_max))
+if norm_y:
+    y_train = np.round(y_norm_reverse(y_train, y_min, y_max))
+    y_val = np.round(y_norm_reverse(y_val, y_min, y_max))
+    y_test = np.round(y_norm_reverse(y_test, y_min, y_max))
 
 # %% fix time length
 # t = np.around(np.loadtxt(data_folder + file_names[0] + '/t.csv', delimiter=','), decimals=3)  # round to ms

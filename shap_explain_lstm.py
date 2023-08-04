@@ -124,7 +124,8 @@ shap_val = shap_values
 shap_val = np.array(shap_val)
 shap_val = np.reshape(shap_val, (int(shap_val.shape[1]), int(shap_val.shape[2]), int(shap_val.shape[3])))
 shap_abs = np.abs(shap_val)
-sum_0 = np.mean(shap_abs, axis=0)
+shap_mean = np.mean(shap_abs, axis=0)
+shap_std = np.std(shap_abs, axis=0)
 
 # %% per time step
 f_names = ['Fx', 'Fy', 'Fz', 'Tx', 'Ty', 'Tz']
@@ -132,12 +133,12 @@ x_pos = [i for i, _ in enumerate(f_names)]
 
 plt.figure(0)
 plt1 = plt.subplot(311)
-plt1.barh(x_pos, sum_0[1])
+plt1.barh(x_pos, shap_mean[1])
 plt1.set_yticks(x_pos)
 plt1.set_yticklabels(f_names)
 plt1.set_title("Yesterday's features (time-step 2)")
 plt2 = plt.subplot(312, sharex=plt1)
-plt2.barh(x_pos, sum_0[0])
+plt2.barh(x_pos, shap_mean[0])
 plt2.set_yticks(x_pos)
 plt2.set_yticklabels(f_names)
 plt2.set_title("The day before yesterday's features(time-step 1)")
@@ -157,12 +158,12 @@ axes = [0] * 6
 #     axes[i] = plt.subplot(2, 3, i + 1)
 #     plt.xlabel('Time steps')
 #     plt.ylabel('Force ' + chr(ord('X') + i))
-#     plt.plot(sum_0[:, i])
+#     plt.plot(shap_mean[:, i])
 
 #     axes[3 + i] = plt.subplot(2, 3, 3 + (i + 1))
 #     plt.xlabel('Time steps')
 #     plt.ylabel('Torque ' + chr(ord('X') + i))
-#     plt.plot(sum_0[:, i + 3])
+#     plt.plot(shap_mean[:, i + 3])
 
 plt.rcParams.update({"savefig.facecolor": (1, 1, 1, 1)})  # disable transparent background
 plt.rc('font', family='serif', size=12)
@@ -174,13 +175,15 @@ gs = gridspec.GridSpec(2, 3, wspace=0.4, hspace=0.35)  # workaround to have no o
 for i in range(3):  # forces
     axes[i] = plt.subplot(gs[i])
     plt.ylabel('Force ' + chr(ord('X') + i))
-    plt.plot(sum_0[:, i], 'r-')
+    plt.plot(shap_mean[:, i], 'r-')
+    plt.gca().fill_between(np.arange(shap_mean.shape[0]), shap_mean[:, i] + shap_std[:, i], shap_mean[:, i] - shap_std[:, i], color="#dddddd")
     # plt.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
 
 for i in range(3, 6):  # torques
     axes[i] = plt.subplot(gs[i])
     plt.ylabel('Torque ' + chr(ord('X') + i - 3))
-    plt.plot(sum_0[:, i], 'r-')
+    plt.plot(shap_mean[:, i], 'r-')
+    plt.gca().fill_between(np.arange(shap_mean.shape[0]), shap_mean[:, i] + shap_std[:, i], shap_mean[:, i] - shap_std[:, i], color="#dddddd")
     # plt.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
 
 for i in range(5):
