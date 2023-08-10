@@ -66,7 +66,7 @@ baseline_d = None  # set to None for no baseline
 save_model = True  # save model file, save last model if model_checkpoint == False
 model_checkpoint = False  # doesn't do anything if save_model == False
 save_results = True
-save_folder = root_folder + 'plots/2022.05.10_forces/'  # include trailing slash
+save_folder = root_folder + 'plots/2023.08.04_forces/'  # include trailing slash
 save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_inF={}_inA={}_bl={}_Ne={}_Ns={}_win={}_sh={}'.format(
     Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_val),
     ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft), ','.join(str(temp) for temp in inputs_ang),
@@ -194,11 +194,14 @@ t_s *= average_window
 # plt.savefig(save_folder + save_filename + '.svg')
 
 # %% plot forces at all distances while changing color spectrum
+# Set default font size and type
+plt.rcParams['font.size'] = '10'
+plt.rcParams['font.family'] = 'Arial'
 plt.rcParams.update({
     "savefig.facecolor": (1, 1, 1, 1),  # disable transparent background
     "axes.titlesize": 10,
 })
-plt.rc('font', family='serif', size=10)
+# plt.rc('font', family='serif', size=10)
 
 horiz = False  # 2x3 or 3x2 layout?
 if horiz:
@@ -206,7 +209,7 @@ if horiz:
     figsize = (6, 3.5)
 else:
     nrows, ncols = [3, 2]
-    figsize = (6, 6.5)
+    figsize = (5, 5.5)
 
 fig, axs = plt.subplots(
     nrows=nrows, ncols=ncols, sharex=True, sharey=False, figsize=figsize,
@@ -220,10 +223,11 @@ d_all = np.unique(y_train)
 d_all = np.flip(d_all)  # to plot further distances first, for changing the overlapping
 gradient = np.linspace(0, 1, len(d_all))
 cmap = cm.get_cmap('viridis')
-ylabels = ['x (Normal) Force (N)', 'y (Spanwise) Force (N)', 'z (Chordwise) Force (N)', 'x (Normal) Torque (N-mm)', 'y (Spanwise) Torque (N-mm)', 'z (Chordwise) Torque (N-mm)']
+ylabels = ['Normal Force (N)', 'Spanwise Force (N)', 'Chordwise Force (N)', 'Normal Torque (N-mm)', 'Spanwise Torque (N-mm)', 'Chordwise Torque (N-mm)']
 ylims = [[-0.4, 0.4], [-0.025, -0.005], [-0.02, 0.02], [-2.2, 2.2], [-0.65, 0.65], [-60, 60]]
 yticks = [None, [-0.01, -0.02], None, None, [-0.6, -0.3, 0, 0.3, 0.6], None]
 t = np.arange(X_train.shape[1]) * t_s
+phase = np.arange(X_train.shape[1]) / X_train.shape[1] * 360
 
 for i in range(nrows):
     for j in range(ncols):
@@ -232,19 +236,28 @@ for i in range(nrows):
                 n = i * ncols + j
             else:
                 n = i + j * nrows
-            axs[i, j].plot(t, np.mean(X_train[y_train == d, :, n], axis=0), color=cmap(gradient[d_i]), linewidth=0.5)
+
+            axs[i, j].plot(phase, np.mean(X_train[y_train == d, :, n], axis=0), color=cmap(gradient[d_i]), linewidth=0.5)
             # axs[i, j].ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
             axs[i, j].set_title(ylabels[n], y=1)
             axs[i, j].set_ylim(ylims[n])
+            # axs[i, j].grid(True)
+
+            # mark stroke reversal
+            axs[i, j].axvline(90, ymin=0, ymax=1, color='black', linestyle=':', linewidth=1)
+            axs[i, j].axvline(270, ymin=0, ymax=1, color='black', linestyle=':', linewidth=1)
+
             if yticks[n] is not None:
                 axs[i, j].set_yticks(yticks[n])
 
-fig.supxlabel('Time (s)', fontsize=10)
+axs[0, 0].set_xlim([phase[0], phase[-1]])
+axs[0, 0].set_xticks([0, 90, 180, 270, 360])
+fig.supxlabel(r'Phase ($\degree$)', fontsize=10)
 fig.tight_layout()
 
 # add color bar
 fig.subplots_adjust(right=0.85)
-cax = fig.add_axes([0.875, 0.1, 0.025, 0.85])  # xloc, yloc, width, height
+cax = fig.add_axes([0.89, 0.124, 0.025, 0.817])  # xloc, yloc, width, height
 # cax.autoscale(tight=True)
 make_axes_locatable(cax)
 mpl.colorbar.ColorbarBase(ax=cax, cmap=cmap, values=gradient, orientation="vertical")
@@ -253,10 +266,12 @@ mpl.colorbar.ColorbarBase(ax=cax, cmap=cmap, values=gradient, orientation="verti
 cax.set_yticks(gradient)
 cax.set_yticklabels(np.round(d_all).astype(int))
 cax.invert_yaxis()
-cax.set_ylabel('Wingtip-to-Wall Distance')  # , rotation=270, va='bottom')
+cax.set_ylabel(r'Plate Tip-to-Wall Distance ($d_{tip}$, cm)')  # , rotation=270, va='bottom')
 cax.tick_params(size=0)
 
+# save figure
 # plt.savefig(save_folder + save_filename + '.eps')
 plt.savefig(save_folder + 'forces.eps')
+plt.savefig(save_folder + 'forces.png', dpi=300)
 
 # %%
