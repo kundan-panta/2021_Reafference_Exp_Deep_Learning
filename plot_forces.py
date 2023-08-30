@@ -66,7 +66,7 @@ baseline_d = None  # set to None for no baseline
 save_model = True  # save model file, save last model if model_checkpoint == False
 model_checkpoint = False  # doesn't do anything if save_model == False
 save_results = True
-save_folder = root_folder + 'plots/2023.08.04_forces/'  # include trailing slash
+save_folder = root_folder + 'plots/2023.08.09_forces/'  # include trailing slash
 save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_inF={}_inA={}_bl={}_Ne={}_Ns={}_win={}_sh={}'.format(
     Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_val),
     ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft), ','.join(str(temp) for temp in inputs_ang),
@@ -229,14 +229,16 @@ yticks = [None, [-0.01, -0.02], None, None, [-0.6, -0.3, 0, 0.3, 0.6], None]
 t = np.arange(X_train.shape[1]) * t_s
 phase = np.arange(X_train.shape[1]) / X_train.shape[1] * 360
 
+print("Ro={}, A*={}".format(Ro, A_star))
 for i in range(nrows):
     for j in range(ncols):
-        for d_i, d in enumerate(d_all):
-            if horiz:
-                n = i * ncols + j
-            else:
-                n = i + j * nrows
+        if horiz:
+            n = i * ncols + j
+        else:
+            n = i + j * nrows
+        std_n_max = -np.inf
 
+        for d_i, d in enumerate(d_all):
             axs[i, j].plot(phase, np.mean(X_train[y_train == d, :, n], axis=0), color=cmap(gradient[d_i]), linewidth=0.5)
             # axs[i, j].ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
             axs[i, j].set_title(ylabels[n], y=1)
@@ -249,6 +251,16 @@ for i in range(nrows):
 
             if yticks[n] is not None:
                 axs[i, j].set_yticks(yticks[n])
+
+            # print maximum standard deviation
+            std_n = np.max(np.std(X_train[y_train == d, :, n], axis=0))
+            if std_n > std_n_max:
+                std_n_max = std_n
+
+        # amp_n_max = np.max(np.abs(X_train[:, :, n]))
+        amp_n_max = np.max(X_train[:, :, n]) - np.min(X_train[:, :, n])
+        # print('{}: {:.3f}'.format(ylabels[n], std_n_max), end='\t')
+        print('{}: {:.3f}'.format(ylabels[n], std_n_max/amp_n_max*100), end='\t')
 
 axs[0, 0].set_xlim([phase[0], phase[-1]])
 axs[0, 0].set_xticks([0, 90, 180, 270, 360])
