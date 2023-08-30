@@ -66,7 +66,7 @@ baseline_d = None  # set to None for no baseline
 save_model = True  # save model file, save last model if model_checkpoint == False
 model_checkpoint = False  # doesn't do anything if save_model == False
 save_results = True
-save_folder = root_folder + 'plots/2023.08.09_forces/'  # include trailing slash
+save_folder = root_folder + 'plots/2023.08.30_forces/'  # include trailing slash
 save_filename = 'Ro={}_A={}_Tr={}_Val={}_Te={}_inF={}_inA={}_bl={}_Ne={}_Ns={}_win={}_sh={}'.format(
     Ro, A_star, ','.join(str(temp) for temp in sets_train), ','.join(str(temp) for temp in sets_val),
     ','.join(str(temp) for temp in sets_test), ','.join(str(temp) for temp in inputs_ft), ','.join(str(temp) for temp in inputs_ang),
@@ -223,7 +223,7 @@ d_all = np.unique(y_train)
 d_all = np.flip(d_all)  # to plot further distances first, for changing the overlapping
 gradient = np.linspace(0, 1, len(d_all))
 cmap = cm.get_cmap('viridis')
-ylabels = ['Normal Force (N)', 'Spanwise Force (N)', 'Chordwise Force (N)', 'Normal Torque (N-mm)', 'Spanwise Torque (N-mm)', 'Chordwise Torque (N-mm)']
+ylabels = ['Normal Force', 'Spanwise Force', 'Chordwise Force', 'Normal Torque', 'Spanwise Torque', 'Chordwise Torque']
 ylims = [[-0.4, 0.4], [-0.025, -0.005], [-0.02, 0.02], [-2.2, 2.2], [-0.65, 0.65], [-60, 60]]
 yticks = [None, [-0.01, -0.02], None, None, [-0.6, -0.3, 0, 0.3, 0.6], None]
 t = np.arange(X_train.shape[1]) * t_s
@@ -241,7 +241,8 @@ for i in range(nrows):
         for d_i, d in enumerate(d_all):
             axs[i, j].plot(phase, np.mean(X_train[y_train == d, :, n], axis=0), color=cmap(gradient[d_i]), linewidth=0.5)
             # axs[i, j].ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
-            axs[i, j].set_title(ylabels[n], y=1)
+            # axs[i, j].set_title(ylabels[n], y=1)
+            axs[i, j].set_ylabel(ylabels[n])
             axs[i, j].set_ylim(ylims[n])
             # axs[i, j].grid(True)
 
